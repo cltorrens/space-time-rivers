@@ -1,0 +1,465 @@
+---
+title: "Pooled N model Bray w NEON data"
+author: "Christa Torrens"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Intro
+This is continuing from the pooled Bray model work w generated data. The other "NEON data" one is a recap of the pooled model w. fake data, and the pooled model w. NEON data. It was getting unwieldy, so here's one that just focuses on a pooled U model with NEON data + fake light (from StreamMetabolizer).
+
+#### Load the packages
+```{r load packages, message=FALSE}
+# Load packages
+library(scales)
+library(magrittr) # moved from  'light ea day as vector'
+library(tidyverse)
+library(lubridate)
+library(streamMetabolizer)
+library(rstan)
+library(tidybayes)
+library(GGally)
+library(shinystan)
+library(zoo)
+library(neonUtilities)
+library(ggpubr)
+library(brms)
+library(pracma) # for 1 type of light AUC calcs
+library(httr) # helps w. the NSRDB light download
+
+
+options(mc.cores = parallel::detectCores())
+
+```
+
+
+#### Part Three: NEON data - 30 days 
+
+Run the pooled model on other NEON streams: "KING" "WALK" "BIGC" "CARI"
+Caribou (AK) and Big Creek (CA) look the best (from earlier explorations)
+
+***NEED TO FIND A RUN OF 30 DAYS W/O NAs - they do not need to be consecutive*** 
+
+NB: NEON timestamps are always in UTC (https://www.neonscience.org/resources/learning-hub/tutorials/explore-neon-ais-data)
+
+**Found units for NEON NO3 in their "Visualizations": uM **
+
+NO3 = 62.0049 g/mol, mg/mmol, ug/umol; N = 14.001 g/mol etc. 
+1 L = 0.001 m^3
+
+1 uM NO3 = 0.000062 g/L = 0.062 mg/L = 62 mg/m^3 ... 
+but N is more useful here:
+
+1 uM NO3-*N* = 0.014 mg/L = 14 mg/m3
+
+```{r load NEON N data}
+
+# load NO3 data for all 4 streams
+load("~/Documents/R_working/Modelscape/space-time-rivers_git/NEON/data_derived/no3_dataset.Rdata")
+View(no3_data_sensor)
+
+# Filter by site ID  ("KING" "WALK" "BIGC" "CARI") and set appropriate time zone (default for NEON is UTC)
+      # grep("USA", OlsonNames(), value=TRUE)
+
+## Big Creek, CA
+bigc.df <- no3_data_sensor %>%
+  filter(siteID == "BIGC") %>% 
+  mutate(local_datetime = with_tz(startDateTime, tzone="America/Los_Angeles"), 
+         Jday = yday(local_datetime))  #130-365
+
+## check years to use for training
+bigc.df %>%
+  filter(year(local_datetime) == 2019) %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+#### 2019 looks good: Filter to 30 days w/o NA
+
+# Pull more days so we can eliminate NAs
+bigc.df.19 <- bigc.df %>%
+ # filter(local_datetime >= ymd_hms('20190621 040000', tz='America/Los_Angeles') & startDateTime <= ymd_hms('20190801 035500', tz='America/Los_Angeles')) 
+  filter(local_datetime >= ymd_hms('20190315 040000', tz='America/Los_Angeles') & startDateTime <= ymd_hms('20190815 035500', tz='America/Los_Angeles')) 
+
+bigc.df.19 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+## select hourly no3 measurements to match what we've done
+bigc.df.19h <- bigc.df.19 %>%
+  filter(minute(local_datetime) == 0) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+plot(bigc.df.19h$local_datetime, bigc.df.19h$N_mean_mgm3, type = 'l')  # used 'l' for better visualization of diel patterns
+#lines(bigc.df.19h$local_datetime, bigc.df.19h$surfWaterNitrateMean, type = 'l', col='blue')
+
+N_b <- mean(bigc.df.19h$N_mean_mgm3, na.rm = TRUE) # background N: here, = 51.9 mg/L 
+
+```
+
+
+##### Eliminate days w NAs
+```{r eliminate days w NAs}
+
+################################# 39 day timeseries ####################
+# Where are the NAs?
+which(is.na(bigc.df.19h$N_mean_mgm3)) 
+#273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 659 660 661
+
+#  295  607  608  609  968  969 1256 1257 1258 1259 1617 1618 2000 2001 2002 2003 2004 2223 2228 2232 2245 2247
+# [23] 2248 2249 2257 2261 2262 2335 2336 2337 2338 2625 2626 2627 2628 2629 2630 2631 2632 2633 2634 2635 2636 2637
+# [45] 2638 2639 2640 2641 2642 2643 2644 2645 2646 2647 2648 2649 2650 2651 2652 3011 3012 3013 3345 3346 3347 3348
+# [67] 3349 3637 3638 3655
+ 
+#Double-check this: 
+bigc.df.19h[273, 2:6] #local_dateime  2019-07-02 12:00:00 (19:00:00 UTC) Jday 183
+bigc.df.19h[300, 2:6] #local_dateime 2019-07-03 15:00:00 (22:00:00 UTC) Jday 184
+bigc.df.19h[659, 2:6] #local_dateime 2019-07-18 14:00:00 (21:00:00 UTC) Jday 199
+
+#### for smaller NA chunks, e.g. 659-661 , we will interpolate using zoo()
+# first see where in the curve this gap falls: (now 611:613)
+plot(bigc.df.19h$local_datetime[605:620], bigc.df.19h$N_mean_mgm3[605:620], type = 'l')  #OK, linear seems reasonable
+
+#ggplot(bigc.df.19h, )
+
+bigc.df.19h$N_mean_mgm3 <- na.approx(bigc.df.19h$N_mean_mgm3)
+bigc.df.19h$surfWaterNitrateMean <- na.approx(bigc.df.19h$surfWaterNitrateMean)
+
+
+#### For large NA chunks (eg 273-300), we will remove the entire day.
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+bigc.df.19h <- bigc.df.19h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+
+bigc.df.19h$model_day[273] #183
+bigc.df.19h$model_day[300] #184
+
+# delete model_day == 183:184
+bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% c(183, 184)),]
+
+# check that all NAs are removed
+which(is.na(bigc.df.19h$N_mean_mgm3)) 
+
+################ Longer timeseries: 
+
+## BIGC Mar 1 - Aug 15 = model_day 74-226 (minus 183 and 184) = 151 model days
+
+
+```
+
+
+
+#### Generate modeled (ideal) light data: StreamMetabolizer
+```{r derive light from streamMetabolizer}
+
+### get lat-long for the sensor location
+#load("~/Documents/R-working/Modelscape/space_time_rivers/NEON/data_derived/no3_spatial_sensor.Rdata")
+#View(no3_spatial_sensor)  # BIGC lat-long: 37.05767, -119.25538
+
+####### Calculate light using streamMetabolizer (lat-long for Big Creek, CA)
+bigc.df.19h <- bigc.df.19h %>%
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=-119.25538),
+         light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=37.05767,longitude=-119.25538)
+        )
+
+#plot(light.h$time.h, light.h$light.h)
+
+
+plot(bigc.df.19h$local_datetime, bigc.df.19h$light) #daily rises and falls
+
+sumlight.h <- bigc.df.19h %>%
+  mutate(hours = hour(local_datetime)) %>%
+  group_by(Jday) %>%
+    summarize(light.hrs = sum(light != 0),     # gotta divide by the # of non-0 light windows
+              sum_of_light = sum(light),
+              sumlight = sum(light)/(light.hrs),
+              sumlight.h = sum(light)/24, 
+              sumlight.trapz = trapz(hours, light)) %>%
+    filter(Jday != 183 & Jday != 227)         # removing days w/o light
+              
+  
+
+
+
+# %>%
+#   mutate(light = if_else(is.nan(light), 0, light))
+
+
+# Error in UseMethod("group_by") : 
+#   no applicable method for 'group_by' applied to an object of class "c('double', 'numeric')"
+
+plot(sumlight.h$Jday, sumlight.h$sumlight.trapz)  ## ~ 14000 - 20000
+
+## Standardize terms for model
+light <- bigc.df.19h$light
+sumlight.ideal <- sumlight.h$sumlight.trapz # daily light data from summing this hourly light data
+
+```
+
+#### Get NSRDB satellite-based (real) light data for the period of interest 
+this code is also in the FAKEdata and NEONdata scripts
+
+```{r  - upload NSRDB light and select relevant Jdays}
+# Read in light CSV - NSRDB
+# light units for GHI (average global horizontal irradiance) = Watt m^-2
+# Conversion factor = approx 4.6 umol m^-2 sec ^-1 for each watt m^-2
+
+csv.name <-  '37.05767_-119.25538_2019_30.csv'  # EDIT AS NEEDED - Also ensure that csv structure fits the code below
+  
+real_sumlight.df <- read_csv(csv.name, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field to work with
+         Time = format(Datetime, format = "%H:%M"), 
+         Jday = yday(Datetime))
+
+# ID light NAs
+na_count <- sum(is.na(real_sumlight.df$GHI))  #0
+na_position <- which(is.na(real_sumlight.df$GHI))
+
+# calculate the daily sumlight by (roughly) integrating the light-time curve for each day
+
+startday = 74  #172 for 39-day model
+endday = 226   #212 for 39-day model
+
+# df.172 <- real_sumlight.df %>%
+#   filter(Jday == 172)
+
+real_sumlight <- real_sumlight.df %>%
+  filter(Jday >= startday & Jday <= endday) %>% 
+  #Big Creek currently looking at Jdays 176:206
+  group_by(Jday) %>%
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)
+            #sumlight.30m = trapz(Datetime, GHI)
+            ) %>%
+  filter(Jday != 183 & Jday != 184)  # remove any Jdays deleted from the bigc.df
+
+plot(real_sumlight$Jday, real_sumlight$sumlight.real)
+
+sumlight.real <- real_sumlight$sumlight.real  # sumlight.real = auc for that Jday
+    ## remove Jdays 183 and 184 to match bigc.df.19h hourly dataframe
+  
+
+plot(x=sumlight.real, y=sumlight.ideal, 
+     xlab = "true light (satellite)",
+     ylab = "modeled light (StreamMetabolizer)",
+     main = "Scatter Plot of ideal vs real daily light"
+)
+     #xlim = c(450,650))
+
+
+```
+
+#### Other model parameters
+
+```{r model params}
+
+# Param values
+
+nday <-  151 # 39
+
+N_amb <- mean(bigc.df.19h$N_mean_mgm3) # 51.9 mg/m^3  sd = 3.1
+N_init <- bigc.df.19h$N_mean_mgm3[1] # 3.8... nconc_mg
+concMA <- matrix(unlist(bigc.df.19h$N_mean_mgm3), ncol = nday, byrow = FALSE)
+
+
+z <- 0.3 #depth in m based on NEON manual Q measurements - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+
+#sumlight <- sumlight[-31]  # removes the final Jday, which has no light (midnight-4a) (not needed w model_day column)
+lightMA <- matrix(light, nrow=24)
+
+```
+
+```{r data list and call to stan}
+# Stan data: T, D, deltat (time increment of sampling in d (so, 1/24)), lightMA, sumlight, zMA, concMA
+# same as for the unpooled model, above: 
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+
+# fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4)
+
+fit.bigc <- stan("pooled-L_ct.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+
+print(fit.bigc)
+
+p.bigc <- summary(fit.bigc)
+
+
+
+```
+
+##### Looking at stuff in shinystan
+```{r shinystan}
+
+shiny.bigc <- launch_shinystan(fit.bigc)
+
+
+```
+
+
+```{r conc_hat-conc comparisons}
+
+# What was the modeled uptake?
+U_mod <- extract(fit.bigc, pars = "U")$U
+
+U_mod_avg <- apply(U_mod, MARGIN = 2, FUN = mean) 
+
+U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
+
+# K 
+
+
+#NOPE, increased the reported U by an order of magnitude... what's going on here?!?  
+# check this when I have more time: https://stackoverflow.com/questions/23302072/use-apply-on-a-multi-dimension-array
+
+
+
+# Get conc_hat from fit; plot vs concMA
+conc_hat <- extract(fit.bigc, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 4000   24   39
+
+# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+#NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
+ 
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+U_mean <- as.vector(c(U_mod_avg))
+
+N_conc <- bigc.df.19h$N_mean_mgm3 ##as.vector(c(concMA)) would give the same values
+
+local_datetime <- bigc.df.19h$local_datetime  
+model_day <-bigc.df.19h$model_day
+hours <- hour(local_datetime)
+  # find a way to remove day #212
+
+
+N_output.df <- data.frame(local_datetime, hours, model_day, N_conc, N_conc_hat)
+
+mod_day <- unique(model_day)
+U_output.df <- data.frame(mod_day, U_mean, sumlight.real) 
+
+# credible intervals for each U
+# extract 2.5% and 97.5% values - see Alice's code?
+
+which.min(U_output.df$U_mean)
+
+U_output.df$U_mean
+
+###### N and N-hat over time
+
+
+N_and_Nhat <- N_output.df %>%
+  filter(model_day >= 100 & model_day <= 110) %>%
+  ggplot(aes(x=hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("[N] mg/m3") +
+  ggtitle("N and N_hat over time - Big Creek pooled model")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+########  N-hat vs N
+
+quartz()
+ggplot(data = U_output.df, aes(x=mod_day)) +
+  geom_point(y=U_mean) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (mg/m2/day)") + 
+  ylim(-20,20) +
+  ggtitle("modeled U over time, Big Creek pooled model w real light") +
+  theme_bw()
+
+##### U over time
+
+
+
+###### U vs sumlight
+
+quartz()
+plot(sumlight.real, U_mod_avg, 
+    xlab = "true light (satellite)",
+    ylab = "modeled NO3 uptake",
+     main = "Scatterplot of NO3 uptake and daily light - fake data")
+
+#######  
+
+
+
+quartz()
+ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+  geom_point() + 
+  xlab("measured N (mg/m3)") + ylab("modeled N (mg/m3)") + 
+  ggtitle("Measured N vs modeled N, Big Creek pooled model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+
+quartz()
+
+# write.csv(p.bigc,file="N_output_pooledU_bigc.csv")
+# output_bigc <- read_csv("N_output_pooledU_bigc.csv")
+# 
+# max.print(fit,pars="conc_tilde")
+
+```
+
+
+
+```{r BIGC 2021 data}
+##2021
+# bigc.df.21 <- bigc.df %>%
+#   filter(startDateTime >= ymd_hms('20210625 040000', tz='America/Los_Angeles') & startDateTime <= ymd_hms('20210725 035500', tz='America/Los_Angeles')) %>%
+#   mutate(Jday = yday(local_datetime))
+
+bigc.df.21 <- bigc.df %>%
+  filter(startDateTime >= ymd_hms('20210715 040000', tz='America/Los_Angeles') & startDateTime <= ymd_hms('20210814 035500', tz='America/Los_Angeles')) %>%
+  mutate(Jday = yday(local_datetime))
+
+## select hourly no3 measurements to match what we've done
+bigc.df.21h <- bigc.df.21 %>%
+  filter(minute(startDateTime) == 0)
+
+plot(bigc.df.21h$local_datetime, bigc.df.21h$surfWaterNitrateMean, type = 'l')
+######   UNITS??? If mM: NO3 = 62.0049 g/mol, mg/mmol, ug/umol
+
+bigc.df.21h <- bigc.df.21h %>%
+  mutate(nconc_mg = surfWaterNitrateMean*62)
+
+plot(bigc.df.21h$local_datetime, bigc.df.21h$nconc_mg)
+```
+
+
+
+
+

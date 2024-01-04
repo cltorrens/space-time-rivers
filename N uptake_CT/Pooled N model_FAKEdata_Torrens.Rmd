@@ -1,0 +1,584 @@
+---
+title: "Pooled N model Bray_fake data"
+author: "Christa Torrens"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Intro
+This is continuing from the pooled Bray model work w. generated data. The initial doc was getting unwieldy; this one focuses on developing the pooled-U model. The first model pools on the mean; I haven't been able to develop a successful model that pools U and light like Bray does.   
+
+#### Load the packages
+```{r load packages, message=FALSE}
+# Load packages
+library(scales)
+library(magrittr) # moved from  'light ea day as vector'
+library(tidyverse)
+library(lubridate)
+library(streamMetabolizer)
+library(rstan)
+library(tidybayes)
+library(GGally)
+library(shinystan)
+library(zoo)
+library(parallel)
+library(ggpubr)
+library(brms)
+library(pracma) # for 1 type of light AUC calcs
+library(httr) # helps w. the NSRDB light download
+
+options(mc.cores = parallel::detectCores())
+
+```
+
+### Pooled model w fake data - U by mean, light from StreamMetabolizer
+Currently pooling uptake (U) by the mean. 
+
+Eventually want to get Bray's method to work (was throwing lots of error): 
+>b1 <- 1.1138
+>b0 <- -2.803
+>pooled_line  U ~ normal(b0+b1*sumlight*1e-6, sigma_U) = linear relationship between sunlight and N uptake
+
+> mean(U_newp)  [1] 2.925009
+> sd(U_newp)  [1] 0.05848184
+
+
+#### Fake the N data to match the pooled model: 
+
+##### First generate 5-min sunlight data for Nyack Cr.:
+Compiled to 1 hour for the hourly light; might be even better to compile 1-minute data
+
+```{r StreamMetabolizer light: 5-min light data readings, compiled}
+
+# StreamMetabolizer calulates PAR w. units umol m^-2 s^-1
+# Currently ~ an order of magnitude too large for the satellite data... figure this out evt.
+
+# Generate timeseries
+t1 <- ymd_hms('20190625 040000', tz='America/Denver')  # as.numeric = 1561460400 (# seconds since 1970)
+t2 <- ymd_hms('20190725 035500', tz='America/Denver') ## 030000 for hourly data; 035500 for 5-min data 
+
+tseq <- seq(from=as.numeric(t1), to=as.numeric(t2), by=300)  # from a to b in 5-minute timesteps (3600 for hour timesteps)  # tseq.h <-seq(from=as.numeric(t1), to=as.numeric(t2), by=3600)
+
+date.time <- as_datetime(tseq, tz='America/Denver') 
+head(date.time)
+
+date <- date(date.time)
+time.h <- hour(date.time)
+time.5min <- minute(date.time)
+Jday <- yday(date.time)
+
+
+# Calculate light using streamMetabolizer (lat-long for Nyack Creek, MT)
+# datetime.solar <- streamMetabolizer::calc_solar_time(local.time=date.time, longitude=-113.64569089116506)
+# 
+# light.5min <- streamMetabolizer::calc_light(solar.time=datetime.solar, latitude=48.515096115449715, longitude=-113.64569089116506)
+
+# with fake data but light for Big Creek, CA
+datetime.solar <- streamMetabolizer::calc_solar_time(local.time=date.time, longitude= -119.25538)
+
+light.5min <- streamMetabolizer::calc_light(solar.time=datetime.solar, latitude=37.05767, longitude= -119.25538)
+
+
+# Hourly and daily data from 5min sunlight data
+timelight.df <- data.frame(datetime = date.time, 
+                           time.h = time.h,
+                           time.5min = time.5min,
+                           Jday = Jday,
+                           light.5min = light.5min)
+
+light.h <- timelight.df %>%
+  group_by(Jday, time.h) %>%    
+  summarize(light.min = sum(light.5min != 0),     # gotta divide by the # of non-0 light windows
+            light.h = sum(light.5min)/light.min 
+            #light.h.trapz = trapz(FIGURE OUT X, Y for 5-min light!)) 
+           )  %>%  
+  mutate(light.h = if_else(is.nan(light.h), 0, light.h))  # dividing by 0 gives NaNs, which need to be converted back to 0
+
+# Summing the hourly light for each day
+sumlight.h <- light.h %>%
+  group_by(Jday) %>%
+  summarize(sumlight.h = sum(light.h))
+ 
+
+plot(light.h$time.h, light.h$light.h)
+plot(sumlight.h$Jday, sumlight.h$sumlight.h)  # notice final reading has 0 light, it's midnight to 4a
+
+#plot(light.h$light.h, light.h1) # checking the difference between methods - other than orders of magnitude
+
+
+## Standardize for model
+light <- light.h$light.h  # hourly light data integrated from 5min data
+sumlight.ideal <- sumlight.h$sumlight.h # daily light data from summing this hourly light data
+
+```
+
+#### Using satellite data to generate light and sumlight
+
+Per Laurel Genzoli and her Klamath colleagues, NSRDB light was the best match to actual light under cloudy/ smoky conditions, compared to CIMIS (intermediate) and NLDAS (worst of the 3). 
+
+See Laurel's script, "Download_NSRDB_Light.R"
+Also, get an API here: https://developer.nrel.gov/signup/
+
+My API key: oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq
+
+Parameter options include:  
+
+air_temperature,    clearsky_dhi,     clearsky_dni,                       clearsky_ghi, 
+cloud_type,         dew_point,        dhi (diffuse horizontal irrad),     dni (direct normal irrad), 
+fill_flag,          ghi (global horizontal irrad),                        relative_humidity, 
+solar_zenith_angle, surface_albedo,   surface_pressure,                   total_precipitable_water, 
+wind_direction,     wind_speed
+
+Figure out what I want... this link helps: https://www.yellowhaze.in/solar-irradiance/
+I believe I want ghi, global horizontal irradiance, which = direct normal irradiance*cos(solar zenith angle) + diffuse horizontal irrad.
+
+####  NSRDB satellite-generated light
+
+##### download data from NSRDB
+
+```{r - DL NSRDB satellite-generated light}
+
+### Getting data for Big Creek now; can re-use in real dataset
+
+## The data downloads by 1 site and 1 year
+
+year <- 2019
+
+# API request parameters, except for longitude and latitude
+# Declare all variables as strings. Spaces must be replaced with '+'.
+################################################################################
+# You must request an NSRDB api key from the link above
+api_key <- 'oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq' #CT's api
+# Set the attributes to extract (e.g., dhi, ghi, etc.), separated by commas.
+attributes <- 'clearsky_ghi,ghi,air_temperature,surface_pressure,wind_speed'
+# Choose year of data
+year = year
+# Set leap year to true or false. True will return leap day data if present, false will not.
+leap_year = 'true'
+# Set time interval in minutes, i.e., '30' is half hour intervals. Valid intervals are 30 & 60.
+interval = '30'
+# Specify Coordinated Universal Time (UTC), 'true' will use UTC, 'false' will use the local time zone of the data.
+utc = 'false'
+# Your full name, use '+' instead of spaces.
+your_name = 'Christa+Torrens'
+# Your reason for using the NSRDB.
+reason_for_use = 'research'
+# Your affiliation
+your_affiliation = 'University+of+Montana'
+# Your email address
+your_email = 'christa.torrens@flbs.umt.edu'
+# Please join our mailing list so we can keep you up-to-date on new developments.
+mailing_list = 'false'
+################################################################################
+lat <- 37.05767
+lon <- -119.25538
+
+# Declare url string
+URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+
+# name the output file
+output_file <- paste0(lat, '_', lon, '_', year, '_', interval, '.csv')
+# API request and saving
+GET(url = URL, write_disk(output_file))
+
+```
+
+Get NEON data too, and compare it to the NSRDB data
+```{r - NEON light data}
+
+# 
+```
+
+
+
+##### Get light data for the period of interest
+
+```{r selecting light data for study period}
+
+# Read in light CSV - NSRDB
+# light units for GHI (average global horizontal irradiance) = Watt m^-2
+# Conversion factor = approx 4.6 umol m^-2 sec ^-1 for each watt m^-2
+
+real_sumlight.df <- read_csv('37.05767_-119.25538_2019_30.csv', skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)), 
+         Time = format(Datetime, format = "%H:%M"), 
+         Jday = yday(Datetime))
+
+# ID light NAs
+na_count <- sum(is.na(real_sumlight.df$GHI))  #0
+na_position <- which(is.na(real_sumlight.df$GHI))
+
+# calculate the daily sumlight by integrating the light-time curve for each day
+
+real_sumlight <- real_sumlight.df %>%
+  filter(Jday >= 176 & Jday <= 206) %>%  #Big Creek currently looking at Jdays 176:206
+  group_by(Jday) %>%
+  summarize(light.t = sum(GHI != 0),     # gotta divide by the # of non-0 light windows
+            sumlight.real = sum(GHI)/light.t)
+  
+plot(real_sumlight$Jday, real_sumlight$sumlight.real)
+
+
+sumlight.real <- real_sumlight$sumlight.real # sumlight.real = auc for that Jday
+
+plot(x=sumlight.real, y=sumlight.ideal, 
+     xlab = "true light (satellite)",
+     ylab = "modeled light (StreamMetabolizer)",
+     main = "Scatter Plot of ideal vs real daily light",
+     xlim = c(450,650))
+
+```
+##### Now use the sunlight data to generate 30 days of N concentration data for the model:
+
+```{r generate N data for pooled model, mean U}
+
+
+
+set.seed(1001)
+
+# Param values
+
+nday <- 30
+K <- 3  # 3-19 in Bray, units = d^-1
+N_amb <- 57   #In mg, mean = 57.16, sd=11.98) #daily value for N_amb
+N_init <- 55  
+z <- 0.2 #depth in m - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+sumlight.ideal <- sumlight.ideal[-31] #removes the final Jday, which has no light (midnight-4a)
+sumlight.real <- sumlight.real[-31] #as above ^
+lightMA <- matrix(light, nrow=24) #puts the hourly summed light data into a matrix (col = days, row = hours in each day)
+
+################## Pooling U  ##############
+
+## Pooled U by mean
+
+# mean_U <- 3
+# error_U <- rnorm(nday, mean=0, sd= 0.2)
+# #mean(error_U)
+# 
+# U <- mean_U + error_U  #vector of uptake, 1 per day
+
+######## U POOLED W SUNLIGHT  ########
+
+# U pooled w. sunlight 
+
+# b1_mean = U_mean
+sigma_U <- 0.1  #sd U_newp = 0.0585 - NOT unit scale
+b0 <- -1
+b1 <- 3 # ~ mean_U
+slope = 1/150 # was 1/40000 w. streammetabolizer light 
+#mx <- b1*sumlight*1e-5
+#U <- rnorm(b0 + b1*sumlight*1e-5, sigma_U)  # vector of uptake, 1 per day
+set.seed(1001)
+U <- rnorm(nday, b0 + slope*sumlight.real, sigma_U)
+mean(U)
+min(U)
+max(U)
+
+## slope scales the sumlight to = U; Put this in transformed params -> b1 transformed 
+time <- c(1:nday)
+plot(time, U)
+
+plot(sumlight.real, U)
+
+#light_fit <- lm(U~sumlight)
+#summary(light_fit)  #p = 0.2....
+
+##################################################################
+
+## Faking the data
+
+# initialize N as a matrix
+N <- matrix(data=NA, nrow = 24, ncol = nday)
+N[1,1] <- N_init
+
+for (d in 1:length(sumlight.ideal)) {
+  ifelse(d > 1, N[1,d]<-N[24, d-1], N[1,d]<-N_init) #ifelse(test, yes, no) to initialize the 1st hour of each day
+  for (h in 2:24) {
+  N[h,d] <- N[h-1,d] - (U[d]/zMA[h,d])*(lightMA[h,d]/sumlight.ideal[d]) +   K*(N_amb-N[h-1,d])*1/24  + rnorm(1, mean = 0, sd = 0.2) 
+  }
+
+}
+
+plot(N[,15])  
+#View(N)
+
+concMA <- N
+
+```
+
+
+Stan data is the same as for the unpooled model: 
+T, D, deltat *(time increment of sampling in d (1/24))*, lightMA, sumlight, zMA, concMA
+
+##### Call to STAN
+
+```{r call to stan}
+
+# linear model to approximate the betas for the prior distributions?
+# get N as a vector...
+
+#betas <- lm(c(N)~light)  ## b0 (intercept) = 53.121864,  b1 (slope (light)) = -0.000125  hmmm. Nothing like Bray's values, also not in unit scale... 
+
+# Stan data: T, D, deltat (time increment of sampling in d (so, 1/24)), lightMA, sumlight, zMA, concMA
+# same as for the unpooled model, above: 
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+
+fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4) # for parallel work add this inside (): control = list(max_treedepth = 15)
+print(fit)
+
+fit.reallightpool <- fit
+
+# launch_shinystan(fit)  # y needs to be a vector and I have a matrix
+
+#p.fakelightpool <- summary(fit)
+
+
+## what's the syntax for a pairs() plot (mentioned in warnings)
+
+## TO DO - out of the summary(fit) pull the mean conc_tilde. Bad news - the matrix is [T,D]
+
+```
+
+**To avoid a slew of warnings and failures to converge (see end) used minimally-informed priors in spite of some prior info. How does that square w this method?**
+
+
+```{r conc-hat v conc}
+
+
+#conc_hat <- extract(fit, pars = "conc_hat")$conc_hat
+
+# get_conc_hat_values <- function(fit) {
+#   # Extract the summary of the Stan fit object
+#   summary_df <- as.data.frame(rstan::summary(fit)$summary)
+# 
+#   # Find the row where 'conc_hat' is located in the summary
+#   conc_hat_row <- grep('^conc_hat', rownames(summary_df))
+# 
+#   # Check if 'conc_hat' is found in the summary
+#   if (length(conc_hat_row) == 0) {
+#     stop("The 'conc_hat' parameter was not found in the Stan model fit.")
+#   }
+# 
+#   # Extract the 'conc_hat' values from the summary
+#   conc_hat_values <- summary_df[conc_hat_row, 'mean']
+# 
+#   return(conc_hat_values)
+# }
+
+#### get conc_hat values
+# Get conc_hat from fit; plot vs concMA
+conc_hat <- extract(fit, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 4000   24   39
+
+# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+#NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
+ 
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+N_conc <- as.vector(c(concMA)) ## bigc.df.19h$N_mean_mgm3 ##would give the same values
+
+# get a datetime at hourly timesteps for the plot
+t3 <- ymd_hms('20190725 030000', tz='America/Denver') # t1 from above
+tseq.h <-seq(from=as.numeric(t1), to=as.numeric(t3), by=3600)
+local_datetime <- as_datetime(tseq.h, tz='America/Denver')
+model_day <-yday(local_datetime) ##bigc.df.19h$model_day
+hours <- hour(local_datetime)
+
+
+  # find a way to remove day #212
+
+output.df <- data.frame(local_datetime, hours, model_day, N_conc, N_conc_hat)
+
+###### N and N-hat over time
+
+quartz()
+ggplot(data = output.df, aes(x=hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("[N] mg/m3") +
+  ggtitle("N and N_hat over time - Fake data, U pooled w real sunlight")+
+  #ggtitle("N and N_hat over time - Fake data, U pooled w real sunlight")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+## U estimate: 
+
+# fake light, fake data, U pooled on the light
+U.reallightpool <- extract(fit.reallightpool, pars = "U")$U
+class(U.fakelightpool) # [1] "matrix" "array" 
+dim(U.fakelightpool) # 2000   30
+U_reallightpool_avg <- apply(U.reallightpool, MARGIN = 2, FUN = mean) 
+mean(U_reallightpool_avg) # 5.004717  #3.01 with real light
+
+# plot modeled U vs real sunlight
+quartz()
+plot(sumlight.real, U_reallightpool_avg, 
+    xlab = "true light (satellite)",
+    ylab = "modeled NO3 uptake",
+     main = "Scatterplot of NO3 uptake and daily light - fake data")
+
+
+```
+
+
+```{r calculate residuals}
+
+# residuals = observed data - modeled posterior samples
+#my_sso <- launch_shinystan(fit)
+
+
+
+```
+
+
+
+##### parse output for the pooled model w fake data
+
+```{r pooled model output}
+
+#view chains
+rstan::traceplot(fit,pars="U")
+rstan::traceplot(fit,pars="K")
+rstan::traceplot(fit,pars="N_b")
+
+# For informed priors, all failed at about 2500 iter
+
+###daily mean, se, sd, percentiles, n_eff, and Rhat
+# create a csv
+write.csv(p.faked,file="pooled_N_uptake_output_CT.csv")
+
+output_pool<-read.csv("pooled_N_uptake_output_CT.csv")
+head(output_pool)
+dim(output_pool)
+
+# sigma = 1
+# K = 2-31
+# N_b = 32-61
+# U = 62-91
+# mean_U = 92
+# sigma_U = 93
+# lp__ = 1534
+# conc_hat = 814-1533
+
+conc_hat_pool <- output_pool$summary.mean[814:1533]
+end(conc_hat_pool) # 720= hourly data )
+#K
+K_pool<-output_pool$summary.mean[2:31]
+end(K_pool)
+
+#K confidence interval
+K_int_high_pool<-output_pool$summary.97.5.[2:31]
+K_int_low_pool<-output_pool$summary.2.5.[2:31]
+
+K_conf_int_pool<-(K_int_high_pool-K_int_low_pool)/2
+head(K_conf_int_pool)
+
+#K SD
+K_SD_pool<-output_pool$summary.sd[2:31]
+end(K_SD_pool)
+
+#N_b
+N_b_pool<-output_pool$summary.mean[32:61]
+end(N_b_pool)
+
+#U
+U_pool<-output_pool$summary.mean[62:91]
+end(U_pool)
+
+#date
+Date <- seq(as.Date('2019-06-25'), as.Date('2019-07-24'), by = 'days')
+Date
+
+#dataframe
+output_average_pool<-data.frame(Date,sumlight,K_pool,N_b_pool, conc_hat_pool, U_pool,K_int_high_pool,K_int_low_pool, K_conf_int_pool,K_SD_pool)
+dim(output_average_pool)
+head(output_average_pool)
+View(output_average_pool)
+
+
+### Pairwise plots to diagnose sampling problems 
+
+ggpairs(output_average_pool[,2:5])
+
+mean(output_average_pool$K_pool) # 2.80 (K = 3 given)
+mean(output_average_pool$N_b_pool) # 58.19  (N_b = 57 given)
+mean(output_average_pool$U_pool) # 3.01 (mean_U = 3)
+
+# boxplots w/ output + given 
+# ggplot(data=output_average_pool) + 
+#   geom_boxplot(data=output_average_pool, y = K_pool) + 
+#   geom_jitter() + 
+#   theme_bw()
+
+# boxplot(data=output_average_pool, K_pool) + 
+
+###plot K vs. U to check  colinearity
+plot(output_average_pool$K_pool,output_average_pool$U_pool, xlab="K", ylab="U",main="Pooled by mean")
+
+#plot U over the study
+plot(Date,output_average_pool$U_pool,xlab="Date",ylab="U",main="Pooled by mean U")
+lines(Date,output_average_pool$U_pool)
+
+#Plot K over study
+plot(Date,output_average_pool$K_pool,xlab="Date",ylab="K",main="Pooled by mean U")
+lines(Date,output_average_pool$K_pool)
+
+
+### check model fit by comparing modeled concentration to input data ('observed'/generated)
+### use model outputs to estimate concentration
+dt<-1/24
+
+U2<-output_average_pool$U_pool  # this is flux in unit mg N m-2 d-1
+K2<-output_average_pool$K_pool
+N_b<-output_average_pool$N_b_pool
+N_hat <- output_average_pool$conc_hat_pool
+
+d<-1:30
+N<-NA
+
+N<-matrix(data= NA, nrow = 24, ncol = 30)
+
+quartz()
+par(mfrow=c(3,5))  #before the for looP to see 4 days at a time
+#dev.off()
+
+for (d in 1:30){
+  N[1,d]<-N_[d]
+  
+  # start at equilibrium for each day
+  
+  for (i in 2:24){
+    
+    N[i,d]<-N[i-1,d] - (U2[d]*lightMA[i,d])/(zMA[i,d]*sumlight[d])+ K2[d]*(N_b[d] - N[i-1,d])*dt
+    
+  }
+  plot(seq(1:24),concMA[,d], main=d, xlab="Hour", ylab="concentration")
+  lines(seq(1:24), N[,d], col="red")
+}
+
+
+## plot data vs model confint for each day (facet wrap?)?
+#ggplot(data=output_average_pool, aes(x = ))
+
+
+
+```
+
+Next, need to work on a better pooled model - not just the mean, but pooling U w sunlight
+
+
