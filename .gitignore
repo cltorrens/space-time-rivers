@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.NEON/data_derived/q_dataset.Rdata
+.NEON/data_derived/par_wsurf_dataset_01m.Rdata
+.NEON/data_derived/precip_dataset_through.precip01.Rdata
+.NEON/data_derived/par_wsurf_dataset_05m.Rdata
