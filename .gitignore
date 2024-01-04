@@ -6,3 +6,7 @@
 .NEON/data_derived/par_wsurf_dataset_01m.Rdata
 .NEON/data_derived/precip_dataset_through.precip01.Rdata
 .NEON/data_derived/par_wsurf_dataset_05m.Rdata
+.N uptake_CT/data/neon_data_derived/q_dataset.Rdata
+.N uptake_CT/data/neon_data_derived/par_wsurf_dataset_01m.Rdata
+.N uptake_CT/data/neon_data_derived/precip_dataset_through.precip01.Rdata
+.N uptake_CT/data/neon_data_derived/par_wsurf_dataset_05m.Rdata
