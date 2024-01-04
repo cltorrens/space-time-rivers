@@ -1,0 +1,89 @@
+---
+title: "02_select and clean NEON data for model"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+## Selecting and cleaning NO3 data for the stan model
+
+First load the required packages
+
+```{r loading packages}
+
+# load packages
+library(scales)
+library(magrittr) # moved from  'light ea day as vector'
+library(tidyverse)
+library(lubridate)
+library(streamMetabolizer)
+library(rstan)
+library(tidybayes)
+library(GGally)
+library(shinystan)
+library(zoo)
+library(neonUtilities)
+library(ggpubr)
+library(brms)
+library(pracma) # for 1 type of light AUC calcs
+library(httr) # helps w. the NSRDB light download
+
+```
+
+Then load the data files
+
+```{r load NEON data and separate by site}
+
+# load NO3 data for all 4 streams ("KING" "WALK" "BIGC" "CARI")
+load("~/Documents/R_working/Modelscape/space-time-rivers_git/NEON/data_derived/no3_dataset.Rdata")  #no3_data_sensor is the object name
+View(no3_data_sensor)
+
+# Filter by site ID and set appropriate time zone for local time (default for NEON is UTC)
+# grep("USA", OlsonNames(), value=TRUE) # not sure what this is supposed to do - returned "character(0)"
+# use OlsonNames() to check for accurate timezone names
+
+bigc.df <- no3_data_sensor %>%
+  filter(siteID == "BIGC") %>% 
+  mutate(local_datetime = with_tz(startDateTime, tzone="US/Pacific"), 
+         Jday = yday(local_datetime))  #130-365
+
+cari.df <- no3_data_sensor %>%
+  filter(siteID == "CARI") %>% 
+  mutate(local_datetime = with_tz(startDateTime, tzone="US/Alaska"), 
+         Jday = yday(local_datetime)) 
+
+king.df <- no3_data_sensor %>%
+  filter(siteID == "KING") %>% 
+  mutate(local_datetime = with_tz(startDateTime, tzone="US/Central"), 
+         Jday = yday(local_datetime)) 
+
+walk.df <- no3_data_sensor %>%
+  filter(siteID == "WALK") %>% 
+  mutate(local_datetime = with_tz(startDateTime, tzone="US/Central"), ## CHECK - Central or Eastern???
+         Jday = yday(local_datetime)) 
+
+
+
+
+```
+
+
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
