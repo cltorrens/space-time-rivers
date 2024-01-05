@@ -25,6 +25,7 @@ library(zoo)
 library(neonUtilities)
 library(ggpubr)
 library(brms)
+library(here) # allows project-based file paths
 library(pracma) # for 1 type of light AUC calcs
 library(httr) # helps w. the NSRDB light download
 
@@ -34,12 +35,15 @@ Then load the data files
 
 ```{r load NEON data and separate by site}
 
-# load NO3 data for all 4 streams ("KING" "WALK" "BIGC" "CARI")
-load("~/Documents/R_working/Modelscape/space-time-rivers_git/NEON/data_derived/no3_dataset.Rdata")  #no3_data_sensor is the object name
-View(no3_data_sensor)
+###### load NO3 data for all 4 streams ("KING" "WALK" "BIGC" "CARI")
+load(here("N_uptake_NEON/data/neon_data_derived/no3_dataset.Rdata"))  #no3_data_sensor is the object name
 
-# Filter by site ID and set appropriate time zone for local time (default for NEON is UTC)
-# grep("USA", OlsonNames(), value=TRUE) # not sure what this is supposed to do - returned "character(0)"
+View(no3_data_sensor)
+unique(no3_data_sensor$siteID)
+
+###### Filter by site ID and set appropriate time zone for local time (default for NEON is UTC)
+
+# grep("USA", OlsonNames(), value=TRUE) # not sure what this is supposed to do - returned "character(0)". grep() in base R is for pattern matching and replacement
 # use OlsonNames() to check for accurate timezone names
 
 bigc.df <- no3_data_sensor %>%
@@ -62,10 +66,158 @@ walk.df <- no3_data_sensor %>%
   mutate(local_datetime = with_tz(startDateTime, tzone="US/Central"), ## CHECK - Central or Eastern???
          Jday = yday(local_datetime)) 
 
+```
+
+For each site, select the year(s) to use in the model. For the 1st round, 2019 is what we will use for the 1st 4 sites ("KING" "WALK" "BIGC" "CARI")
+
+BIGC: https://www.neonscience.org/field-sites/bigc
+CARI: https://www.neonscience.org/field-sites/cari
+KING: https://www.neonscience.org/field-sites/king
+WALK: https://www.neonscience.org/field-sites/walk
+
+```{r select and plot years}
+
+##### visualize data by site and year for model dataset selection
+bigc.df %>%
+#cari.df %>%
+#king.df %>%
+#walk.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
 
 
+##### filter data by selected year(s)
+bigc.df.2019 <- bigc.df %>%
+  filter(year(local_datetime) == 2019) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+bigc.df.2021 <- bigc.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cari.df.2019 <- cari.df %>%
+  filter(year(local_datetime) == 2019) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cari.df.2020 <- cari.df %>%
+  filter(year(local_datetime) == 2020) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+king.df.2019 <- king.df %>%
+  filter(year(local_datetime) == 2019) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+king.df.2020 <-  king.df %>%
+  filter(year(local_datetime) == 2020) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+walk.df.2019 <- walk.df %>%
+  filter(year(local_datetime) == 2019) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+walk.df.2022 <- walk.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
 
 ```
+
+```{r plot selected data by site and year}
+
+##### data site and year plots for SI
+
+# When I'm ready to shade my study reach, insert this code into the graph(s):
+# geom_rect(xmin = as.Date("2019-01-01"), xmax = as.Date("2019-03-15"), ymin = -Inf, ymax = Inf, fill = "gray", alpha = 0.3) +
+
+# the geom_rect line adds a shaded rectangle to the specified portions of my graph. This is the code ChatGPT provided, I could probably use $local_datetime
+  
+
+bigc.plot.2019 <- bigc.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Big Creek nitrate: 2019") +
+  theme_bw()
+
+bigc.plot.2021 <- bigc.df.2021 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Big Creek CA nitrate: 2021") +
+  theme_bw()
+
+
+  
+cari.plot.2019 <- cari.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Caribou Creek AK nitrate: 2019") +
+  theme_bw()
+  
+cari.plot.2020 <- cari.df.2020 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Caribou Creek AK nitrate: 2020") +
+  theme_bw()
+
+
+
+king.plot.2019 <- king.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "King's Creek KS nitrate: 2019") +
+  theme_bw()
+
+king.plot.2020 <- king.df.2020 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "King's Creek KS nitrate: 2020") +
+  theme_bw()
+
+
+
+walk.plot.2019 <- walk.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Walker Creek TN nitrate: 2019") +
+  theme_bw()
+
+
+bigc.plot.2019
+bigc.plot.2021
+cari.plot.2019
+cari.plot.2020
+king.plot.2019
+king.plot.2020
+
+```
+
+**NEON site coordinates:**
+
+Big Creek, CA: 1128.13m (at DS sensor)
+site = 37.05972, -119.25755
+DS sensor site = 37.05767, -119.25538
+US sensor site = 37.05871, -119.25650
+
+Caribou Creek, AK: 225.45m (at DS sensor)
+site = 65.15322, -147.50397
+DS sensor site = 65.15307, -147.50195 
+US sensor site = 65.15254, -147.50786
+
+King's Creek, KS: 525.24m (at sensor)
+site = 39.10506, -96.60383
+sensor site = 39.10460, -96.60264 (the other sensors appear to be terrestrial? This site is by the discharge station)
+
+Walker Branch, TN: 262.49m (at sensor)
+site = 35.95738, -84.27925
+sensor site = 35.95722, -84.27921
+
+
+
+
+
+
+
+
 
 Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
 

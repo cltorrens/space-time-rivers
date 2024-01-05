@@ -1,6 +1,7 @@
-### Downloading NSRDB light data to generate light and sumlight
+###  Downloading NSRDB light data to generate light and sumlight 
 
-#### Using satellite data 
+
+######################### Using satellite data  ####################################
 
 # Per Laurel Genzoli and her Klamath colleagues, NSRDB light was the best match to actual light under cloudy/ smoky conditions, compared to CIMIS (intermediate) and NLDAS (worst of the 3). 
 # 
@@ -19,13 +20,37 @@
 # 
 # Figure out what I want... this link helps: https://www.yellowhaze.in/solar-irradiance/
 # I believe I want ghi, global horizontal irradiance, which = direct normal irradiance*cos(solar zenith angle) + diffuse horizontal irrad.
+# 
+# 
+# NEON sensor site coordinates:
+# 
+# Big Creek, CA: 
+#   1128.13m (at DS sensor)
+#   DS sensor site = 37.05767, -119.25538
+#   US sensor site = 37.05871, -119.25650
+#   
+# Caribou Creek, AK: 
+#   225.45m (at DS sensor)
+#   DS sensor site = 65.15307, -147.50195
+#   US sensor site = 65.15254, -147.50786
+
+# King's Creek, KS: 
+#   525.24m (at sensor)
+#   sensor site = 39.10460, -96.60264 
+#   (the other sensors appear to be terrestrial? This site is by the discharge station)
+# 
+# Walker Branch, TN: 
+#   262.49m (at sensor)
+#   sensor site = 35.95722, -84.27921
 
 
-####  download NSRDB satellite-generated light
+
+########################## download NSRDB satellite-generated light  ############
 
 ## The data downloads by 1 site and 1 year
 
 year <- 2019
+site <- "BIGC"
 
 # API request parameters, except for longitude and latitude
 # Declare all variables as strings. Spaces must be replaced with '+'.
@@ -63,7 +88,7 @@ URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.c
 
 
 # name the output file
-output_file <- paste0(lat, '_', lon, '_', year, '_', interval, '.csv')
+output_file <- paste0(site, '_', lat, '_', lon, '_', year, '_', interval, '.csv')
 # API request and saving
 GET(url = URL, write_disk(output_file))
 
