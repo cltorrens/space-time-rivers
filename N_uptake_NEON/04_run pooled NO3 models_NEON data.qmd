@@ -1,0 +1,95 @@
+---
+title: "04_run pooled NO3 models_NEON data"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+## Loading data and running the stan model
+
+First load the required packages
+
+```{r loading packages}
+
+# load packages - EDIT as needed!
+library(scales)
+library(magrittr) # moved from  'light ea day as vector'
+library(tidyverse)
+library(lubridate)
+library(streamMetabolizer)
+library(rstan)
+library(tidybayes)
+library(GGally)
+library(shinystan)
+library(zoo)
+library(neonUtilities)
+library(ggpubr)
+library(brms)
+library(here) # allows project-based file paths
+library(pracma) # for 1 type of light AUC calcs
+library(httr) # helps w. the NSRDB light download
+
+```
+
+Then load the data files
+
+```{r - load data files}
+
+####################### NO3 data ##################
+
+##### BIGC
+bigc_filepath <- here("N_uptake_NEON/data/bigc_2019_74_227.csv")
+bigc.df.19 <- read_csv(bigc_filepath)
+
+#### CARI
+
+cari_filepath <- here("N_uptake_NEON/data/SELECT")
+cari.df.19 <- read_csv(cari_filepath)
+
+
+#### KING
+
+king_filepath <- here("N_uptake_NEON/data/SELECT")
+king.df.19 <- read_csv(king_filepath)
+
+
+#### WALK
+
+walk_filepath <- here("N_uptake_NEON/data/SELECT")
+walk.df.19 <- read_csv(walk_filepath)
+
+####################### satellite light data ##################
+
+bigc_light <- read_csv()
+
+
+
+
+cari_light <- read_csv()
+
+
+
+
+king_light <- read_csv()
+
+
+
+
+walk_light <- read_csv()
+
+
+
+
+```
+
+
+```{r - create fake light data}
+
+
+
+
+```
+
+
+
+The `echo: false` option disables the printing of code (only output is displayed).

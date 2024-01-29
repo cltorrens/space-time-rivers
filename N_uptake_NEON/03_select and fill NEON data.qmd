@@ -33,13 +33,13 @@ library(httr) # helps w. the NSRDB light download
 
 Then load the data files
 
-```{r load NEON data and separate by site}
+```{r load NEON NO3 data and separate by site}
 
 ###### load NO3 data for all 4 streams ("KING" "WALK" "BIGC" "CARI")
 load(here("N_uptake_NEON/data/neon_data_derived/no3_dataset.Rdata"))  #no3_data_sensor is the object name
 
 View(no3_data_sensor)
-unique(no3_data_sensor$siteID)
+unique(no3_data_sensor$siteID)   #"KING" "WALK" "BIGC" "CARI"
 
 ###### Filter by site ID and set appropriate time zone for local time (default for NEON is UTC)
 
@@ -63,10 +63,18 @@ king.df <- no3_data_sensor %>%
 
 walk.df <- no3_data_sensor %>%
   filter(siteID == "WALK") %>% 
-  mutate(local_datetime = with_tz(startDateTime, tzone="US/Central"), ## CHECK - Central or Eastern???
+  mutate(local_datetime = with_tz(startDateTime, tzone="US/Eastern"), ## in Knox Co. = Eastern Time
          Jday = yday(local_datetime)) 
 
 ```
+
+
+```{r - load appropriate satellite-light data}
+bigc_real.sumlight <- 
+
+
+```
+
 
 For each site, select the year(s) to use in the model. For the 1st round, 2019 is what we will use for the 1st 4 sites ("KING" "WALK" "BIGC" "CARI")
 
@@ -78,11 +86,12 @@ WALK: https://www.neonscience.org/field-sites/walk
 ```{r select and plot years}
 
 ##### visualize data by site and year for model dataset selection
+
 bigc.df %>%
 #cari.df %>%
 #king.df %>%
 #walk.df %>%
-  filter(year(local_datetime) == 2022) %>%
+  filter(year(local_datetime) == 2019) %>%
   ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
   geom_point() + 
   theme_bw()
@@ -181,6 +190,14 @@ walk.plot.2019 <- walk.df.2019 %>%
   labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Walker Creek TN nitrate: 2019") +
   theme_bw()
 
+walk.plot.2022 <- walk.df.2022 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Walker Creek TN nitrate: 2022") +
+  theme_bw()
+
+
+# Plot all the selected site years 
 
 bigc.plot.2019
 bigc.plot.2021
@@ -188,6 +205,8 @@ cari.plot.2019
 cari.plot.2020
 king.plot.2019
 king.plot.2020
+walk.plot.2019
+walk.plot.2022
 
 ```
 
@@ -211,9 +230,191 @@ Walker Branch, TN: 262.49m (at sensor)
 site = 35.95738, -84.27925
 sensor site = 35.95722, -84.27921
 
+#### Select and clean data, fill gaps etc. 
+
+```{r - select, clean, and fill data: BIGC}
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+bigc.df.19 <- bigc.df.2019 %>%
+  filter(local_datetime >= ymd_hms('20190315 040000', tz='America/Los_Angeles') &
+           local_datetime <= ymd_hms('20190815 040000', tz='America/Los_Angeles')) 
+
+# Visualize selection
+bigc.df.19 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
 
 
 
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+bigc.df.19h <- bigc.df.19 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(bigc.df.19h$local_datetime, bigc.df.19h$N_mean_mgm3, type = 'l')  # used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+N_b <- mean(bigc.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 51.94 mg/L 
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs?
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 611:613)
+span <- 605:620
+plot(bigc.df.19h$local_datetime[span], bigc.df.19h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 6  # set the maximum gap for zoo() to fill
+bigc.df.19h$N_mean_mgm3 <- na.approx(bigc.df.19h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+bigc.df.19h$surfWaterNitrateMean <- na.approx(bigc.df.19h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+##############################   LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+bigc.df.19h <- bigc.df.19h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+gap.start <- 2625
+gap.end <- 2652
+
+bigc.df.19h$model_day[gap.start] #183
+bigc.df.19h$model_day[gap.end] #184
+# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps
+bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% c(183, 184)),]
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) # None left!
+
+# Where does our data start and end? Use Jdays?
+min(bigc.df.19h$Jday) # 74
+max(bigc.df.19h$Jday) # 227  (only 4 hrs on Jday 227)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/bigc_2019_74_227.csv")
+write_csv(bigc.df.19h, filepath)
+
+```
+
+
+
+```{r - select, clean, and fill data: BIGC}
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+bigc.df.19 <- bigc.df.2019 %>%
+  filter(local_datetime >= ymd_hms('20190315 040000', tz='America/Los_Angeles') &
+           local_datetime <= ymd_hms('20190815 040000', tz='America/Los_Angeles')) 
+
+# Visualize selection
+bigc.df.19 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+bigc.df.19h <- bigc.df.19 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(bigc.df.19h$local_datetime, bigc.df.19h$N_mean_mgm3, type = 'l')  # used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+N_b <- mean(bigc.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 51.94 mg/L 
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs?
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 611:613)
+span <- 605:620
+plot(bigc.df.19h$local_datetime[span], bigc.df.19h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 6  # set the maximum gap for zoo() to fill
+bigc.df.19h$N_mean_mgm3 <- na.approx(bigc.df.19h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+bigc.df.19h$surfWaterNitrateMean <- na.approx(bigc.df.19h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+##############################   LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+bigc.df.19h <- bigc.df.19h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+gap.start <- 2625
+gap.end <- 2652
+
+bigc.df.19h$model_day[gap.start] #183
+bigc.df.19h$model_day[gap.end] #184
+# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps
+bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% c(183, 184)),]
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) # None left!
+
+# Where does our data start and end? Use Jdays?
+min(bigc.df.19h$Jday) # 74
+max(bigc.df.19h$Jday) # 227  (only 4 hrs on Jday 227)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/bigc_2019_74_227.csv")
+write_csv(bigc.df.19h, filepath)
 
 
 
