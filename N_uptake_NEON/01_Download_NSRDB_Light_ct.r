@@ -49,7 +49,7 @@
 
 ## The data downloads by 1 site and 1 year
 
-year <- 2019
+year <- 2021
 site <- "BIGC"
 
 # API request parameters, except for longitude and latitude
@@ -80,8 +80,21 @@ your_email = 'christa.torrens@flbs.umt.edu'
 # Please join our mailing list so we can keep you up-to-date on new developments.
 mailing_list = 'false'
 ################################################################################
+# BIGC
 lat <- 37.05767
 lon <- -119.25538
+
+# #CARI
+# lat <- 65.15307
+# lon <- -147.50195
+
+# #KING
+# lat <- 39.10460
+# lon <- -96.60264
+
+# #WALK
+# lat <- 35.95722
+# lon <- -84.27921
 
 # Declare url string
 URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
@@ -100,14 +113,14 @@ GET(url = URL, write_disk(output_file))
 # light units for GHI (average global horizontal irradiance) = Watt m^-2
 # Conversion factor = approx 4.6 umol m^-2 sec ^-1 for each watt m^-2
 
-real_sumlight.df <- read_csv('37.05767_-119.25538_2019_30.csv', skip=2) %>%
-  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)), 
-         Time = format(Datetime, format = "%H:%M"), 
-         Jday = yday(Datetime))
-
-# ID light NAs
-na_count <- sum(is.na(real_sumlight.df$GHI))  #0
-na_position <- which(is.na(real_sumlight.df$GHI))
+# real_sumlight.df <- read_csv('37.05767_-119.25538_2019_30.csv', skip=2) %>%
+#   mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)), 
+#          Time = format(Datetime, format = "%H:%M"), 
+#          Jday = yday(Datetime))
+# 
+# # ID light NAs
+# na_count <- sum(is.na(real_sumlight.df$GHI))  #0
+# na_position <- which(is.na(real_sumlight.df$GHI))
 
 # calculate the daily sumlight by integrating the light-time curve for each day
 
@@ -115,21 +128,21 @@ na_position <- which(is.na(real_sumlight.df$GHI))
 #   integrate(approxfun(time, light), min(time), max(time))$value
 # }
 
-real_sumlight <- real_sumlight.df %>%
-  filter(Jday >= 176 & Jday <= 206) %>%  #Big Creek currently looking at Jdays 176:206
-  group_by(Jday) %>%
-  summarize(light.t = sum(GHI != 0),     # gotta divide by the # of non-0 light windows
-            sumlight.real = sum(GHI)/light.t)
-
-plot(real_sumlight$Jday, real_sumlight$sumlight.real)
-
-
-sumlight.real <- real_sumlight$sumlight.real # sumlight.real = auc for that Jday
-
-plot(x=sumlight.real, y=sumlight.ideal, 
-     xlab = "true light (satellite)",
-     ylab = "modeled light (StreamMetabolizer)",
-     main = "Scatter Plot of ideal vs real daily light",
-     xlim = c(450,650))
-
+# real_sumlight <- real_sumlight.df %>%
+#   filter(Jday >= 176 & Jday <= 206) %>%  #Big Creek currently looking at Jdays 176:206
+#   group_by(Jday) %>%
+#   summarize(light.t = sum(GHI != 0),     # gotta divide by the # of non-0 light windows
+#             sumlight.real = sum(GHI)/light.t)
+# 
+# plot(real_sumlight$Jday, real_sumlight$sumlight.real)
+# 
+# 
+# sumlight.real <- real_sumlight$sumlight.real # sumlight.real = auc for that Jday
+# 
+# plot(x=sumlight.real, y=sumlight.ideal, 
+#      xlab = "true light (satellite)",
+#      ylab = "modeled light (StreamMetabolizer)",
+#      main = "Scatter Plot of ideal vs real daily light",
+#      xlim = c(450,650))
+# 
 
