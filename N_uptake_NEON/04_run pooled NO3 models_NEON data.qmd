@@ -5,7 +5,9 @@ format: html
 editor: visual
 ---
 
-## Loading data and running the stan model
+# Loading data and running the stan model
+
+This script has different sections for each site and year, so they can be run individually or together.
 
 First load the required packages
 
@@ -29,67 +31,1040 @@ library(here) # allows project-based file paths
 library(pracma) # for 1 type of light AUC calcs
 library(httr) # helps w. the NSRDB light download
 
+options(mc.cores = parallel::detectCores())
+
 ```
 
 Then load the data files
 
 ```{r - load data files}
 
-####################### NO3 data ##################
+###### NB: the local_datetime reverted to UTC when saved; need to re-apply the tz change here
 
+# making sure the wd is set correctly
+setwd(here())
+
+####################### NO3 data ##################
+#~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_clean
 ##### BIGC
-bigc_filepath <- here("N_uptake_NEON/data/bigc_2019_74_227.csv")
-bigc.df.19 <- read_csv(bigc_filepath)
+bigc19_filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2019_74_226.csv")
+bigc.df.19h <- read_csv(bigc19_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
+         model_datetime = local_datetime - hours(4))  
+
+bigc21_filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2021_60_281.csv")
+bigc.df.21h <- read_csv(bigc21_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"),
+         model_datetime = local_datetime - hours(4))
 
 #### CARI
 
-cari_filepath <- here("N_uptake_NEON/data/SELECT")
-cari.df.19 <- read_csv(cari_filepath)
+cari19_filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2019_127_267.csv")
+cari.df.19h <- read_csv(cari19_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"),
+         model_datetime = local_datetime - hours(4))
 
+cari20_filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2020_170_252.csv")
+cari.df.20h <- read_csv(cari20_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"),
+         model_datetime = local_datetime - hours(4))
 
 #### KING
 
-king_filepath <- here("N_uptake_NEON/data/SELECT")
-king.df.19 <- read_csv(king_filepath)
+king19_filepath <- here("N_uptake_NEON/data/neon_data_clean/king_2019_232_365.csv")
+king.df.19h <- read_csv(king19_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"),
+         model_datetime = local_datetime - hours(4))
+
+
+king20_filepath <- here("N_uptake_NEON/data/neon_data_clean/king_2020_1_289.csv")
+king.df.20h <- read_csv(king20_filepath) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"),
+         model_datetime = local_datetime - hours(4))
 
 
 #### WALK
 
-walk_filepath <- here("N_uptake_NEON/data/SELECT")
-walk.df.19 <- read_csv(walk_filepath)
+# walk19_filepath <- here("N_uptake_NEON/data/neon_data_clean/walk_2019_XXXX.csv")
+# walk.df.19h <- read_csv(walk_filepath) %>%
+# mutate(local_datetime = with_tz(local_datetime, tzone="US/Eastern"),
+# model_datetime = local_datetime - hours(4))
+# 
+# walk20_filepath <- here("N_uptake_NEON/data/neon_data_clean/walk_2020_XXXX.csv")
+# walk.df.20h <- read_csv(walk_filepath) %>%
+# mutate(local_datetime = with_tz(local_datetime, tzone="US/Eastern"),
+# model_datetime = local_datetime - hours(4))
+
+
+old_obj <- c(bigc19_filepath, bigc21_filepath, cari19_filepath, cari20_filepath, king19_filepath, king20_filepath)
+rm(old_obj)
 
 ####################### satellite light data ##################
 
-bigc_light <- read_csv()
+bigc19_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/bigc2019_realsumlight_73_227.csv"))
+
+bigc21_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/bigc2021_realsumlight_60_281.csv"))
+
+#cari19_sat_sumlight <- read_csv()
+
+#cari20_sat_sumlight <- read_csv()
+
+king19_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king2019_realsumlight_232_365.csv"))
+
+king20_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king2020_realsumlight_1_289.csv"))
+
+# walk19_sat_sumlight <- read_csv()
+# 
+# walk22_sat_sumlight <- read_csv()
+
+
+```
+
+## Collect data and run each model
+
+### Big Creek, CA models
+
+#### 2019
+
+##### Look at the NO3 data, clip further as needed
+
+```{r - bigc19 - visualize data, plot, clip as needed}
+low <- 130
+high <- 134
+#cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
+  
+bigc.plot.2019 <- bigc.df.19h %>%
+  filter(model_day >= low & model_day <= high) %>%
+  filter(model_day != cliplist) %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  #geom_line() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Big Creek nitrate: 2019") +
+  theme_bw()
+
+quartz()
+bigc.plot.2019
+
+```
+
+##### Assemble data for the model
+
+```{r - bigc19 - assemble data}
+
+########## BIGC 2019 ##############
+
+# lat <- 37.05767
+# lon <- -119.25538
+
+###  Modeled (ideal) light from streamMetabolizer
+
+# calculate solar time and light, add as columns 
+bigc.df.19h <- bigc.df.19h %>%
+  filter(model_day >= low & model_day <= high) %>%
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=-119.25538),
+         light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=37.05767,longitude=-119.25538), 
+         hours = hour(local_datetime)
+        )
+
+# Visualize light data
+plot(bigc.df.19h$model_datetime, bigc.df.19h$light, type='l') #daily rises and falls
+
+# Create ideal sumlight data
+sumlight.h.df <- bigc.df.19h %>%
+  group_by(model_day) %>%
+    summarize(light.hrs = sum(light != 0),     # gotta divide by the # of non-0 light windows
+              sum_of_light = sum(light),
+              sumlight = sum(light)/(light.hrs),
+              sumlight.h = sum(light)/24, 
+              sumlight.trapz = trapz(hours, light)) %>%
+  filter(model_day != 226)     # remove model days w/o light
+
+bigc.df.19h <- bigc.df.19h %>%  # also from the main df 
+  filter(model_day != 226) 
+  
+
+# Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
+which(sumlight.h.df$light.hrs == 0) #152 
+sumlight.h.df$model_day[which(sumlight.h.df$light.hrs == 0)] #227 - get the model_day for 0 light
+
+# darkdays <- 227 # c(227)
+# 
+# sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
+# 
+# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+
+# tail(bigc.df.19h$model_day)
+
+# get the updated range of model days
+low_cut <- sumlight.h.df$model_day[1] #74
+high_cut <- sumlight.h.df$model_day[137] #225
+  
+# How does it look?
+plot(sumlight.h.df$model_day, sumlight.h.df$sumlight.trapz)  ## ~ 14000 - 20000
+
+## Standardize terms for model
+light <- bigc.df.19h$light
+sumlight.ideal <- sumlight.h.df$sumlight.trapz
+
+
+########  Real daily lignt (from NSRDB/ satellite) ########
+## these data are already trimmed to the original NO3 dataset; clip as needed to match model data
+
+# First remove model days to match sumlight.h
+bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+  filter(model_day >= low_cut & model_day <= high_cut) 
+# %>%
+#   filter()  # trim further, if needed, to match model dataset. 
+
+bigc19_sat_sumlight_clip 
+
+# standardize for model
+sumlight.real <-  bigc19_sat_sumlight_clip$sumlight.real
 
 
 
+### Other elements for the data list
 
-cari_light <- read_csv()
+nday <-  137 # 39
 
-
-
-
-king_light <- read_csv()
-
-
+N_amb <- mean(bigc.df.19h$surfWaterNitrateMean) # 51.9 mg/m^3  sd = 3.1
+N_init <- bigc.df.19h$surfWaterNitrateMean[1] # 3.8... nconc_mg
+concMA <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
 
 
-walk_light <- read_csv()
+z <- 0.3 #depth in m based on NEON manual Q measurements - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
 
+#sumlight <- sumlight[-31]  # removes the final Jday, which has no light (midnight-4a) (not needed w model_day column)
+lightMA <- matrix(light, nrow=24)
+
+
+```
+
+##### List data and call to stan
+
+```{r - bigc19 - list data and call to stan}
+
+
+
+# data list for STAN
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+
+# Fit the model
+fit.bigc19 <- stan("N_uptake_NEON/pooled-L_bigc.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+# fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4)  # this line does not fit in parallel, only uses 1 core
+
+print(fit.bigc19)
+
+# save the model fit summary
+p.bigc19 <- summary(fit.bigc19)
+p.bigc19
+
+```
+
+##### Explore the model output
+
+##### shinystan
+
+```{r - bigc19 - shinystan}
+
+# Brings my 2015 Mac to its knees...
+#shiny.bigc19 <- launch_shinystan(fit.bigc19)
+
+```
+
+##### other explorations
+
+```{r - bigc19 - explore model output}
+
+
+#NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
+
+# What was the modeled uptake?
+U_mod <- rstan::extract(fit.bigc19, pars = "U")$U
+U_mod_avg <- apply(U_mod, MARGIN = 2, FUN = mean) 
+U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
+
+# what was modeled K? 
+
+K_mod <- rstan::extract(fit.bigc19, pars = "K")$K
+K_mod_avg <- apply(K_mod, MARGIN = 2, FUN = mean) 
+K_mod_sd <- apply(K_mod, MARGIN = 2, FUN = sd)
+
+# Get conc_hat from fit; plot vs concMA
+conc_hat <- rstan::extract(fit.bigc19, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 4000   24   39
+
+# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+ 
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+#U_mean <- as.vector(c(U_mod_avg))
+
+N_conc <- bigc.df.19h$surfWaterNitrateMean ##as.vector(c(concMA)) would give the same values
+
+local_datetime <- bigc.df.19h$local_datetime  
+model_datetime <- bigc.df.19h$local_datetime - hours(4)
+model_day <-bigc.df.19h$model_day
+hours <- hour(local_datetime)
+mod_hours <- hour(model_datetime)
+  # find a way to remove day #212
+
+mod_day <- unique(model_day)
+
+N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+
+#mod_day <- unique(model_day)
+U_output.df <- data.frame(mod_day, U_mod_avg, U_mod_sd, sumlight.real, model_datetime) 
+K_output.df <- data.frame(mod_day, K_mod_avg, K_mod_sd, sumlight.real, model_datetime)
+
+mean(K_mod_avg) # 3.255  #3.05
+
+# credible intervals for each U
+# extract 2.5% and 97.5% values - see Alice's code?
+
+which.min(U_output.df$U_mean)
+
+U_output.df$U_mod_avg
+
+###### N and N-hat over time
+N_and_Nhat <- N_output.df %>%
+  filter(model_day >= 175 & model_day <= 201) %>%  # to see these better...
+  ggplot(aes(x=mod_hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("N (umol/L)") +
+  ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+########  N-hat vs N
+
+
+Nhat_V_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+  geom_point() + 
+  xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
+  ggtitle("Measured N vs modeled N, Big Creek 2019 pooled model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+quartz()
+Nhat_V_N
+
+##### U over time
+
+
+U_time <- ggplot(data = U_output.df, aes(x=mod_day, y=U_mod_avg)) +
+  geom_point() + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+  #ylim(0,1) +
+  #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+  ggtitle("Diel nitrate uptake (modeled), Big Creek 2019") +
+  theme_bw()
+
+quartz()
+U_time
+
+
+U_time_clip <- ggplot(data = U_output.df, aes(x=mod_day)) +
+  geom_point(y=U_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+  ylim(0,2) +
+  ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+  theme_bw()
+
+quartz()
+U_time_clip
+
+###### U vs sumlight
+
+
+U_vs_light <- ggplot(data = U_output.df, aes(x=sumlight.real, y=U_mod_avg)) +
+  geom_point() + 
+  #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+  xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+  ggtitle("Big Creek 2019: scatterplot of NO3 uptake and daily light") +
+  #ylim = c(-0.2, 1) +
+  theme_bw()
+
+quartz()
+U_vs_light
+
+#######  K over time
+
+
+K_time <- ggplot(data = K_output.df, aes(x=mod_day)) +
+  geom_point(y=K_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
+  ylim(0,20) +
+  ggtitle("modeled K over time, Big Creek 2019 pooled model w real light") +
+  theme_bw()
+
+quartz()
+K_time
+
+
+
+K_time_clip <- ggplot(data = K_output.df, aes(x=mod_day)) +
+  geom_point(y=K_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled K (umol/day)") + # ??? UNITS?
+  ylim(0,10) +
+  ggtitle("modeled K over time, Big Creek 2019 pooled model w real light") +
+  theme_bw()
+
+quartz()
+K_time_clip
+
+
+
+# U vs K
+
+plot(U_mod_avg, K_mod_avg)
+
+dev.off()
+
+# write.csv(p.bigc,file="N_output_pooledU_bigc.csv")
+# output_bigc <- read_csv("N_output_pooledU_bigc.csv")
+# 
+# max.print(fit,pars="conc_tilde")
+
+
+```
+
+#### 2021
+
+##### Look at the NO3 data, clip further as needed
+
+```{r - bigc21 - visualize data, plot, clip as needed}
+low <-
+high <- 
+
+bigc.plot.2021 <- bigc.df.2021 %>%
+  filter()
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(uM)"), title= "Big Creek CA nitrate: 2021") +
+  theme_bw()
+
+bigc.plot.2021
+
+```
+
+```{r - bigc21 - assemble data}
+
+# create fake light data from StreamMetabolizer
+
+```
+
+```{r - bigc21 - list data and call to stan}
+
+
+```
+
+### Caribou Creek, AK models
+
+#### 2019
+
+##### Look at the NO3 data, clip further as needed
+
+```{r - cari19 - visualize data, plot, clip as needed}
+
+low <- 157
+high <- 210
+
+cari.plot.2019 <- cari.df.19h %>%
+  filter(Jday >= low & Jday <= high) %>% 
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Caribou Creek AK nitrate: 2019") +
+  theme_bw()
+
+quartz()
+cari.plot.2019
+  
+```
+
+##### Assemble data for the model
+
+```{r - cari19 - assemble data}
+
+########## CARI 2019 ##############
+
+# lat <- 65.15307
+# lon <- -147.50195
+
+###  Modeled (ideal) light from streamMetabolizer
+
+# calculate solar time and light, add as columns 
+cari.df.19h <- cari.df.19h %>%
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=-147.50195),
+         light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=65.15307,longitude=-147.50195), 
+         hours = hour(local_datetime)
+        )
+
+# Visualize light data
+plot(cari.df.19h$local_datetime, cari.df.19h$light) #daily rises and falls
+
+# Create ideal sumlight data
+sumlight.h <- cari.df.19h %>%
+  group_by(model_day) %>%
+    summarize(light.hrs = sum(light != 0),     # gotta divide by the # of non-0 light windows
+              sum_of_light = sum(light),
+              sumlight = sum(light)/(light.hrs),
+              sumlight.h = sum(light)/24, 
+              sumlight.trapz = trapz(hours, light)) %>%
+  filter(model_day != 267)  # remove the incomplete last model day
+  
+
+cari.df.19h <- cari.df.19h %>% # also remove from dataset
+  filter(model_day != 267)
+
+
+# Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the light and real.light data. 
+which(sumlight.h$light.hrs == 0) #152
+# sumlight.h$model_day[which(sumlight.h$light.hrs == 0)] #227
+# darkdays <- 227 # c(227)
+# 
+# sumlight.h <- sumlight.h[!(sumlight.h$light.hrs == 0),] # remove darkdays from sumlight.h
+# 
+# cari.df.19h <- cari.df.19h[!(cari.df.19h$model_day %in% darkdays),] 
+# 
+# tail(cari.df.19h$model_day) # check to make sure the days are completely removed
+
+# get the updated range of model days
+low_cut <- sumlight.h$model_day[1] #127
+high_cut <- sumlight.h$model_day[132] #266
+  
+# How does it look?
+plot(sumlight.h$model_day, sumlight.h$sumlight.trapz)  ## ~ 14000 - 20000
+
+
+## Standardize terms for model
+light <- cari.df.19h$light
+sumlight.ideal <- sumlight.h$sumlight.trapz
+
+
+########  Real daily lignt (from NSRDB/ satellite) ########
+## these data are already trimmed to the original NO3 dataset; clip as needed to match model data
+
+# First remove start/ end model days to match sumlight.h
+# cari19_sat_sumlight_clip <- cari19_sat_sumlight %>% 
+#   filter(model_day >= low_cut & model_day <= high_cut)
+
+# trim further, if needed, to match model dataset. 
+# cari19_sat_sumlight_clip <- cari19_sat_sumlight_clip[!(cari19_sat_sumlight_clip$model_day %in% darkdays),] 
+
+  
+## CARI does not hace NSRDB satellite light. Replacce this w NEON light evt. 
+
+# sumlight.real <-  cari19_sat_sumlight_clip$sumlight.real
+
+sumlight.real <- sumlight.ideal  # just for now, to get the model running
+
+
+### Other elements for the data list
+
+nday <-  132
+
+N_amb <- mean(cari.df.19h$surfWaterNitrateMean) # 51.9 mg/m^3  sd = 3.1
+N_init <- cari.df.19h$surfWaterNitrateMean[1] # 3.8... nconc_mg
+concMA <- matrix(unlist(cari.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+
+z <- 0.4 #depth in m based on NEON manual Q measurements - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+
+#sumlight <- sumlight[-31]  # removes the final Jday, which has no light (midnight-4a) (not needed w model_day column)
+lightMA <- matrix(light, nrow=24)
 
 
 
 ```
 
+##### List data and call to stan
 
-```{r - create fake light data}
+```{r - cari19 - list data and call to stan}
+
+# data list for STAN
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+
+# Fit the model
+fit.cari19 <- stan("N_uptake_NEON/pooled-L_cari.stan", data = data, iter = 2000, chains = 4, control = list(max_treedepth = 15))
+# fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4)  # this line does not fit in parallel, only uses 1 core
+
+print(fit.cari19)
+
+# save the model fit summary
+p.cari19 <- summary(fit.cari19)
+
+```
+
+##### Explore the model output
+
+##### shinystan
+
+```{r - cari19 - shinystan}
+
+shiny.cari19 <- launch_shinystan(fit.cari19)
+
+```
+
+##### other explorations
+
+```{r - cari19 - explore model output}
 
 
+#NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
+
+# What was the modeled uptake?
+U_mod <- rstan::extract(fit.cari19, pars = "U")$U
+U_mod_avg <- apply(U_mod, MARGIN = 2, FUN = mean) 
+U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
+
+# what was modeled K? 
+K_mod <- rstan::extract(fit.cari19, pars = "K")$K
+K_mod_avg <- apply(K_mod, MARGIN = 2, FUN = mean) 
+K_mod_sd <- apply(K_mod, MARGIN = 2, FUN = sd)
+
+# Get conc_hat from fit; plot vs concMA
+conc_hat <- rstan::extract(fit.cari19, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 4000   24   39
+
+# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+#U_mean <- as.vector(c(U_mod_avg))
+
+N_conc <- cari.df.19h$surfWaterNitrateMean ##as.vector(c(concMA)) would give the same values
+
+local_datetime <- cari.df.19h$local_datetime  
+model_datetime <- cari.df.19h$local_datetime - hours(4)
+model_day <-cari.df.19h$model_day
+hours <- hour(local_datetime)
+mod_hours <- hour(model_datetime)
+mod_day <- unique(model_day)
+
+N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+
+U_output.df <- data.frame(mod_day, U_mod_avg, U_mod_sd, sumlight.real) 
+K_output.df <- data.frame(mod_day, K_mod_avg, K_mod_sd, sumlight.real)
+
+mean(K_mod_avg) # 2.595
+mean(U_mod_avg)
+
+# credible intervals for each U
+# extract 2.5% and 97.5% values - see Alice's code?
+
+which.min(U_output.df$U_mean)
+
+U_output.df$U_mean
+
+###### N and N-hat over time
+N_and_Nhat <- N_output.df %>%
+  filter(model_day >= 180 & model_day <= 199) %>%
+  ggplot(aes(x=mod_hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("umol/L") +
+  ggtitle("N and N_hat over time - Caribou Creek pooled model")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+########  N-hat vs N
+
+Nhat_v_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+  geom_point() + 
+  xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
+  ggtitle("Measured N vs modeled N, Caribou Creek pooled model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+quartz()
+Nhat_v_N
+
+##### U over time
+
+
+U_vs_time <- ggplot(data = U_output.df, aes(x=mod_day)) +
+  geom_point(y=U_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (umol/day)") + 
+  #ylim(-20,20) +
+  ggtitle("modeled U over time, Caribou Creek pooled model w real light") +
+  theme_bw()
+
+quartz()
+U_vs_time
+plot(U_output.df$mod_day, U_output.df$U_mod_avg)
+#plot(U_mod_avg, N_conc) difeerent lengths - FIX
+
+###### U vs sumlight
+
+ quartz()
+plot(sumlight.real, U_mod_avg, 
+    xlab = "true light (satellite)",
+    ylab = "modeled NO3 uptake",
+     main = "Scatterplot of NO3 uptake and daily light - fake data")
+
+#######  
+
+
+# quartz()
+
+# write.csv(p.bigc,file="N_output_pooledU_bigc.csv")
+# output_bigc <- read_csv("N_output_pooledU_bigc.csv")
+# 
+# max.print(fit,pars="conc_tilde")
 
 
 ```
 
+#### 2020
 
+```{r - cari20 - assemble data}
+
+# create fake light data from StreamMetabolizer
+
+```
+
+```{r - cari20 - list data and call to stan}
+
+
+```
+
+### Kings Creek, KS models
+
+#### 2019
+
+##### Look at the NO3 data, clip further as needed
+
+```{r - king19 - visualize data, plot, clip as needed}
+#dev.off()
+start <- 244
+end <- 361
+king.plot.2019 <- king.df.19h %>%
+  filter(model_day > start & model_day < end) %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Kings Creek KS nitrate: 2019") +
+  theme_bw()
+
+king.plot.2019
+  
+```
+
+##### Assemble data for the model
+
+```{r - king19 - assemble data}
+
+# KING
+# lat <- 39.10460
+# lon <- -96.60264
+
+######### create fake light data from StreamMetabolizer
+
+king.df.19h <- king.df.19h %>%
+  filter(model_day > start & model_day < end) %>%  # actually clip the data to the start and end points
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=-96.60264),
+         light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=39.10460,longitude=-96.60264), 
+         hours = hour(local_datetime)
+        )
+
+# complete modeldays 245-260
+
+plot(king.df.19h$local_datetime, king.df.19h$light) #daily rises and falls
+
+# Create ideal sumlight data
+sumlight.h.df <- king.df.19h %>%
+  group_by(model_day) %>%
+    summarize(light.hrs = sum(light != 0),     # gotta divide by the # of non-0 light windows
+              sum_of_light = sum(light),
+              sumlight = sum(light)/(light.hrs),
+              sumlight.h = sum(light)/24, 
+              sumlight.trapz = trapz(hours, light)) 
+
+
+
+king.df.19h <- king.df.19h %>% # also remove from dataset
+  filter(model_day != 267)
+
+
+
+# Check for any other days w. 0 hours of light and add to 'darkdays'; use this to remove same days from the light and real.light data. 
+which(sumlight.h.df$light.hrs == 0) #152
+# sumlight.h$model_day[which(sumlight.h$light.hrs == 0)] #227
+# darkdays <- 227 # c(227)
+# 
+# sumlight.h <- sumlight.h[!(sumlight.h$light.hrs == 0),] # remove darkdays from sumlight.h
+# 
+# cari.df.19h <- cari.df.19h[!(cari.df.19h$model_day %in% darkdays),] 
+# 
+# tail(cari.df.19h$model_day) # check to make sure the days are completely removed
+
+# get the updated range of model days
+low_cut <- sumlight.h.df$model_day[1] #245
+high_cut <- sumlight.h.df$model_day[114] #360
+  
+# How does it look?
+plot(sumlight.h.df$model_day, sumlight.h.df$sumlight.trapz)  ## ~ 14000 - 20000
+
+
+## Standardize terms for model
+light <- king.df.19h$light
+sumlight.ideal <- sumlight.h.df$sumlight.trapz
+
+
+########  Real daily lignt (from NSRDB/ satellite) ########
+## these data are already trimmed to the original NO3 dataset; clip as needed to match model data
+
+# First remove start/ end model days to match sumlight.h
+king19_sat_sumlight_clip <- king19_sat_sumlight %>%
+  filter(model_day >= low_cut & model_day <= high_cut)
+
+# trim further, if needed, to match model dataset. 
+# cari19_sat_sumlight_clip <- cari19_sat_sumlight_clip[!(cari19_sat_sumlight_clip$model_day %in% darkdays),] 
+
+
+sumlight.real <-  king19_sat_sumlight_clip$sumlight.real
+
+
+### Other elements for the data list
+
+nday <-  113
+
+N_amb <- mean(king.df.19h$surfWaterNitrateMean) # 3.4 umol/L
+N_init <- king.df.19h$surfWaterNitrateMean[1] # 6.4 umol/L 
+concMA <- matrix(unlist(king.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+
+z <- 0.5 #depth in m based on NEON manual Q measurements - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+
+#sumlight <- sumlight[-31]  # removes the final Jday, which has no light (midnight-4a) (not needed w model_day column)
+lightMA <- matrix(light, nrow=24)
+
+
+```
+
+##### List data and call to stan
+
+```{r - king19 - list data and call to stan}
+
+# data list for STAN
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+
+# Fit the model
+fit.king19 <- stan("N_uptake_NEON/pooled-L_king.stan", data = data, iter = 2000, chains = 4, control = list(max_treedepth = 15))
+# fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4)  # this line does not fit in parallel, only uses 1 core
+
+print(fit.king19)
+
+# save the model fit summary
+p.king19 <- summary(fit.king19)
+
+```
+
+##### Explore the model output
+
+```{r - bigc19 - shinystan}
+
+shiny.king19 <- launch_shinystan(fit.king19)
+
+```
+
+```{r - bigc19 - explore model output}
+
+
+#NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
+
+# What was the modeled uptake?
+U_mod <- extract(fit.king19, pars = "U")$U
+
+U_mod_avg <- apply(U_mod, MARGIN = 2, FUN = mean) 
+
+U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
+
+# what was modeled K? 
+
+
+
+
+# Get conc_hat from fit; plot vs concMA
+conc_hat <- extract(fit.king19, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 4000   24   39
+
+# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+ 
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+U_mean <- as.vector(c(U_mod_avg))
+
+N_conc <- king.df.19h$surfWaterNitrateMean ##as.vector(c(concMA)) would give the same values
+
+local_datetime <- king.df.19h$local_datetime  
+model_day <-king.df.19h$model_day
+hours <- hour(local_datetime)
+  # find a way to remove day #212
+
+
+N_output.df <- data.frame(local_datetime, hours, model_day, N_conc, N_conc_hat)
+
+mod_day <- unique(model_day)
+U_output.df <- data.frame(mod_day, U_mean, sumlight.real) 
+
+# credible intervals for each U
+# extract 2.5% and 97.5% values - see Alice's code?
+
+which.min(U_output.df$U_mean)
+
+U_output.df$U_mean
+
+###### N and N-hat over time
+N_and_Nhat <- N_output.df %>%
+  filter(model_day >= 100 & model_day <= 110) %>%
+  ggplot(aes(x=hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("[N] umol/L") +
+  ggtitle("N and N_hat over time - Kings Creek (KS) pooled model")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+########  N-hat vs N
+
+quartz()
+ggplot(data = U_output.df, aes(x=mod_day)) +
+  geom_point(y=U_mean) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (umol/day)") + 
+  ylim(-20,20) +
+  ggtitle("modeled U over time, Kings Creek pooled model w real light") +
+  theme_bw()
+
+##### U over time
+
+
+
+###### U vs sumlight
+
+quartz()
+plot(sumlight.real, U_mod_avg, 
+    xlab = "true light (satellite)",
+    ylab = "modeled NO3 uptake",
+     main = "Scatterplot of NO3 uptake and daily light - fake data")
+
+#######  
+
+quartz()
+ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+  geom_point() + 
+  xlab("measured N (mg/m3)") + ylab("modeled N (mg/m3)") + 
+  ggtitle("Measured N vs modeled N, Big Creek pooled model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+
+quartz()
+
+# write.csv(p.bigc,file="N_output_pooledU_bigc.csv")
+# output_bigc <- read_csv("N_output_pooledU_bigc.csv")
+# 
+# max.print(fit,pars="conc_tilde")
+
+
+```
+
+#### 2020
+
+```{r - king20 - assemble data}
+
+# create fake light data from StreamMetabolizer
+
+```
+
+```{r - king20 - list data and call to stan}
+
+
+```
+
+### Walker Branch, TN models
+
+WALK lat \<- 35.95722 lon \<- -84.27921
 
 The `echo: false` option disables the printing of code (only output is displayed).

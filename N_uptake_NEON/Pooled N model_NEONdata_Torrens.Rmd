@@ -212,7 +212,7 @@ this code is also in the FAKEdata and NEONdata scripts
 # light units for GHI (average global horizontal irradiance) = Watt m^-2
 # Conversion factor = approx 4.6 umol m^-2 sec ^-1 for each watt m^-2
 
-csv.name <-  '37.05767_-119.25538_2019_30.csv'  # EDIT AS NEEDED - Also ensure that csv structure fits the code below
+csv.name <-  here('N_uptake_NEON/data/NSRDB_light_data/BIGC_37.05767_-119.25538_2019_30.csv')  # EDIT AS NEEDED - Also ensure that csv structure fits the code below
   
 real_sumlight.df <- read_csv(csv.name, skip=2) %>%
   mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field to work with

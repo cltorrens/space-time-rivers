@@ -49,8 +49,8 @@
 
 ## The data downloads by 1 site and 1 year
 
-year <- 2021
-site <- "BIGC"
+year <- 2020
+site <- "CARI"
 
 # API request parameters, except for longitude and latitude
 # Declare all variables as strings. Spaces must be replaced with '+'.
@@ -81,10 +81,10 @@ your_email = 'christa.torrens@flbs.umt.edu'
 mailing_list = 'false'
 ################################################################################
 # BIGC
-lat <- 37.05767
-lon <- -119.25538
+# lat <- 37.05767
+# lon <- -119.25538
 
-# #CARI
+# #CARI: NOT AVAILABLE ON THIS PLATFORM
 # lat <- 65.15307
 # lon <- -147.50195
 

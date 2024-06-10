@@ -1,19 +1,23 @@
 # Purpose: to clean the raw NEON datasets: remove NAs?  Select columns, bind, save as derived datasets
 
 # load packages
-library(dplyr)
+library(tidyverse) # dplyr
 library(neonUtilities)
 # library(geoNEON)    #not currently using AOP or other remote sensing data
 # library(raster)
+library(here)
 
 
 ### Load raw data
-#load("data_raw/no3_data.Rdata")
-#load("data_raw/q_data.Rdata")
-#load("data_raw/wqual_data_CARI.Rdata")
-#load("data_raw/precip_data.Rdata")
-#load("data_raw/wtemp_data.Rdata")
-load("data_raw/par_wsurf_data.Rdata")
+#load(here("N_uptake_NEON/data/neon_data_raw/no3_data.Rdata"))
+#load(here("N_uptake_NEON/data/neon_data_raw/q_data.Rdata"))
+#load(here("N_uptake_NEON/data/neon_data_raw/wqual_data_CARI.Rdata"))
+#load(here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
+#load(here("N_uptake_NEON/data/neon_data_raw/wtemp_data.Rdata"))
+#load(here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_raw/manualq_data.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_raw/reaeration_data.Rdata"))
+
 
 ### Separate out variables (and select rows?)
 
@@ -26,6 +30,12 @@ no3_variables <- no3.data$variables_20033
 Q_data_sensor <- q_data$csd_continuousDischarge
 Q_spatial_sensor <- q_data$sensor_positions_00130
 Q_variables <- q_data$variables_00130
+
+
+# Field (Manual) Q 
+manQ <- manual.q_data$dsc_fieldData
+manQ_ADCP <- manual.q_data$dsc_fieldDataADCP
+manQ_indiv <- manual.q_data$dsc_individualFieldData
 
 # Water Quality - CARI only
   # unique(wqual_data$ais_maintenance[5]) #CARI only
@@ -59,7 +69,7 @@ par_wsurf_spatial_sensor <- par_wsurf_data$sensor_positions_20042
 par_wsurf_variables <- par_wsurf_data$variables_20042
 par_wsurf_readme <- par_wsurf_data$readme_20042
   
-### Save derived data 
+######################### Save derived data #########################
 
 # NO3
 save(no3_data_sensor, file="data_derived/no3_dataset.Rdata")
@@ -70,6 +80,12 @@ save(no3_variables, file='data_derived/no3_variables.Rdata')
 save(Q_data_sensor, file="data_derived/q_dataset.Rdata")
 save(Q_spatial_sensor, file='data_derived/q_spatial_sensor.Rdata')
 save(Q_variables, file='data_derived/q_variables.Rdata')
+
+# ~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_derived
+# Field (Manual) Q 
+save(manQ, file=here("N_uptake_NEON/data/neon_data_derived/manualQ_dataset.Rdata"))
+save(manQ_ADCP, file=here("N_uptake_NEON/data/neon_data_derived/manualQ_ADCP_dataset.Rdata"))  
+save(manQ_indiv, file=here("N_uptake_NEON/data/neon_data_derived/manualQ_indiv_dataset.Rdata")) 
 
 # Water Quality - CARI only
 save(wqual_data_sensor_CARI, file="data_derived/wqual_dataset_CARI.Rdata")
