@@ -1,0 +1,931 @@
+---
+title: "PME miniDOT data processing"
+subtitle: "2023 Middle Fork Flathead River deployments"
+author: "Aaron Pelly and Bob Hall"
+date: "Report generated `r format(Sys.time(), '%b %d, %Y')`"
+output:
+  html_document:
+    css: 
+---
+
+<br>
+## Processing details
+
+PME miniDOT files were processed in R version 4.3.1. Percent saturation values were calculated using barometric pressure values from NWS Kalispell, Glacier Park International Airport weather station
+
+
+
+
+```{r setup, echo = FALSE, results = "hide", message = FALSE}
+
+# ----- Notes on this script -----
+
+# As long as you open the script file within the project file (miniDOTs.Rproj) and keep the directory structure intact, all references to file locations should work. The here package is used to locate all files in relation to the main folder where the project file is saved.
+
+
+# ----- Knitting -----
+
+# Set defaults for knitting
+knitr::opts_chunk$set(
+  echo = TRUE, # Hide code from report
+  warning = FALSE,
+  results = "hold", # Shows output after all code is evaluated
+  dev = "png", 
+  dev.args = list(png = list(type = "cairo-png")), 
+  fig.retina = 1, # Set to 2 for retina displays
+  # fig.show = "hold", # Show figs after code where code is included
+  fig.align = "center")
+
+# Note: cairo-png provides the best-looking graphs, but the way this is written allows you to use dev = "svg" in the header of a chunk to use a vector graphics engine instead.
+
+
+# ---------- Packages ----------
+
+# Make sure all packages used in script are installed
+# First list required packages
+packages <- c("tidyverse", "extrafont", "lubridate", "data.table", 
+              "zoo", "scales", "here", "timetk", "viridis")
+
+# Check for packages not installed
+missing_pkgs <- setdiff(packages, rownames(installed.packages()))
+
+# Install any that are missing
+if (length(missing_pkgs) > 0) { 
+  message("Installing missing package(s): ", 
+          paste(missing_pkgs, collapse = ", "))
+  install.packages(missing_pkgs)
+}
+
+# Load packages that will be used extensively; 
+# Packages that are only used a little will be called with their functions
+library(tidyverse)
+#library(extrafont)
+library(lubridate)
+library(data.table)
+library(zoo)
+library(scales)
+library(here)
+#library(timetk)
+#library(viridis)
+
+
+```
+
+# ---------- ----------
+
+```{r install, echo=F, results="hide",message=F}
+
+# ----- Set up streamMetabolizer -----
+
+# # To install the streamMetabolizer package, use the remotes package (running install.packages('remotes') first if needed). To use remotes::install_github() it is convenient to set a GitHub Personal Access Token (PAT). There are several methods for setting your PATs within R; the simplest is to call `Sys.setenv(GITHUB_PAT=“yyyy”), replacing yyyy with the PAT you established on the GitHub website.
+# # 
+# # You may first need to install the unitted dependency:
+# # 
+# # remotes::install_github('appling/unitted')
+# # You can then install the most cutting edge version of streamMetabolizer with this command:
+# # 
+# # remotes::install_github(
+# #   "USGS-R/streamMetabolizer", # soon to be "DOI-USGS/streamMetabolizer"
+# #   build_vignettes = TRUE)
+# 
+# 
+# ### Install packages to run streamMetabolizer
+# ### !!! REMOVE COMMENTS IF YOU NEED TO RUN THESE LINES AND INSTALL streamMetabolizer !!!
+# 
+# ### Note: Most of this is probably unnecessary for the code here; only a few commands from streamMetabolizer are used to calculate % sat
+# 
+# ### See this page for installation help: http://usgs-r.github.io/streamMetabolizer/articles/installation.html
+# 
+# install.packages("remotes")
+# remotes::install_github('appling/unitted')
+# remotes::install_github(
+#   "USGS-R/streamMetabolizer", # soon to be "DOI-USGS/streamMetabolizer"
+#   build_vignettes = TRUE)
+# 
+# remotes::install_github("USGS-R/streamMetabolizer")
+# install.packages("devtools")
+# 
+# # After installing and loading streamMetabolizer, run vignette() in R to see tutorials on getting started and customizing your metabolism models.
+# 
+# vignette(package='streamMetabolizer')
+# ## displays a list of available vignettes
+# 
+# ### Make sure rtools is installed; allows you to install rstan, necessary for using Bayesian models on Windows
+# ### After installing rtools, check for installation with the following (see the rtools download page for what to do if the command doesn't give the install directory):
+# #Sys.which("make")
+# 
+# ### Remove comments if you need to run these
+# #devtools::find_rtools()
+# install.packages("rstan", repos = "https://cloud.r-project.org/", dependencies = TRUE)
+# 
+# ### rtools isn't being loaded, so these were trying to fix the problem, which appears to be fixed
+# #options(buildtools.check = function(action) TRUE )
+# #pkgbuild::has_build_tools(debug = TRUE)
+
+# ### Load these packages--only streamMetabolizer is required for this code, so I commented out the rest
+# library(unitted)
+library(streamMetabolizer)
+# library(rstan)
+# library(StanHeaders)
+# 
+# ### Set options for rstan
+# options(mc.cores = parallel::detectCores())
+# rstan_options(auto_write = TRUE)
+```
+
+```{r graphics}
+
+# ----- Basic ggplot theme -----
+
+### Code I've collected over a couple years to make the plots look how I want.
+basic_theme <- theme(plot.title = element_text(family="Myriad", margin = margin(0,0,10,0), hjust = 0.5),
+                          axis.title.x = element_text(family="Myriad", size=12, margin = margin(10,0,0,0)),
+                          axis.title.y = element_text(family="Myriad", size=12, margin = margin(10,10,10,10)),
+                          axis.title.y.right = element_text(family="Myriad", size=12, 
+                                                            margin = margin(10,10,10,10)),  
+                          axis.text = element_text(family="Myriad", size=10),
+                          legend.title = element_text(family="Myriad", size=12),
+                          legend.title.align = .5,
+                          legend.text = element_text(family="Myriad", size=9),
+                          text = element_text(family="Myriad", size=12),
+                          plot.margin = margin(0,1,0,0),
+                          panel.background = element_rect(fill = "white", color = "black"),
+                          panel.grid = element_blank(),
+                          panel.grid.major.x = element_line(color = "light grey", linetype = 2),
+                          panel.grid.minor.x = element_line(color = "light grey", linetype = 3)
+                          )
+
+### Font for above
+### This font came with Adobe software; you may want to change this to a font you like and have installed, or just delete all references to family="Myriad" and let R use the default
+windowsFonts(Myriad = windowsFont("Myriad Pro"))
+```
+
+
+
+```{r miniDOT-prep}
+
+# ---------- Process the miniDOT files ----------
+
+# This will prep the miniDOT file for each logger--read in all txt files from each day within each directory, combine into a single data frame, convert time to MDT
+
+# ----- Definitions -----
+minidot_path_new <- "./Data/miniDOT-data_Raw/New_miniDOTs/"
+minidot_path_old <- "./Data/miniDOT-data_Raw/Old_miniDOTs/"
+out_dir <- "./Data/miniDOT-data_Intermediate/"
+
+
+# ----- Join all the files together - New miniDOTs -----
+
+# Create a list of the directories inside the working directory--this will be a list of the miniDOT serial numbers
+
+# !!! NOTE: IMPORTANT !!! There should be one directory per miniDOT, each directory named with the serial number of a single miniDOT (i.e., the way the files are set up on the logger itself), with its files simply dumped inside--no need to do anything to them
+
+# Make a list of minidot directories inside the main directory
+dir_list <- list.dirs(path = here(minidot_path_new), full.names = FALSE, recursive = FALSE)
+
+# Loop that pulls out the files within each directory
+for (i in dir_list) {
+  file_list <- list.files(path = here(paste(minidot_path_new, i, sep = "")), 
+                          pattern = ".txt", full.names = TRUE)
+
+  # Assign each i--the name of each directory--to a new variable for serial number
+  serial_number <- i
+  serial_number <- str_remove(serial_number, pattern = "7450-")
+
+  # Set up a naming scheme for the final processed files, to be used at the end of the loop
+  out_name <- here(paste(out_dir, serial_number, "_data.csv", sep = ""))
+
+  # Make a new dataset to store all the data from a single logger while the loop runs
+  dataset <- tibble()
+
+  # Now a nested loop that combines the files in each directory into one data frame
+  for (i in file_list) {
+
+    # Read in the files
+    temp_data <- fread(i, stringsAsFactors = FALSE, skip = 2)
+
+    # For each iteration, bind the new data to the building dataset
+    dataset <- rbindlist(list(dataset, temp_data), use.names = TRUE)
+
+  }   # Close the nested loop
+
+  # Now, modify the data frame that's been combined for each iteration
+    dataset <- dataset %>%
+
+      # Rename the columns into something easier to type or understand
+      rename(Unix_Time = "Time (sec)",
+             temp_C = "T (deg C)",
+             DO_obs_mgL = "DO (mg/l)",   ### Observed mg/L
+             measurement_quality = "Q ()") %>%
+
+      # Set time to UTC, then make a column for MDT
+      mutate(serial = serial_number) %>%
+
+      ### Choose columns and order for final dataset
+      select(serial, Unix_Time, temp_C, DO_obs_mgL, measurement_quality)
+
+    # Write a csv file to the intermediate directory
+    write.csv(dataset, file = here(out_name), row.names = FALSE)
+
+}   # Close the main loop
+
+
+# ----- Join all the files together - Old miniDOTs -----
+
+# Old miniDOTs did not record data. SHIT.
+
+
+# ----- Notes on column names -----
+
+# Measurement quality (Q) is internally calculated, see PME's explanation here: https://www.pme.com/product-installs/q-measurement-found-in-minidot
+# Important; from PME website: "We believe that a Q measurement of 0.7 or higher means that the miniDOT is operating in good condition.   Q < 0.7 likely indicates some serious measurement problem."
+# For battery (V); from the manual: "You cannot tell from terminal voltage of a lithium battery how long the battery will last, but you can tell if it will die soon...If your combined battery voltage is less than 2.4 Volts, replace the batteries"
+
+```
+
+
+```{r calc-sat}
+
+# ---------- Calculate DO % sat and export final files ----------
+
+# ----- Set up definitions -----
+
+# Definitions
+input_dir <- "./Data/miniDOT-data_Intermediate/"
+out_dir <- "./Data/miniDOT-data_Processed/"
+metadata_file <- "./Metadata/2023_Middle-Fork-Flathead_minidot-metadata.csv"
+bpst <- 30 # Standard pressure in inches during deployment, taken from NWS Kalispell, Glacier Park International Airport weather station
+
+
+# Read in metadata
+metadata <- read.csv(here(metadata_file)) %>% 
+  mutate(deployed_date_time_MDT = paste(date_deployed, time_deployed_MDT),
+         deployed_date_time_MDT = as.POSIXct(deployed_date_time_MDT, tz = "Etc/GMT+6"),
+         retrieved_date_time_MDT = paste(date_retrieved, time_retrieved_MDT),
+         retrieved_date_time_MDT = as.POSIXct(retrieved_date_time_MDT, tz = "Etc/GMT+6"))
+
+
+# ----- Set up function -----
+
+# Function to read in miniDOT files and calculate pressure & DO sat
+minidot_sat <- function(serial_num) {
+  
+  # Define time minidot was deployed
+  start_time <- metadata %>% 
+    filter(str_detect(serial, serial_num)) %>% 
+    .$deployed_date_time_MDT
+  
+  # Define time minidot was retrieved
+  end_time <- metadata %>% 
+    filter(str_detect(serial, serial_num)) %>% 
+    .$retrieved_date_time_MDT
+  
+  # Read in concatenated minidot file
+  read.csv(here(input_dir, paste0(serial_num, "_data.csv"))) %>% 
+    
+    # Join metadata
+    left_join(metadata, by = "serial") %>% 
+    
+    mutate(
+      # Calculate pressure at altitude
+      bp_mmhg = bpst * 25.4 * exp((-9.80665 * 0.0289644 * altitude_m) / 
+                                    (8.31447 * (273.15 + 15))),
+      
+      # Calculate equilibrium saturation DO concentration
+      DO_equilib_mgL = calc_DO_sat(temp = temp_C, 
+                                   press = bp_mmhg, 
+                                   sal = 0),
+      
+      # Calculate percent sat
+      DO_sat = 100 * (DO_obs_mgL / DO_equilib_mgL),
+      
+      # Round newly calculated values to 3 decimals so they don't report more precision than the miniDOTs recorded
+      DO_sat = round(DO_sat, digits = 3),
+      
+      # Define the datetime variable
+      date_time_UTC = as_datetime(Unix_Time),
+      solar.time = convert_UTC_to_solartime(date_time_UTC, longitude = -113, time.type = "mean solar"),
+      date_time_MDT = with_tz(date_time_UTC, tzone = "Etc/GMT+6")
+    ) %>% 
+    
+    # Shorten to just the time minidot was deployed, but 30 minutes after start and 5 minutes before removal to avoid the effects of us walking around them
+    filter(between(date_time_MDT, 
+                   start_time + minutes(30), 
+                   end_time - minutes(5))) %>% 
+    
+    # Select only needed columns
+    select(site, site_num, serial, Unix_Time, date_time_UTC, solar.time, date_time_MDT, temp_C, DO_obs_mgL, DO_sat, avg_depth_m)
+}
+#end of function
+
+
+# Write a csv file to the intermediate directory
+minidot_write <- function(minidot_name) {
+  write.csv(minidot_name, file = here(out_dir, paste0(minidot_name, ".csv")), row.names = FALSE)
+}
+
+
+# ----- Process minidot files -----
+
+# Run the function above for each
+Paola_minidot <- minidot_sat(serial_num = "334128")
+Cascadilla_minidot <- minidot_sat(serial_num = "437263")
+Upwelling_minidot <- minidot_sat(serial_num = "492756")
+West_Glacier_minidot <- minidot_sat(serial_num = "355471")
+Beaver_minidot <- minidot_sat(serial_num = "659494")
+Lower_Beaver_minidot <- minidot_sat(serial_num = "478376")
+
+# Note: The time on the minidot may be incorrect, as Lower Beaver was retrieved at 2023-07-24 15:01 and redeployed at 15:11, but the latest time recorded on the logger was 15:24
+# To adjust for the error, I'm estimating the minidot was turned off at 15:02, so the internal time was at least 22 minutes ahead. It recorded data at 5-min intervals, so at most it was 27 minutes ahead. So, let's subtract 25 minutes from all the times
+Lower_Beaver_minidot <- Lower_Beaver_minidot %>% 
+  mutate(date_time_UTC = date_time_UTC - minutes(25),
+      solar.time = convert_UTC_to_solartime(date_time_UTC, longitude = -113, time.type = "mean solar"),
+      date_time_MDT = with_tz(date_time_UTC, tzone = "Etc/GMT+6"))
+    
+    
+# Join them all together
+combined_minidots <- bind_rows(Paola_minidot, Cascadilla_minidot,
+                               Upwelling_minidot, West_Glacier_minidot,
+                               Beaver_minidot, Lower_Beaver_minidot)
+
+# Write a final csv file to the processed directory
+write.csv(combined_minidots, 
+          file = here(out_dir, "2023_minidots_processed.csv"), 
+          row.names = FALSE)
+
+# Select only rows needed for metabolism
+combined_minidots_fewer_rows <- combined_minidots %>%
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(site_num, solar.time, DO.obs, DO.sat, temp.water, depth)
+
+# Write a final csv file to the processed directory
+write.csv(combined_minidots_fewer_rows, 
+          file = here(out_dir, "2023_minidots_processed_fewer_rows.csv"), 
+          row.names = FALSE)
+
+```
+
+
+
+```{r plot-DO, fig.width=12, fig.height=7, units='in', fig.align='center', results='asis', echo=F, warning=F}
+
+# ----- Plot DO; make sure there are no wonky data -----
+
+# Define output directory
+fig_dir <- "./Figures/"
+
+DO_plot <- combined_minidots %>%
+  mutate(site = as_factor(site)) %>% 
+  ggplot() +
+  
+  # Line graph for DO
+  geom_line(size = 0.6, 
+            aes(x = solar.time, y = DO_obs_mgL, group = site)) +
+ 
+  
+  # scale_color_viridis(discrete = TRUE,
+  #                     direction = -1,
+  #                     end = 0.7
+  #                     ) +
+  
+  labs(x = "", y = "Dissolved oxygen (mg/L)") +
+ 
+  facet_wrap(~site , scales = "fixed" ) +
+
+  # Theme options
+  basic_theme +
+  theme(axis.text.x=element_text(angle=60, hjust=1),
+        # axis.title.y = element_text(color = DO_conc_color),   ### Don't need right now
+        # axis.text.y = element_text(color = DO_conc_color),
+        plot.margin = margin(15,0,15,0),
+        
+        # # Color the right axis to match the discharge line
+        # # Doesn't seem necessary for this plot; commenting out
+        # axis.title.y.right = element_text(color = NWIS_discharge_color),
+        
+        legend.background = element_rect(color="black", size=.25, linetype="solid"),
+        legend.key.width = unit(9,"point"),
+        legend.box.margin=margin(0,0,0,10),
+        legend.position = "right",
+        legend.title = element_blank(),
+        
+        # The plots ran together in the output html, 
+        # so I added this to make them easier to keep separate
+        plot.background = element_rect(color = "grey", size = 1))
+
+DO_plot
+
+ggsave(DO_plot, filename = here(fig_dir, "DO_all.png"),
+         device = png, type = "cairo",
+         width = 12, height = 7, units = "in", dpi = 300)
+
+
+
+```
+
+
+```{r metabolism}
+
+# ---------- Calculate whole-stream metabolism ----------
+
+# Set metabolism parameters
+mf_name <- mm_name(type='bayes', pool_K600='normal', err_obs_iid = T, err_proc_iid =F)
+mf_specs <- specs(mf_name, K600_daily_meanlog_meanlog=3, K600_daily_meanlog_sdlog=0.7, K600_daily_sdlog_sigma=0.1, burnin_steps=1000, saved_steps=1000)
+
+# Paola
+Paola_metab <- read.csv()
+
+
+Paola_metab <- Paola_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+Paola_fit <- metab(mf_specs, data = Paola_metab, 
+                   info = c(site = 'Paola', source = 'Bob Hall'))
+save(Paola_fit, file = here(out_dir, "Paola_fit.RData"))
+
+plot_DO_preds(predict_DO(Paola_fit))
+plot_metab_preds(predict_metab(Paola_fit))
+get_params(Paola_fit , uncertainty='ci')
+
+test <- Paola_minidot %>% 
+  ggplot() +
+  geom_line(size = 0.6, 
+            aes(x = solar.time, y = DO_obs_mgL, group = site))
+ggplotly(test)
+
+# Cascadilla
+Cascadilla_metab <- Cascadilla_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+Cascadilla_fit <- metab(mf_specs, data = Cascadilla_metab, 
+                   info = c(site = 'Cascadilla', source = 'Bob Hall'))
+save(Cascadilla_fit, file = here(out_dir, "Cascadilla_fit.RData"))
+
+plot_DO_preds(predict_DO(Cascadilla_fit))
+plot_metab_preds(predict_metab(Cascadilla_fit))
+get_params(Cascadilla_fit , uncertainty='ci')
+
+
+# Upwelling
+Upwelling_metab <- Upwelling_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+Upwelling_fit <- metab(mf_specs, data = Upwelling_metab, 
+                   info = c(site = 'Upwelling', source = 'Bob Hall'))
+save(Upwelling_fit, file = here(out_dir, "Upwelling_fit.RData"))
+
+plot_DO_preds(predict_DO(Upwelling_fit))
+plot_metab_preds(predict_metab(Upwelling_fit))
+get_params(Upwelling_fit , uncertainty='ci')
+
+
+# West_Glacier
+West_Glacier_metab <- West_Glacier_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+West_Glacier_fit <- metab(mf_specs, data = West_Glacier_metab, 
+                   info = c(site = 'West_Glacier', source = 'Bob Hall'))
+save(West_Glacier_fit, file = here(out_dir, "West_Glacier_fit.RData"))
+
+plot_DO_preds(predict_DO(West_Glacier_fit))
+plot_metab_preds(predict_metab(West_Glacier_fit))
+get_params(West_Glacier_fit , uncertainty='ci')
+
+
+# Beaver
+Beaver_metab <- Beaver_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+Beaver_fit <- metab(mf_specs, data = Beaver_metab, 
+                   info = c(site = 'Beaver', source = 'Bob Hall'))
+save(Beaver_fit, file = here(out_dir, "Beaver_fit.RData"))
+
+plot_DO_preds(predict_DO(Beaver_fit))
+plot_metab_preds(predict_metab(Beaver_fit))
+get_params(Beaver_fit , uncertainty='ci')
+
+
+# Lower_Beaver
+Lower_Beaver_metab <- Lower_Beaver_minidot %>% 
+  mutate(light = calc_light(solar.time, latitude = 48.5, longitude = -113, 
+                            max.PAR = 2326, attach.units = FALSE)) %>% 
+  rename(DO.obs = DO_obs_mgL,
+         DO.sat = DO_sat,
+         temp.water = temp_C,
+         depth = avg_depth_m) %>% 
+  select(solar.time, DO.obs, DO.sat, depth,
+         temp.water, light)
+
+Lower_Beaver_fit <- metab(mf_specs, data = Lower_Beaver_metab, 
+                   info = c(site = 'Lower_Beaver', source = 'Bob Hall'))
+save(Lower_Beaver_fit, file = here(out_dir, "Lower_Beaver_fit.RData"))
+
+plot_DO_preds(predict_DO(Lower_Beaver_fit))
+plot_metab_preds(predict_metab(Lower_Beaver_fit))
+get_params(Lower_Beaver_fit , uncertainty='ci')
+
+
+
+
+
+
+```
+
+
+
+
+----- File ends here for now; work in progress
+
+
+
+
+```{r fig.width=8, fig.height=5, out.width="100%", echo=F}
+# Check Percent sat values and temperature for each processed logger file by graphing them
+# Note the code in the header here sets the output dimensions for the knitted html file; I just set the values so the plots looked good
+# No matter what I did, the plots look like crap when knitted to a Word file--really low resolution, hard to see detail. No idea what's going on there.
+
+
+### Set up a list of logger names to use (get the serial numbers from the file names, remove the _data.csv part)
+processed_files <- list.files(here("./Output/QA/miniDOT-files/"), pattern = ".csv")
+logger_names <- str_remove(processed_files, pattern = "_data.csv")
+
+### Read in the file that lists the organization that owns each miniDOT
+### !!! CHANGE TO MATCH YOUR FILE !!!
+owners <- read.csv(here("./Metadata/miniDOT-owner-list.csv"), stringsAsFactors=F) %>%
+  mutate(serial = miniDOT.serial.no.,
+         owner = Owner)
+
+### Read in the calibration data file (file from your data sheet with DO and temp values from YSI and thermistor), set date/time, and change units for atmospheric pressure to be the same as AgWeatherNet
+### !!! CHANGE TO MATCH YOUR FILE !!!
+calibration_data <- read.csv(here("./Metadata/QA-QC-data/miniDOT_QA-QC-data_2022-initial.csv"))
+calibration_data <- calibration_data %>% 
+  mutate(date_time_PST = paste(date, time_PST),
+         date_time_PST = as.POSIXct(date_time_PST, format="%Y-%m-%d %H:%M", tz = "Etc/GMT+8"),
+         YSI_atm_press_mbar = YSI_atm_press * 1.33322)
+
+### Make a dataframe to store the summary stats for each logger
+calibration_summary <- tibble()
+
+
+
+### Loop that will pull information for each logger, plot it, and calculate summary stats to check calibration
+### Note we're using the serial number list we set up several lines ago; each will get pulled in as "i" one at a time as the loop runs
+for (i in logger_names) {
+  
+  ### Set up names for incoming files then read in each file
+  input_file <- paste("./Output/QA/miniDOT-files/", i, "_data.csv", sep = "")
+  dataset <- read.csv(here(input_file))
+  
+  ### Specify the format of the date_time_PST variable
+  dataset <- dataset %>%
+    mutate(date_time_PST = as.POSIXct(date_time_PST, tz = "Etc/GMT+8")) %>%
+    
+    ### Add in the dataset that records which organization owns which logger
+    left_join(owners, by = "serial") %>%
+    
+    ### Subset to start and end points recorded on data sheet
+    ### !!! CHANGE THESE VALUES BASED ON THE DATA SHEET !!!
+    
+    filter(date_time_PST >= as.POSIXct('2022-05-09 23:39', tz = "Etc/GMT+8"),  ### Change to your start time
+           date_time_PST <= as.POSIXct('2022-05-10 14:30', tz = "Etc/GMT+8"))  ### Change to your end time
+  
+  
+  ### Set break points for graphing the time series (where bins will fall on the X-axis)
+  ### !!! CHANGE THESE VALUES BASED ON THE DATA SHEET !!!
+  
+  my_breaks <- seq.POSIXt(as.POSIXct('2022-05-10 00:00', tz = "Etc/GMT+8"),
+                          as.POSIXct('2022-05-10 15:00', tz = "Etc/GMT+8"), by = "3 hours")
+  
+  ### Without setting limits, all the bin values were at 12:06 and 00:06. This fixed it.
+  my_limits <- c(as.POSIXct('2022-05-09 23:39', tz = "Etc/GMT+8"),
+               as.POSIXct('2022-05-10 14:30', tz = "Etc/GMT+8"))
+  
+  ### Set the date format for the X-axis labels
+  my_labels <- date_format("%Y-%m-%d %H:%M", tz = "Etc/GMT+8")
+  
+  
+  ### Set graphing parameters (coeff is a value to set the scale of the right Y-axis based on the left Y-axis)
+  coeff <- 4
+  DO_color <- "#1da133"
+  temp_color <- "#9f74b8"
+  
+  
+  
+  ### Graph % sat and temp vs time, with a line for 95% sat
+  ### (ideally, % sat should stay above this line during the 100% saturation check)
+  p <- dataset %>%
+    ggplot(aes(x=date_time_PST)) +
+    
+    ### Line graph for DO sat
+    geom_line(aes(y=DO_sat), size=0.5, color = DO_color) +
+    
+    ### Line graph for temp, using coeff to scale
+    geom_line(aes(y=temp_C * coeff), size=0.5, color = temp_color) +
+    
+    ### Set the breaks for the X-axis using what we defined above
+    scale_x_datetime(labels = my_labels,
+                     limits = my_limits,
+                     breaks = my_breaks) +
+    
+    ### Set the Y-axis options
+    scale_y_continuous(
+      
+      ### First axis--set these breaks to have a number to label the 95% sat line
+      name = "DO (percent saturation)",
+      breaks = c(0,25,50,75,95,100),
+      
+      ### Second axis
+      sec.axis = sec_axis(~./coeff, name = "Temperature (°C)")
+      ) +
+    
+    ### Labels; listing serial # and organization for the title
+    labs(title=paste(i, " (", dataset$owner[1], ")", sep = ""), x="Date & time") +
+    
+    ### 95% sat line
+    geom_hline(yintercept = 95, linetype="dashed", color = "red") +
+    
+    ### Theme options
+    basic_theme +
+    theme(axis.text.x=element_text(angle=60, hjust=1),
+          axis.title.y = element_text(color = DO_color),
+          axis.title.y.right = element_text(color = temp_color),
+          axis.text.y = element_text(color = DO_color),
+          axis.text.y.right = element_text(color = temp_color),
+          plot.margin = margin(15,0,15,0),
+          
+          ### The plots ran together in the output html, so I added this to make them easier to keep separate
+          plot.background = element_rect(color = "grey", size = 1))
+  
+  ### Print the graphs
+  print(p)
+
+
+  
+  # Now check the miniDOT values against values recorded on the data sheet
+  # The rest here is just the setup, which needs to run in the loop; the output is in the next chunk
+
+  
+  ### Make a dataset for the 100% sat check, subset to just the period before yeast addition
+  ### !!! CHANGE DATE & TIME AS NEEDED !!!
+  
+  dataset_100sat <- dataset %>%
+  filter(date_time_PST >= as.POSIXct('2022-05-10 0:08', tz = "Etc/GMT+8"),  ### Change to match point at which sat hit ~ 100%
+         date_time_PST <= as.POSIXct('2022-05-10 13:15', tz = "Etc/GMT+8")) %>%  ### Change to last time before yeast addition
+    
+    ### Calculate mean saturation for the 100% period
+    summarize(mean_sat = round(mean(DO_sat), digits = 3))
+  
+  
+  ### Next check 0% sat values; subset to period 1 hr after yeast addition to post-yeast check
+  ### !!! CHANGE DATE & TIME AS NEEDED !!!
+  
+  dataset_0sat <- dataset %>%
+  filter(date_time_PST >= as.POSIXct('2022-05-10 14:09', tz = "Etc/GMT+8"),  ### Change 
+           date_time_PST <= as.POSIXct('2022-05-10 14:30', tz = "Etc/GMT+8")) %>%  ### Change
+    
+    ### Calculate mean saturation for the 0% period
+    summarize(mean_sat = round(mean(DO_sat), digits = 3))
+
+  
+  ### Create a set of times to check calibration against
+  ### For each of them, the current dataset is added, but just for that time
+  ### !!! CHANGE THESE TIMES TO MATCH THE DATA SHEET !!!
+  
+  check <- calibration_data %>% 
+    filter(str_detect(activity, "check")) %>% 
+    left_join(dataset, by = "date_time_PST")
+  
+  ### Temperature checks at discrete points
+  check$temp_check <- check$temp_C - check$thermistor_temp_C
+  check$DO_mgL_check <- check$DO_obs_mgL - check$YSI_DO_mgL
+  
+  cold_check1 <- check[1,]
+  cold_check2 <- check[2,]
+  cold_check3 <- check[3,]
+  rewarm_check1 <- check[4,]
+  rewarm_check2 <- check[5,]
+  rewarm_check3 <- check[6,]
+  yeast_check_mid <- check[7,]
+  yeast_check1 <- check[8,]
+  yeast_check2 <- check[9,]
+  yeast_check3 <- check[10,]
+  yeast_check4 <- check[11,]
+  
+  
+  
+  ### Create a list of summary stats to check calibration of DO during 100% and 0% period, temp values each time a temp was manually recorded, and DO (mg/L) values each time they were recorded
+  
+  ### Mean saturation stats
+  mean_100_sat <- dataset_100sat$mean_sat
+  mean_diff_100_sat <- -(round(100 - dataset_100sat$mean_sat, digits = 3))
+  mean_0_sat <- round(dataset_0sat$mean_sat, digits = 3)
+
+
+
+  ### Put the list into a temporary dataset
+  temp_data <- tibble(
+    i, dataset$owner[1], mean_100_sat, mean_diff_100_sat, mean_0_sat,
+    cold_check1$temp_check, cold_check2$temp_check, cold_check3$temp_check,
+    rewarm_check1$temp_check, rewarm_check2$temp_check, rewarm_check3$temp_check, 
+    yeast_check1$temp_check, yeast_check2$temp_check, 
+    yeast_check3$temp_check, yeast_check4$temp_check, 
+    cold_check1$DO_mgL_check, cold_check2$DO_mgL_check, cold_check3$DO_mgL_check,
+    rewarm_check1$DO_mgL_check, rewarm_check2$DO_mgL_check, rewarm_check3$DO_mgL_check, 
+    yeast_check1$DO_mgL_check, yeast_check2$DO_mgL_check, 
+    yeast_check3$DO_mgL_check, yeast_check4$DO_mgL_check
+    )
+
+  ### Calculate mean differences from YSI DO and thermistor temp
+  temp_data <- temp_data %>% 
+    mutate(
+      mean_temp_diff_ColdPeriod = round(
+        mean(c(
+          cold_check1$temp_check, cold_check2$temp_check, cold_check3$temp_check 
+        )), digits = 3),
+      mean_DO_mgL_diff_ColdPeriod = round(
+        mean(c(
+          cold_check1$DO_mgL_check, cold_check2$DO_mgL_check, cold_check3$DO_mgL_check 
+        )), digits = 3),
+      mean_temp_diff_WarmPeriod = round(
+        mean(c(
+          rewarm_check1$temp_check, rewarm_check2$temp_check, rewarm_check3$temp_check 
+        )), digits = 3),
+      mean_DO_mgL_diff_WarmPeriod = round(
+        mean(c(
+          rewarm_check1$DO_mgL_check, rewarm_check2$DO_mgL_check, rewarm_check3$DO_mgL_check 
+        )), digits = 3),
+      mean_temp_diff_0SatPeriod = round(
+        mean(c(
+          yeast_check1$temp_check, yeast_check2$temp_check, 
+          yeast_check3$temp_check, yeast_check4$temp_check 
+        )), digits = 3),
+      mean_DO_mgL_diff_0SatPeriod = round(
+        mean(c(
+          yeast_check1$DO_mgL_check, yeast_check2$DO_mgL_check, 
+          yeast_check3$DO_mgL_check, yeast_check4$DO_mgL_check 
+        )), digits = 3)
+    )
+
+  
+  ### For each iteration of the loop, bind the temporary data to the building dataset
+  calibration_summary <- rbindlist(list(calibration_summary, temp_data), use.names = T)
+
+} ### End the loop
+
+```
+
+ \
+ 
+
+#### Table of percent saturation calibration checks, temperature offsets (°C) from a calibrated thermistor, and DO offsets (mg/L) from a calibrated YSI Pro ODO
+
+-   DO percent saturation values should be within 5% of the target value\
+-   Temperature offset values should be less than 0.6 °C from the thermistor value\
+-   DO offset values should be less than 0.6 mg/L from the YSI value
+
+```{r table, echo=F}
+# Finish the table for output
+
+### Rename all the variables to make output easier to read
+calibration_summary <- calibration_summary %>% 
+  rename(Logger = i,
+         Owner = "dataset$owner[1]",
+         "Mean % sat during 100% period" = mean_100_sat,
+         "Mean difference from 100% sat" = mean_diff_100_sat,
+         "Mean % sat during 0% period" = mean_0_sat,
+         
+         "Mean temp offset (°C) in ice bath" = mean_temp_diff_ColdPeriod,
+         "Mean temp offset (°C) after rewarming" = mean_temp_diff_WarmPeriod,
+         "Mean temp offset (°C) during 0% period" = mean_temp_diff_0SatPeriod,
+         "Mean DO offset (mg/L) in ice bath" = mean_DO_mgL_diff_ColdPeriod,
+         "Mean DO offset (mg/L) after rewarming" = mean_DO_mgL_diff_WarmPeriod,
+         "Mean DO offset (mg/L) during 0% period" = mean_DO_mgL_diff_0SatPeriod,
+         
+         "Temp offset (°C) in ice bath 1" = "cold_check1$temp_check",
+         "Temp offset (°C) in ice bath 2" = "cold_check2$temp_check",
+         "Temp offset (°C) in ice bath 3" = "cold_check3$temp_check",
+         "Temp offset (°C) after rewarming 1" = "rewarm_check1$temp_check",
+         "Temp offset (°C) after rewarming 2" = "rewarm_check2$temp_check",
+         "Temp offset (°C) after rewarming 3" = "rewarm_check3$temp_check",
+         "Temp offset (°C) during 0% period 1" = "yeast_check1$temp_check",
+         "Temp offset (°C) during 0% period 2" = "yeast_check2$temp_check",
+         "Temp offset (°C) during 0% period 3" = "yeast_check3$temp_check",
+         "Temp offset (°C) during 0% period 4" = "yeast_check4$temp_check",
+         
+         "DO offset (mg/L) in ice bath 1" = "cold_check1$DO_mgL_check",
+         "DO offset (mg/L) in ice bath 2" = "cold_check2$DO_mgL_check",
+         "DO offset (mg/L) in ice bath 3" = "cold_check3$DO_mgL_check",
+         "DO offset (mg/L) after rewarming 1" = "rewarm_check1$DO_mgL_check",
+         "DO offset (mg/L) after rewarming 2" = "rewarm_check2$DO_mgL_check",
+         "DO offset (mg/L) after rewarming 3" = "rewarm_check3$DO_mgL_check",
+         "DO offset (mg/L) during 0% period 1" = "yeast_check1$DO_mgL_check",
+         "DO offset (mg/L) during 0% period 2" = "yeast_check2$DO_mgL_check",
+         "DO offset (mg/L) during 0% period 3" = "yeast_check3$DO_mgL_check",
+         "DO offset (mg/L) during 0% period 4" = "yeast_check4$DO_mgL_check"
+  ) %>% 
+  select(Logger, 
+         Owner, 
+         "Mean % sat during 100% period", 
+         "Mean difference from 100% sat",
+         "Mean % sat during 0% period",
+         
+         "Mean temp offset (°C) in ice bath",
+         "Mean temp offset (°C) after rewarming",
+         "Mean temp offset (°C) during 0% period",
+         "Mean DO offset (mg/L) in ice bath",
+         "Mean DO offset (mg/L) after rewarming",
+         "Mean DO offset (mg/L) during 0% period",
+         
+         "Temp offset (°C) in ice bath 1",
+         "Temp offset (°C) in ice bath 2",
+         "Temp offset (°C) in ice bath 3",
+         "Temp offset (°C) after rewarming 1",
+         "Temp offset (°C) after rewarming 2",
+         "Temp offset (°C) after rewarming 3",
+         "Temp offset (°C) during 0% period 1",
+         "Temp offset (°C) during 0% period 2",
+         "Temp offset (°C) during 0% period 3",
+         "Temp offset (°C) during 0% period 4",
+         
+         "DO offset (mg/L) in ice bath 1",
+         "DO offset (mg/L) in ice bath 2",
+         "DO offset (mg/L) in ice bath 3",
+         "DO offset (mg/L) after rewarming 1",
+         "DO offset (mg/L) after rewarming 2",
+         "DO offset (mg/L) after rewarming 3",
+         "DO offset (mg/L) during 0% period 1",
+         "DO offset (mg/L) during 0% period 2",
+         "DO offset (mg/L) during 0% period 3",
+         "DO offset (mg/L) during 0% period 4"
+         )
+
+
+
+### Print the table in the knitted output
+knitr::kable(calibration_summary, "pipe", align = "c")
+
+### Export the data as a csv
+write.csv(calibration_summary, here("./Output/QA/miniDOT QA QC supporting table_2022_initial.csv"), row.names = F)
+```
+
+ \
+ 
+
+#### Table of temperature and DO used to calculate offsets above
+
+ 
+
+```{r calibration data, echo=F}
+calibration_data_short <- check %>% 
+  select(date, time_PST, activity, thermistor_temp_C, YSI_DO_mgL, YSI_DO_sat) %>% 
+  filter(activity != "mid-yeast check") %>% 
+  rename("Thermistor temp (°C)" = thermistor_temp_C,
+         "YSI DO (mg/L)" = YSI_DO_mgL,
+         "YSI DO (% sat)" = YSI_DO_sat)
+
+calibration_data_short$activity <- recode(calibration_data_short$activity, 
+                                          "post-ice check" = "Check during ice bath",
+                                          "rewarm check" = "Check after rewarming",
+                                          "post-yeast check" = "Check during 0% period (after yeast addition)")
+
+### Print the table in the knitted output
+knitr::kable(calibration_data_short, "pipe", align = "c")
+```

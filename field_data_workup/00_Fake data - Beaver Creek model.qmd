@@ -1,0 +1,601 @@
+---
+title: "Fake data - Beaver Creek model"
+format: html
+editor: visual
+---
+
+## Beaver Creek data model
+
+Using a 2-station N model when we don't know the upstream N.
+
+#### Model:
+
+$$
+N_{down [t]} = \frac{N_{up [t-\tau]} + (\frac{U_{[t]}}{z_{[t,d]}}) (\frac{\sum_{t-\tau}^{t} PPFD_{[\tau]}}{\sum{PPFD_{[d]}}} + K_{\tau? day?}(\frac{N_{eq-up[t-\tau]} - N_{up[t-\tau]} + N_{eq-down[t]})}{2} \tau} {1 + \frac{K_\tau}{2}} 
+$$ {#eq-1}
+
+#### Assumptions:
+
+-   $N_{eq-up} = N_{up} = N_{eq-down}$
+
+-   AND (initially) $U = 0$
+
+therefore:
+
+$N_{down[t]} = \frac{N_{up [t-\tau]} + K(\frac{ N_{eq-down[t]})}{2}) \tau} {1 + \frac{K \tau}{2}} = \frac{N_{eq-all} + K \tau (\frac{N_{eq-all}}{2})} {1 + \frac{K \tau}{2}} = \frac{N_{eq-all}(1 + \frac{K\tau}{2})} {1 + \frac{K \tau}{2}}$
+
+AND SO
+
+$N_{down}= N_{eq-all}$
+
+Free parameters = $K$, $N_{up}$, and $N_{eq-down}$ - BUT, w $U = 0$, $N_{up} = N_{eq-up} = N_{eq-down}$
+
+Data-driven (measured) parameter: $N_{down}$
+
+Calculated parameter: $\tau$, travel time
+
+-   Could also estimate $N_{eq-down}$ across the dataset by taking the average of the 'nighttime' high periodss
+
+$\tau$ estimate:
+
+$Q = \frac{width * depth * length}{time}$ ==\> $time (\tau) = \frac{width * depth * length}{Q}$
+
+Q on 10/6/23 = 0.639 cms; avg width = 15m; avg depth \~ 0.3m; length = 1766m
+
+$\tau$ = 15 \* .3 \* 1766 / 0.639 = 12436.62 s = 3.45h \~ 3.5 h (mb a bit faster at times, slower later in the season)
+
+#### ONE DAY MODEL: Create fake data, play w the basic equation, and see how it works
+
+```{r - load packages}
+library(tidyverse) #includes ggplot, lubridate, mm
+library(here)
+library(ggpubr)
+library(streamMetabolizer)
+library(rstan)
+library(rstanarm)
+```
+
+Use streamMetabolizer to create fake light data for the model
+
+```{r - light and sumlight}
+
+# Generate timeseries
+t1 <- ymd_hms('20230601 000000', tz='America/Denver')  # as.numeric = 1561460400 (# seconds since 1970)
+t2 <- ymd_hms('20231031 035500', tz='America/Denver') ## 030000 for hourly data; 035500 for 5-min data 
+
+tseq <- seq(from=as.numeric(t1), to=as.numeric(t2), by=300)  # from a to b in 5-minute timesteps (3600 for hour timesteps)  # tseq.h <-seq(from=as.numeric(t1), to=as.numeric(t2), by=3600)
+
+date.time <- as_datetime(tseq, tz='America/Denver') 
+head(date.time)
+
+date <- date(date.time)
+time.h <- hour(date.time)
+time.5min <- minute(date.time)
+Jday <- yday(date.time)
+
+
+# Calculate light using streamMetabolizer (lat-long for Nyack Creek, MT)
+#   # UNITS: "umol m^-2 s^-1")
+
+datetime.solar <- streamMetabolizer::calc_solar_time(local.time=date.time, longitude=-113.64569089116506)
+
+light.5min <- streamMetabolizer::calc_light(solar.time=datetime.solar, latitude=48.515096115449715, longitude=-113.64569089116506)
+
+# # with fake data but light for Big Creek, CA
+# datetime.solar <- streamMetabolizer::calc_solar_time(local.time=date.time, longitude= -119.25538)
+# 
+# light.5min <- streamMetabolizer::calc_light(solar.time=datetime.solar, latitude=37.05767, longitude= -119.25538) #
+
+
+# Hourly and daily data from 5min sunlight data
+timelight.df <- data.frame(datetime = date.time, 
+                           model_datetime = date.time - hours(4),
+                           time.h = time.h, 
+                           time.5min = time.5min,
+                           Jday = Jday,
+                           light.5min = light.5min, 
+                           lightsum.5min = 300*light.5min) %>% # 300 seconds in 5 min 
+                mutate(model_jday = yday(model_datetime)) 
+
+dates.h.df <- timelight.df %>%
+  filter(time.5min == 0)
+
+light.h.df <- timelight.df %>%
+  group_by(Jday, time.h) %>%    
+  summarize(light.h = sum(lightsum.5min)
+            #light.h.trapz = trapz(FIGURE OUT X, Y for 5-min light!)) 
+           ) %>%
+  ungroup()
+
+
+
+# calculate total light for tau=3
+light.h.df <- light.h.df %>%
+  mutate(tau_light = light.h + lag(light.h, 1) + lag(light.h, 2))
+
+light.h.df$datetime <- dates.h.df$datetime
+light.h.df$model_datetime <- dates.h.df$model_datetime
+light.h.df$model_jday <- dates.h.df$model_jday
+
+# Summing the hourly light for each day
+sumlight.h.df <- light.h.df %>%
+  group_by(model_jday) %>%
+  summarize(sumlight.h = sum(light.h))
+
+
+plot(light.h.df$time.h, light.h.df$light.h)
+plot(sumlight.h.df$model_jday, sumlight.h.df$sumlight.h)  # notice final reading has 0 light, it's midnight to 4a
+
+#plot(light.h$light.h, light.h1) # checking the difference between methods - other than orders of magnitude
+
+```
+
+Select light data for the 1-day model
+
+```{r - select light for the 1-day model}
+## Standardize term and select for model
+
+mday_low <- 225  # select timerange for model (1 day)
+mday_high <- 225
+
+#light <- light.h.df$light.h  # hourly light data integrated from 5min data
+
+# summed light during tau (transit time)   
+taulight.df <- light.h.df %>%
+  filter(model_jday >= mday_low & model_jday <= mday_high)
+
+taulight <- taulight.df$tau_light
+
+# daily light data from summing the hourly light data (by model day)
+sumlight.ideal <- sumlight.h.df %>%
+  filter(model_jday >= mday_low & model_jday <= mday_high)
+
+sumlight.ideal <- sumlight.ideal$sumlight.h
+
+# for one day, the model isn't working because taulight and sumlight aren't equal lengths. SO: 
+sumlight.24 <- rep(sumlight.ideal, 24) 
+```
+
+##### Generate data (1 day, 4a-4a)
+
+```{r - fake data, play w equation  - ONE DAY}
+
+# Have to add uptake, z, light to get it to move. 
+set.seed(1001001)
+
+nday <- 3
+N_e <- 5 # equilibrium N at any location on reach; also, we're assuming N_e = Nup
+K <- 3 # pick something from other rivers: it will be a constant to start
+U <- 3 # ibid
+z <- 0.3
+zMA<- matrix(z, ncol = nday, nrow=24)
+taulight <- taulight # travel time light (tau = 3h)
+taulightMA <- matrix(taulight, ncol = nday, nrow=24)
+sumlight <- sumlight.ideal # sum daily light by model day (4a=4a)
+#sumlight <- sumlight.24 #just for the one day data creation
+tau <- 3/24  # because our time unit is 'day'
+N.df <- numeric() # remind myself how to initialize a dataframe (1st a vector of 24...)
+#N.df[1] <- N_e
+e <- rnorm(24, mean=0, sd=0.2)
+  
+for(h in 1:24) {
+  N.df[h] <- (N_e - (U/z)*(taulight[h]/sumlight[h]) + K*(N_e/2)*tau)/(1+K*tau/2) + e[h]
+}
+# Oddly, could not divide taulight[h] by the day's sumlight/ sumlight as a constant... meh. Might need to create a 24-step sumlight if this doesn't work...
+
+# Error message: Error in Ops.data.frame(taulight[h], sumlight) : 
+#   ‘/’ only defined for equally-sized data frames (same message for '*')
+
+concMA <-matrix(N.df, ncol = nday, nrow=24)
+#sumlightMA <- matrix(sumlight, ncol=nday, nrow=24)
+
+```
+
+##### Visualize generated data - One day
+
+```{r - visualize fake data - ONE DAY}
+time.h <- tau_light$time.h
+# 
+N.df.plus <- tibble(N.df, taulight, time.h) %>%
+  rename(N = N.df)
+
+ggplot(N.df.plus, aes(x=time.h, y=N)) + 
+  geom_point() + 
+  labs( x='time (hours)', y='N (umol L^-1)', title = 'One-day NO3-N, BC model') +  
+  theme_bw()
+
+
+```
+
+##### Call to STAN - single-day
+
+```{r - call to stan (single day)}
+
+data <- list(T=24,D=nday,tau=tau,taulightMA=taulightMA,sumlight=sumlight,zMA=zMA,concMA=concMA)
+
+fit.1d <- stan("BC_1day.stan", data = data, iter = 1000, chains = 4) # for parallel work add this inside (): control = list(max_treedepth = 15)
+print(fit.1d)
+
+# good parameter recovery: K = 3.29 (data = 3), N_e = 5.11 (data = 5), U = 3.33 (data = 3); but K sd super-high (1.54!)
+
+```
+
+Visualize model output
+
+```{r - visualizing output v data}
+#| echo: false
+
+conc_hat <- rstan::extract(fit.1d, pars = "conc_hat")$conc_hat 
+#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+
+# > dim(conc_hat)
+# [1] 2000   24   1
+
+# Collapse the 2000-layer array to a matrix rows = hours, columns = days - just like concMA
+#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+
+ 
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+#U_mean <- as.vector(c(U_mod_avg))
+
+##as.vector(c(concMA)) would give the same values
+N.df.plus$N_hat<- N_conc_hat 
+
+# local_datetime <- bigc.df.19h$local_datetime  
+# model_datetime <- bigc.df.19h$local_datetime - hours(4)
+# model_day <-bigc.df.19h$model_day
+# hours <- hour(local_datetime)
+# mod_hours <- hour(model_datetime)
+  # find a way to remove day #212
+# 
+# mod_day <- unique(model_day)
+# 
+# N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+
+################################  GRAPHS  ################################
+
+############ N and N-hat over time  ################################
+N_and_Nhat <- N.df.plus %>% 
+  #filter(model_day >= 175 & model_day <= 201) %>%  # to see these better...
+  #ggplot(aes(x=mod_hours)) +
+  ggplot(aes(x=time.h)) +
+  geom_point(aes(y=N)) + 
+  geom_line(aes(y=N_hat), col='red')+
+  xlab("Time (h)") + ylab("N (umol/L)") +
+  ggtitle("N and N_hat over one day - fake data 2-station model")+
+  #facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+##########  N-hat vs N ############################################
+
+
+Nhat_V_N <- ggplot(data = N.df.plus, aes(x=N, y=N_hat)) +
+  geom_point() + 
+  xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
+  ggtitle("Measured N vs modeled N, 1 day, 2-station model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+quartz()
+Nhat_V_N
+
+```
+
+### MULTI-DAY MODEL: Fake-data model for 30 days
+
+Select light data for the 30-day model (generated above)
+
+```{r - select light for the 30-day model}
+## Standardize term and select for model
+
+mday_low <- 211  # select timerange for model (30 days)
+mday_high <- 240
+
+#light <- light.h.df$light.h  # hourly light data integrated from 5min data
+
+# summed light during tau (transit time)   
+taulight.df <- light.h.df %>%
+  filter(model_jday >= mday_low & model_jday <= mday_high)
+
+taulight <- taulight.df$tau_light
+
+# daily light data from summing the hourly light data (by model day)
+sumlight.ideal <- sumlight.h.df %>%
+  filter(model_jday >= mday_low & model_jday <= mday_high)
+
+sumlight.ideal <- sumlight.ideal$sumlight.h
+
+# for one day, the model isn't working because taulight and sumlight aren't equal lengths. SO: 
+sumlight.24 <- rep(sumlight.ideal, 24) 
+```
+
+##### Generate data (30 days, days starting at 4a)
+
+```{r - fake data - MULTIPLE DAYS}
+
+# Have to add uptake, z, light to get it to move. 
+set.seed(1001001)
+
+nday <- 30
+N_e <- 5 # equilibrium N at any location on reach; also, we're assuming N_e = Nup
+K <- 3 # pick something from other rivers: it will be a constant to start
+U <- 3 # ibid
+z <- 0.3
+zMA<- matrix(z, ncol = nday, nrow=24)
+taulight <- taulight # travel time light (tau = 3h)
+taulightMA <- matrix(taulight, ncol = nday, nrow=24)
+sumlight <- sumlight.ideal # sum daily light by model day (4a=4a)
+tau <- 3/24  # because our time unit is 'day'
+
+N.MA <- matrix(data=NA, nrow = 24, ncol = nday)
+#N.df[1,1] <- N_e - not needed, included in model
+
+for (d in 1:length(sumlight)) {
+  ifelse(d > 1, N.MA[1,d]<-N.MA[24, d-1], N.MA[1,d]<-N_e) #ifelse(test, yes, no) to initialize the 1st hour of each day  
+    for(h in 1:24) {
+        N.MA[h,d] <- (N_e - (U/zMA[h,d])*(taulightMA[h,d]/sumlight[d]) + K*(N_e/2)*tau)/(1+K*tau/2) + rnorm(1, mean=0, sd=0.2)
+    }
+}
+
+#concMA <-matrix(N.df, ncol = nday, nrow=24)
+#sumlightMA <- matrix(sumlight, ncol=nday, nrow=24)
+
+N.df <- as.vector(N.MA)
+
+
+```
+
+##### Visualize generated data - 30 day
+
+```{r - visualize fake data - MULTI DAY}
+time.h <- taulight.df$time.h
+model_datetime <- taulight.df$model_datetime
+
+# 
+N.df.plus <- tibble(model_datetime, time.h, N.df, taulight) %>%
+  rename(N = N.df)
+
+ggplot(N.df.plus, aes(x=hour(model_datetime), y=N)) + 
+  geom_point() + 
+  geom_line() +
+  labs( x='time (hours)', y='N (umol L^-1)', title = 'One-day NO3-N, BC model') +  
+  facet_wrap(yday(model_datetime)) + 
+  theme_bw()
+
+
+```
+
+##### Call to STAN - 30-day
+
+```{r - call to stan (single day)}
+
+data <- list(T=24,D=nday,tau=tau,taulightMA=taulightMA,sumlight=sumlight,zMA=zMA,concMA=N.MA)
+
+fit.30d <- stan("BC.stan", data = data, iter = 1000, chains = 4) # for parallel work add this inside (): control = list(max_treedepth = 15)
+print(fit.30d)
+
+# good parameter recovery: K = 3.29 (data = 3), N_e = 5.11 (data = 5), U = 3.33 (data = 3); but K sd super-high (1.54!)
+
+```
+
+Visualize model output
+
+```{r - visualizing output v data}
+#| echo: false
+
+
+######## Extract modeled N ##########
+conc_hat <- rstan::extract(fit.30d, pars = "conc_hat")$conc_hat 
+# Collapse the 2000-layer array to a matrix rows = hours, columns = days - 
+avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
+N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+
+# bring in the data
+N_conc <- N.df
+
+
+######## Extract modeled equilibrium N (N_e)
+Ne_mod <- rstan::extract(fit.30d, pars = "N_e")$N_e
+Ne_mod_avg <- apply(Ne_mod, MARGIN = 2, FUN = mean)
+Ne_mod_sd <- apply(Ne_mod, MARGIN = 2, FUN = sd)
+
+######## Extract modeled uptake ##########
+U_mod <- rstan::extract(fit.30d, pars = "U")$U
+U_mod_avg <- apply(U_mod, MARGIN = 2, FUN = mean) 
+U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
+
+######## Extract modeled K ##########
+K_mod <- rstan::extract(fit.30d, pars = "K")$K
+K_mod_avg <- apply(K_mod, MARGIN = 2, FUN = mean) 
+K_mod_sd <- apply(K_mod, MARGIN = 2, FUN = sd)
+
+######### Build dataframes for visualizations
+
+local_datetime <- taulight.df$datetime
+model_datetime <- taulight.df$model_datetime
+model_day <-unique(taulight.df$model_jday)
+hours <- hour(local_datetime)
+mod_hours <- hour(model_datetime)
+model_date <- unique(date(model_datetime))
+
+# hourly values
+N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+
+# daily values
+Ne_output.df <- data.frame(model_day, Ne_mod_avg, Ne_mod_sd, sumlight, model_date)
+
+U_output.df <- data.frame(model_day, U_mod_avg, U_mod_sd, sumlight, model_date) 
+
+K_output.df <- data.frame(model_day, K_mod_avg, K_mod_sd, sumlight, model_date)
+
+
+
+
+################################  GRAPHS  ################################
+
+############ N and N-hat over time  ################################
+N_and_Nhat <- N_output.df %>%
+  #filter(model_day >= 175 & model_day <= 201) %>%  # to see these better...
+  ggplot(aes(x=mod_hours)) +
+  geom_point(aes(y=N_conc)) + 
+  geom_line(aes(y=N_conc_hat), col='red')+
+  xlab("Time (h)") + ylab("N (umol/L)") +
+  ggtitle("N and N_hat over time - Beaver Cr. fake data, 30 day")+
+  facet_wrap(~model_day)+
+  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  theme_bw()
+
+quartz()
+N_and_Nhat
+# Use 'for' loop with matrix version or use hours as the x-axis... 
+
+# datetimeMA <- matrix(local_datetime, nrow=24)
+# 
+# quartz()
+# for (i in 1:nday) {
+#   plot (datetimeMA[,i], concMA[,i])  
+#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+# }
+
+
+##########  N-hat vs N ############################################
+
+
+Nhat_V_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+  geom_point() + 
+  xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
+  ggtitle("Measured N vs modeled N, 30 day fake data, 2-station model") +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+
+quartz()
+Nhat_V_N
+
+
+#################### Ne 
+
+## Ne_time
+
+Ne_time <- ggplot(data = Ne_output.df, aes(x=model_date, y=Ne_mod_avg)) +
+  geom_point() + 
+  geom_hline(yintercept=5, linetype="dashed", color = "red") +
+  xlab("Date") + ylab("modeled Ne (mmol/m3)") + 
+  ylim(0, 6) +
+  ggtitle("Daily equilibrium nitrate concentration, 2-station model, fake data") +
+  theme_bw()
+
+quartz()
+Ne_time
+
+#################### U
+
+U_time <- ggplot(data = U_output.df, aes(x=model_date, y=U_mod_avg)) +
+  geom_point() + 
+  geom_hline(yintercept=3, linetype="dashed", color = "red") +
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+  ylim(2,4) +
+  #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+  ggtitle("Diel nitrate uptake, 2-station model, fake data") +
+  theme_bw()
+
+quartz()
+U_time
+
+# 
+# U_time_clip <- ggplot(data = U_output.df, aes(x=mod_day)) +
+#   geom_point(y=U_mod_avg) + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+#   ylim(0,2) +
+#   ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+#   theme_bw()
+# 
+# quartz()
+# U_time_clip
+
+
+############################ U vs sumlight
+
+U_vs_light <- ggplot(data = U_output.df, aes(x=sumlight, y=U_mod_avg)) +
+  geom_point() + 
+  #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+  xlab("light") + ylab("modeled U (mmol/m2/day)") +
+  ggtitle("30-day fake data, 2-station model: scatterplot of NO3 uptake and daily light") +
+  #ylim = c(-0.2, 1) +
+  theme_bw()
+
+quartz()
+U_vs_light
+
+######################  K over time
+
+K_time <- ggplot(data = K_output.df, aes(x=model_date, y=K_mod_avg)) +
+  geom_point() + 
+  geom_hline(yintercept=3, linetype="dashed", color = "red") +
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Date") + ylab("modeled K (day -1)") + # daily change in N concentration
+  ylim(2,4) +
+  ggtitle("modeled K over time, 30 day fake data, 2-station model") +
+  theme_bw()
+
+quartz()
+K_time
+
+
+
+# K_time_clip <- ggplot(data = K_output.df, aes(x=mod_day)) +
+#   geom_point(y=K_mod_avg) + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   xlab("Julian day") + ylab("modeled K (umol/day)") + # ??? UNITS?
+#   ylim(0,10) +
+#   ggtitle("modeled K over time, Big Creek 2019 pooled model w real light") +
+#   theme_bw()
+# 
+# quartz()
+# K_time_clip
+# 
+# 
+
+# U vs K
+
+plot(U_mod_avg, K_mod_avg)
+
+dev.off()
+
+```
+
+### 
+
+Real data
+
+```{r - model w real data}
+
+
+no3r.df <- read_csv()
+
+```

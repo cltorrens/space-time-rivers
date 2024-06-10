@@ -1,0 +1,88 @@
+---
+title: "Plotting 2-station N + GPP"
+author: "Christa Torrens"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Graphs of 2-station N and GPP model outputs
+
+```{r cars}
+# Load packages
+library(tidyverse) #includes ggplot, lubridate, mm
+library(tidybayes)
+library(bayesplot)
+library(here)
+library(ggpubr)
+library(cowplot)
+library(pracma)
+library(rstanarm)
+library(RColorBrewer)
+library(ggExtra)
+
+```
+
+
+```{r - load data}
+
+DO_params <- read_csv(here("field_data_workup/data/data_DO/params_alloxy23.csv")) %>%
+  rename(mod_day = jday)
+N_output.df <- read_csv(here("field_data_workup/data/N_output_all.csv"))
+Ne_output.df <- read_csv(here("field_data_workup/data/Ne_output_all.csv"))
+U_output.df <- read_csv(here("field_data_workup/data/U_output_all.csv")) %>%
+K_output.df <- read_csv(here("field_data_workup/data/K_output_all.csv"))
+
+```
+
+
+Comparing GPP and N uptake (U)
+
+```{r plot daily values for N, GPP, echo=FALSE}
+Ne_mod_avg <- Ne_output.df$Ne_mod_avg
+# get daily values for N            
+N_daily <- N_output.df %>%
+  mutate(Ne_mod = Ne_mod_avg, 
+         U_meas = N_conc - Ne_mod) %>%
+  group_by(model_day) %>%
+  summarize(tibble(N_daily=sum(U_meas))) 
+
+#N_daily$Ne <- 
+
+U_GPP <- full_join(DO_params, U_output.df, by = "mod_day") %>%
+  mutate(season = ifelse(mod_day<260, "summer", "autumn"), 
+         GPP.daily.mmol = GPP.daily*1000/32)
+
+
+UvGPP <- ggplot(data=U_GPP, aes(x=GPP.daily.mmol, y=U_mod_avg, color=season)) + 
+  geom_point(size=3) +
+  scale_color_manual(values = c("#D95F02", "#1B9E77")) +
+  geom_abline(intercept= -4.25, slope = 1/10, linetype="dotted", color="grey") + #type 3
+  geom_abline(intercept = -2.25, slope = 1/20, linetype = "dotdash", color="grey") + #type 2
+  geom_abline(intercept = -1.5, slope = 1/30, linetype = "twodash", color="grey") + #type 4
+  geom_abline(intercept=-1.25, slope = 1/40, linetype = "dashed", color='grey') + # type 6
+  geom_abline(intercept=-1.1, slope = 1/50, linetype = "longdash", color='grey') + # type ?
+  labs(x=expression("GPP"~(mmol~m^-2~d^-1)), y=expression("N uptake"~(mmol~m^-2~d^-1))) +
+  ylim(0,1.25) +
+  #ggtitle("C:N for Beaver Creek (August + October)") +
+  theme_bw()
+
+UvGPPmarg <- ggMarginal(UvGPP, type='density', margins = "y", groupFill = TRUE)
+
+quartz()
+UvGPP
+quartz()
+UvGPPmarg
+```
+
+fit.ugpp <- lm(U_GPP$GPP.daily.mmol ~ U_GPP$U_mod_avg)
+
+```{r - avg U for each season}
+
+Uavg <- U_GPP %>%
+  group_by(season) %>%
+  summarise(mean = mean(U_mod_avg), sd = mean(U_mod_sd))
+

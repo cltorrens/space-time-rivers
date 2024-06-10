@@ -1,0 +1,75 @@
+---
+title: "Beaver Creek model - info"
+format: html
+editor: visual
+---
+
+## Scratch and notes for Beaver Creek model
+
+**Reach area:** (spring to BC_upstream sensors): 26420 m^2^
+
+Estimated from laser gun widths x Google Earth path lengths (see 'Documents/ FLBS post doc/ space-time-rivers/Beaver Creek upper_widths.xlsx' for details)
+
+**Effective Depth** (from Hiromi's salt injection measurements):
+
+Question: this only gives the effective depth from the ford to the sensors, but my '2-station' reach goes well above that point, and does get shallow in spots. Looking for support for the assumption that this is an OK approximation.
+
+-   it would be impractical to do a salt addition from the top, it'd take forever AND there's a ton of additional water coming in along the reach.
+
+Salt addition info from Hiromi's R code: spc_add\<- 50\*454\*2060 #50 lb salt, convert to grams and then conductivity based on measured 2060 uS/cm / g/L
+
+\*\* what salt was used, and how might the NH4 and PO4 salts change the conductance (and therefore the Q and depth estimates)?
+
+NH4 was either NH4Cl or (NH4)2SO4
+
+PO4 was added as KH2PO4
+
+ALSO - it doesn't look like k was calculated (slope of RC vs EC).... now what?
+
+$$
+Q = \frac{m_{tr}}{k \sum_{i=1}^{D} (EC_{t(i)} - EC_{bkg}) \Delta t} 
+$$
+
+$D$ = duration of the addition
+
+$m_{tr}$ = mass of tracer salt added
+
+$k$ = slope of the relationship between the relative concentration of tracer (mass per volume) and its measured EC = 2100
+
+Per Bob: 1g salt (NaCl)/ L = 2100 uS/cm = 2100 conductivity/L (k, above, = 1/2100)
+
+$$ Q =  \frac{g NaCl * 2100}{\sum_{t=1}^{no of steps} \Delta EC \Delta t } $$
+
+$$Q = W x V x D$$
+
+Wells near springhead = HA3 and HA12 - check both frequently
+
+-   THey have HA12 data from a previous paper. NO3 in mgN/L : 1.07, 1.0, 0.64, 0.6, 0.79, 0.79. 0.43, 4.71 in June 2021 (stream signal); Bob sharing the dataset.
+
+Start w Ne = 1 mg/L
+
+**Stream discharge:**
+
+Ugh, how to deal w all the variation along the reach? Can I just use Q from the lower sensors as a good-enough approximation? Or do I have to use the velocity times area at each segment (which will be largely guesstimation)
+
+**Model help needed**: Get Bob's help w. putting the 2-station N model into stan-speak (AND data creation in R?)
+
+Not sure how to deal w the $\tau$s vs ts and also how to deal w daily params vs timestep (given the t+tau wrinkle...)
+
+$$
+N_{down [t]} = \frac{N_{up [t-\tau]} + (\frac{U_{[t]}}{z_{[t,d]}}) (\frac{\sum_{t-\tau}^{t} PPFD_{[\tau]}}{\sum{PPFD_{[d]}}} + K_{\tau? day?}(\frac{N_{eq-up[t-\tau]} - N_{up[t-\tau]} + N_{eq-down[t]})}{2} \tau} {1 + \frac{K_\tau}{2}} 
+$$
+
+Assumptions re: upstream station (springhead):
+
+-   low autotrophic uptake/ with less diel variation... do we need to put a SUNA here, this year?
+
+-   presumably 0 autotrophic uptake belowground/ before exiting spring - BUT we don't know the N there. Groundwater measurements/ nearby well?
+
+-   we know there is water coming in at multiple points... how to deal w this?
+
+-   Should we measure N in the wells? How much would this add to our model? ESPECIALLY as it prob would be short-term or grab samples. Meh.
+
+This could bear a lot of hydrology in the model. But to what end/ what ultimate purpose?
+
+## 
