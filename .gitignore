@@ -12,3 +12,8 @@
 .N uptake_CT/data/neon_data_raw/q_data.Rdata
 .DS_Store
 **/.DS_Store
+field_data_workup/GPP/augBC_fit.RData
+field_data_workup/GPP/augBC_fit_old.RData
+field_data_workup/GPP/octBC_fit.RData
+field_data_workup/GPP/old/augBC_fit.RData
+field_data_workup/GPP/old/octBC_fit.RData
