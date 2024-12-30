@@ -1,0 +1,8 @@
+Metadata for Solute specific scaling of inorganic nitrogen and phosphorus uptake in streamsauthor:  author of studypubyear:  year of publicationstream:  name of study streamaltered:  1 if reference 2 if human alteredq: discharge (L/s)w: mean width (m)qw: specific discharge (discharge/width) (m^2/min)nh4sw:  uptake length of ammonium (m)no3sw:  uptake length of nitrate (m)po4sw:  uptake length of phosphorus (m)er: ecosystem respiration (g oxygen m^-2  d^-1)gpp: gross primary productivity (g oxygen m^-2  d^-1)nh4vf:  uptake velocity of ammonium (mm/min)no3vf:  uptake velocity of nitrate (mm/min)po4vf:  uptake velocity of phosphorus (mm/min)
+no3c:  ambient concentration of NO3-N, ugN/L
+nh4c:  ambient concentration of NH4-N, ugN/L
+po4c:  ambient concentration of SRP, ugP/LR code for summarizing these data#loadscale<-read.csv("/yourpathname/solutespiraldata.csv")#To summarize these data by solute and average multiple measures in one stream.  #Requires package plyrnh4alone<- scale[!is.na(scale$nh4sw),]palone<- scale[!is.na(scale$po4sw),]no3alone<- scale[!is.na(scale$no3sw),]nh4sum<- ddply(nh4alone, .(stream), summarise, msw=mean(nh4sw), mqw=mean(qw), mer=mean(er, na.rm=TRUE), mgpp=mean(gpp, na.rm=TRUE), malt=mean(altered))
+psum<- ddply(palone, .(stream), summarise, msw=mean(po4sw), mqw=mean(qw), mer=mean(er, na.rm=TRUE), mgpp=mean(gpp, na.rm=TRUE))
+no3sum<-ddply(no3alone, .(stream), summarise, msw=mean(no3sw), mqw=mean(qw), mer=mean(er, na.rm=TRUE), mgpp=mean(gpp, na.rm=TRUE), mno3c=mean(no3c, na.rm=TRUE ))
+
+

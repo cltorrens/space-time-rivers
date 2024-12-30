@@ -1,14 +1,13 @@
 ###  Downloading NSRDB light data to generate light and sumlight 
-
+# Adapted from Laurel Genzoli's script, "Download_NSRDB_Light_LaurelG.R"
 
 ######################### Using satellite data  ####################################
 
 # Per Laurel Genzoli and her Klamath colleagues, NSRDB light was the best match to actual light under cloudy/ smoky conditions, compared to CIMIS (intermediate) and NLDAS (worst of the 3). 
-# 
-# See Laurel's script, "Download_NSRDB_Light.R"
+
 # Also, get an API here: https://developer.nrel.gov/signup/
 # 
-# My API key: oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq
+# CT's API key: oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq
 # 
 # Parameter options include:  
 # 
@@ -79,6 +78,7 @@ your_affiliation = 'University+of+Montana'
 your_email = 'christa.torrens@flbs.umt.edu'
 # Please join our mailing list so we can keep you up-to-date on new developments.
 mailing_list = 'false'
+
 ################################################################################
 # BIGC
 # lat <- 37.05767

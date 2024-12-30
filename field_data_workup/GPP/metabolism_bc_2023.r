@@ -240,6 +240,20 @@ ggplot(data = params_aug_v1, aes(x=K600.daily, y=GPP.daily)) +
 gpp.lm <- lm(params_aug_v1$K600.daily~ params_aug_v1$GPP.daily)
 summary(gpp.lm) # R^2 GPP-K600 = 0.57
 
+
+
+######### re-load Aug fit -----------------------------------------------
+load(here("field_data_workup/GPP/augBC_fit.RData"))
+load(here("field_data_workup/GPP/octBC_fit.RData"))
+
+augBC_params <- get_params(augBC_fit)
+octBC_params <- get_params(octBC_fit)
+
+KmeanAug <- mean(augBC_params$K600.daily, na.rm = TRUE)
+KmeanOct <- mean(octBC_params$K600.daily, na.rm = TRUE)
+
+
+
 ######################## October days - Beaver Cr -----------------------
 
 octBC_data_sm<-data.frame(DO.obs=all_oxy_oct23$DO_mgl, DO.sat=all_oxy_oct23$osat, 

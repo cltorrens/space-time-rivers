@@ -36,7 +36,7 @@ unique(select_data$jdayUTC)  # missing 232; 253, 254; 266, 267, 268
 #   filter(NITRATE_uM > 0)
 
 averaged_data <- select_data %>%
- filter(NO3_uM > 0) %>%
+ filter(NO3_uM != 0) %>%
   #filter(NITRATE_uM != 0) %>%
   group_by(DateTimeUTC) %>%
   summarize_if(is.numeric, mean, na.rm = TRUE) %>%
@@ -75,4 +75,12 @@ bcplot2 <-
 # Save the combined data frame to a new CSV file
 write_csv(averaged_data, here::here("field_data_workup/data/SUNA_data_averaged.csv"))
 
+#setwd(here())
+
 ############# Remember to reset working directory to project home directory!!  ################
+
+
+
+#######   "CALIBRATION" FILES for data correction
+
+cal6.24 <- read_csv2('Calibration_2024166.CSV')

@@ -1,0 +1,58 @@
+---
+title: "no3_uptake_slug"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+## Calculating uptake from a slug addition - Bayesian method
+
+This code is based on an R script developed by Hiromi Uno and Bob Hall (1/24/2024); modified by Christa Torrens in summer 2024
+
+### Load packages
+
+```{r - load packages}
+
+# load required packages
+library(tidyverse)  #includes lubridate and ggplot, among others
+library(brms)
+library(mgcv)
+library(here)
+
+```
+
+## For 22 July 2024
+
+#### load data
+
+For this project, "here" = "/Users/torrensc/Documents/R_working/Modelscape/space-time-rivers"
+
+```{r - load data}
+
+# Load uptake data - All salts combined for 22072024 data
+no3.df <- read_csv(here("field_data_workup/data/data_uptake/no3_uptake_22072024.csv")) %>%
+    mutate(Date = dmy(Date))
+
+```
+
+#### Declare parameters
+
+```{r - variables}
+
+reach_length <- 600 # in meters
+reach_width <-   # in meters
+no3 <- no3.df$corr_n_conc  # no3 data (umol/L), corrected for background
+spc <- no3.df$corr_spc     # spc data (uS/sec), corrected for background
+
+nano3_mass <- 1200 # mass of NaNO3 added in g
+nacl_mass <- 23.23 *1000  # mass of NaCl tracer salt in kg, converted to g
+
+no3add <- nano3_mass*14*1e6/85.0 # n added in umol/L 
+spc_add<- nacl_mass*2060 # mass of NaCl converted to conductivity based on measured 2060 uS/cm / g/L
+add_ratio<- no3add/spc_add
+spc_bkg <- 
+no3_bkg <- 
+
+
+
+```

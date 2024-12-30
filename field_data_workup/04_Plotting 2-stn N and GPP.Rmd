@@ -33,7 +33,7 @@ DO_params <- read_csv(here("field_data_workup/data/data_DO/params_alloxy23.csv")
   rename(mod_day = jday)
 N_output.df <- read_csv(here("field_data_workup/data/N_output_all.csv"))
 Ne_output.df <- read_csv(here("field_data_workup/data/Ne_output_all.csv"))
-U_output.df <- read_csv(here("field_data_workup/data/U_output_all.csv")) %>%
+U_output.df <- read_csv(here("field_data_workup/data/U_output_all.csv"))
 K_output.df <- read_csv(here("field_data_workup/data/K_output_all.csv"))
 
 ```
@@ -43,6 +43,8 @@ Comparing GPP and N uptake (U)
 
 ```{r plot daily values for N, GPP, echo=FALSE}
 Ne_mod_avg <- Ne_output.df$Ne_mod_avg
+
+#############################  NEEDS WORK
 # get daily values for N            
 N_daily <- N_output.df %>%
   mutate(Ne_mod = Ne_mod_avg, 
@@ -52,6 +54,8 @@ N_daily <- N_output.df %>%
 
 #N_daily$Ne <- 
 
+############################  
+
 U_GPP <- full_join(DO_params, U_output.df, by = "mod_day") %>%
   mutate(season = ifelse(mod_day<260, "summer", "autumn"), 
          GPP.daily.mmol = GPP.daily*1000/32)
@@ -60,11 +64,19 @@ U_GPP <- full_join(DO_params, U_output.df, by = "mod_day") %>%
 UvGPP <- ggplot(data=U_GPP, aes(x=GPP.daily.mmol, y=U_mod_avg, color=season)) + 
   geom_point(size=3) +
   scale_color_manual(values = c("#D95F02", "#1B9E77")) +
-  geom_abline(intercept= -4.25, slope = 1/10, linetype="dotted", color="grey") + #type 3
-  geom_abline(intercept = -2.25, slope = 1/20, linetype = "dotdash", color="grey") + #type 2
-  geom_abline(intercept = -1.5, slope = 1/30, linetype = "twodash", color="grey") + #type 4
-  geom_abline(intercept=-1.25, slope = 1/40, linetype = "dashed", color='grey') + # type 6
-  geom_abline(intercept=-1.1, slope = 1/50, linetype = "longdash", color='grey') + # type ?
+  #geom_abline(intercept= 0, slope = 1/10, linetype="dotted", color="grey") + #type 3 -4.25
+  #geom_abline(intercept= 0, slope = 1/13, linetype="solid", color="grey") + #type 1? -4.25
+  #geom_abline(intercept = 0, slope = 1/20, linetype = "dotdash", color="grey") + #type 2 -2.25
+  #geom_abline(intercept = 0, slope = 1/30, linetype = "twodash", color="grey") + #type 4 -1.5
+  #geom_abline(intercept= 0, slope = 1/40, linetype = "dotted", color='grey') + # type 6 -1.25
+  #geom_abline(intercept= 0, slope = 1/50, linetype = "dotdash", color='orange') + # type ? -1.1
+  geom_abline(intercept= 0, slope = 1/60, linetype = "twodash", color='grey') +
+  geom_abline(intercept= 0, slope = 1/70, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/80, linetype = "twodash", color='grey') +
+  geom_abline(intercept= 0, slope = 1/90, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/100, linetype = "twodash", color='grey') +
+  geom_abline(intercept= 0, slope = 1/110, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/120, linetype = "twodash", color='grey') +
   labs(x=expression("GPP"~(mmol~m^-2~d^-1)), y=expression("N uptake"~(mmol~m^-2~d^-1))) +
   ylim(0,1.25) +
   #ggtitle("C:N for Beaver Creek (August + October)") +
@@ -74,6 +86,7 @@ UvGPPmarg <- ggMarginal(UvGPP, type='density', margins = "y", groupFill = TRUE)
 
 quartz()
 UvGPP
+
 quartz()
 UvGPPmarg
 ```

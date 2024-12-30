@@ -286,7 +286,54 @@ print(fit.all)
 
 ```
 
-##### Visualize model output
+### Pooled-K model
+The sd and intervals for K distributions were pretty large - pooling K to improve parameter estimation. 
+
+##### Set parameters for the pooled-K model (multiple days, model days starting at 4a)
+
+```{r - parameters - MULTIPLE DAYS}
+
+nday <- 37
+N_e <- 4 # equilibrium N at any location on reach; also, we're assuming N_e = Nup
+K <- 4 # UPDATE to ~ 4
+U <- 1 # UPDATE TO 1 
+z <- 0.3
+zMA<- matrix(z, ncol = nday, nrow=24)
+taulight <- taulight # travel time light (tau = 3h)
+taulightMA <- matrix(taulight, ncol = nday, nrow=24)
+sumlight <- sumlight.ideal # sum daily light by model day (4a=4a)
+tau <- 3/24  # because our time unit is 'day'
+N.MA <- matrix(N.df.bc$NO3_uM, ncol = nday, nrow=24)
+
+#concMA <-matrix(N.df, ncol = nday, nrow=24)
+#sumlightMA <- matrix(sumlight, ncol=nday, nrow=24)
+
+# N.df <- as.vector(N.MA)
+
+# N.df.bc$NO3_uM
+# N.MA
+
+```
+
+##### Call to STAN - multi-day real model with pooled K
+
+```{r - call to stan (single day)}
+
+data <- list(T=24,D=nday,tau=tau,taulightMA=taulightMA,sumlight=sumlight,zMA=zMA,concMA=N.MA)
+
+fit.all <- stan(here("field_data_workup/BC_Kpool.stan"), data = data, iter = 1000, chains = 4) # for parallel work add this inside (): control = list(max_treedepth = 15)
+print(fit.all)
+
+# good parameter recovery: K = 3.29 (data = 3), N_e = 5.11 (data = 5), U = 3.33 (data = 3); but K sd super-high (1.54!)
+
+```
+
+
+
+
+
+
+#### Visualize model output
 
 ```{r - visualizing output v data}
 #| echo: false
@@ -370,15 +417,21 @@ posterior_samples <- rstan::extract(fit)
 
 # for the multi-day params (K, U, N_e...)
 K_params <- paste0("K[", 1:nday, "]")
+quartz()
 mcmc_areas(as.array(fit), pars = K_params)
+quartz()
 mcmc_intervals(as.array(fit), pars = K_params)
 
 N_e_params <- paste0("N_e[", 1:nday, "]")
+quartz()
 mcmc_areas(as.array(fit), pars = N_e_params)
+quartz()
 mcmc_intervals(as.array(fit), pars = N_e_params)
 
 U_params <- paste0("U[", 1:nday, "]")
+quartz()
 mcmc_areas(as.array(fit), pars = U_params)
+quartz()
 mcmc_intervals(as.array(fit), pars = U_params)
 
 ##### Using ggplot

@@ -5,7 +5,9 @@
 
 #  Laurel.genzoli@gmail.com
 #  adapted from: https://github.com/dazhiyang/SEDB-S-1/blob/master/Jupyter-R/download-single-point.ipynb
-#  Get an API here: https://developer.nrel.gov/signup/
+
+
+#  Before running: get an API here: https://developer.nrel.gov/signup/
 
 #######################################################################
 
@@ -46,7 +48,7 @@ library(tidyr)
 ########################
 ## SV:
 ########################
-#setwd('/Users/laurelgenzoli/Dropbox/2018-2022_PHD/2023_Klamath_Metab/Klamath-Metabolism/DATA/Light/SV_light')
+setwd('/Users/laurelgenzoli/Dropbox/2018-2022_PHD/2023_Klamath_Metab/Klamath-Metabolism/DATA/Light/SV_light')
 
 
 for (i in 2005:2022){

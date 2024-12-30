@@ -129,13 +129,13 @@ king20_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king20
 ##### Look at the NO3 data, clip further as needed
 
 ```{r - bigc19 - visualize data, plot, clip as needed}
-low <- 130
-high <- 134
+#low <- 175
+#high <- 186
 #cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
   
 bigc.plot.2019 <- bigc.df.19h %>%
   filter(model_day >= low & model_day <= high) %>%
-  filter(model_day != cliplist) %>%
+  #filter(model_day != cliplist) %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
   #geom_line() + 
@@ -160,7 +160,7 @@ bigc.plot.2019
 
 # calculate solar time and light, add as columns 
 bigc.df.19h <- bigc.df.19h %>%
-  filter(model_day >= low & model_day <= high) %>%
+  #filter(model_day >= low & model_day <= high) %>%
   mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=-119.25538),
          light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=37.05767,longitude=-119.25538), 
          hours = hour(local_datetime)
@@ -168,6 +168,10 @@ bigc.df.19h <- bigc.df.19h %>%
 
 # Visualize light data
 plot(bigc.df.19h$model_datetime, bigc.df.19h$light, type='l') #daily rises and falls
+
+tail(bigc.df.19h$model_day) #226 is the last model day
+
+#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
 
 # Create ideal sumlight data
 sumlight.h.df <- bigc.df.19h %>%
@@ -177,9 +181,11 @@ sumlight.h.df <- bigc.df.19h %>%
               sumlight = sum(light)/(light.hrs),
               sumlight.h = sum(light)/24, 
               sumlight.trapz = trapz(hours, light)) %>%
-  filter(model_day != 226)     # remove model days w/o light
+  filter(model_day != 226) # remove the last model day, bc it has 0 light (goes from midnight to 4a?) Tried filter(light.hrs != 0) but this is easier to use to trim the data. 
 
-bigc.df.19h <- bigc.df.19h %>%  # also from the main df 
+unique(sumlight.h.df$model_day)
+
+bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
   filter(model_day != 226) 
   
 
@@ -216,7 +222,7 @@ bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>%
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-bigc19_sat_sumlight_clip 
+View(bigc19_sat_sumlight_clip) 
 
 # standardize for model
 sumlight.real <-  bigc19_sat_sumlight_clip$sumlight.real
@@ -336,12 +342,15 @@ U_output.df$U_mod_avg
 
 ###### N and N-hat over time
 N_and_Nhat <- N_output.df %>%
-  filter(model_day >= 175 & model_day <= 201) %>%  # to see these better...
+  filter(model_day >= 175 & model_day <= 185) %>%  # to see these better...
   ggplot(aes(x=mod_hours)) +
   geom_point(aes(y=N_conc)) + 
   geom_line(aes(y=N_conc_hat), col='red')+
-  xlab("Time (h)") + ylab("N (umol/L)") +
-  ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
+  labs(
+    x="Time (h)", y=expression("N"~(mmol~m^-3))
+    ) +
+  #ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
+  ggtitle("NEON: Big Creek 2019 pooled model") +
   facet_wrap(~model_day)+
   #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
   #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
