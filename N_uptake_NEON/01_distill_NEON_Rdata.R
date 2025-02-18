@@ -9,7 +9,7 @@ library(here)
 
 
 ### Load raw data
-#load(here("N_uptake_NEON/data/neon_data_raw/no3_data.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_raw/no3_data.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/q_data.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/wqual_data_CARI.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
@@ -72,9 +72,9 @@ par_wsurf_readme <- par_wsurf_data$readme_20042
 ######################### Save derived data #########################
 
 # NO3
-save(no3_data_sensor, file="data_derived/no3_dataset.Rdata")
-save(no3_spatial_sensor, file='data_derived/no3_spatial_sensor.Rdata')
-save(no3_variables, file='data_derived/no3_variables.Rdata')
+save(no3_data_sensor, file=here("N_uptake_NEON/data/neon_data_derived/no3_dataset.Rdata"))
+save(no3_spatial_sensor, file=here('N_uptake_NEON/data/neon_data_derived/no3_spatial_sensor.Rdata'))
+save(no3_variables, file=here('N_uptake_NEON/data/neon_data_derived/no3_variables.Rdata'))
 
 # Q
 save(Q_data_sensor, file="data_derived/q_dataset.Rdata")

@@ -134,7 +134,7 @@ king20_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king20
 #cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
   
 bigc.plot.2019 <- bigc.df.19h %>%
-  filter(model_day >= low & model_day <= high) %>%
+  #filter(model_day >= low & model_day <= high) %>%
   #filter(model_day != cliplist) %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
@@ -213,7 +213,7 @@ light <- bigc.df.19h$light
 sumlight.ideal <- sumlight.h.df$sumlight.trapz
 
 
-########  Real daily lignt (from NSRDB/ satellite) ########
+########  Real daily light (from NSRDB/ satellite) ########
 ## these data are already trimmed to the original NO3 dataset; clip as needed to match model data
 
 # First remove model days to match sumlight.h
@@ -222,7 +222,7 @@ bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>%
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-View(bigc19_sat_sumlight_clip) 
+# View(bigc19_sat_sumlight_clip) 
 
 # standardize for model
 sumlight.real <-  bigc19_sat_sumlight_clip$sumlight.real
@@ -230,12 +230,16 @@ sumlight.real <-  bigc19_sat_sumlight_clip$sumlight.real
 
 
 ### Other elements for the data list
-
+#set.seed(0220)
 nday <-  137 # 39
 
-N_amb <- mean(bigc.df.19h$surfWaterNitrateMean) # 51.9 mg/m^3  sd = 3.1
+
 N_init <- bigc.df.19h$surfWaterNitrateMean[1] # 3.8... nconc_mg
 concMA <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+Ne_meanprior <- mean(bigc.df.19h$surfWaterNitrateMean) # 51.9 mg/m^3  sd = 3.1
+Ne_sdprior <- sd(bigc.df.19h$surfWaterNitrateMean)
+
 
 
 z <- 0.3 #depth in m based on NEON manual Q measurements - constant for now
@@ -254,17 +258,32 @@ lightMA <- matrix(light, nrow=24)
 
 
 # data list for STAN
-data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA)
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
 
 # Fit the model
-fit.bigc19 <- stan("N_uptake_NEON/pooled-L_bigc.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+fit.bigc19 <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+
+#fit.bigc19.obsE <- stan("N_uptake_NEON/pooled-L_bigc.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+
+#fit.bigc19.procE <- stan("N_uptake_NEON/pooled-L_bigc.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
 # fit <- stan("pooled-L_ct.stan", data = data,  iter = 1000, chains = 4)  # this line does not fit in parallel, only uses 1 core
 
 print(fit.bigc19)
 
 # save the model fit summary
-p.bigc19 <- summary(fit.bigc19)
-p.bigc19
+# p.bigc19 <- summary(fit.bigc19)
+# p.bigc19
+
+saveRDS(fit.bigc19, here("N_uptake_NEON/data/model_fits/bigc19.fit.new02.rds"))
+# Path: ~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_raw
+
+# fit.bigc19.1 <- readRDS(here("N_uptake_NEON/data/model_fits/bigc19.fit.new01.rds"))
+
+# obs.bigc19 <- summary(fit.bigc19.obsE)
+# saveRDS(fit.bigc19.obsE, here("N_uptake_NEON/obs_v_process/observation.fit.rds"))
+
+# proc.bigc19 <- summary(fit.bigc19.procE)
+# saveRDS(fit.bigc19.procE, here("N_uptake_NEON/obs_v_process/process.fit.rds"))
 
 ```
 
@@ -283,7 +302,14 @@ p.bigc19
 
 ```{r - bigc19 - explore model output}
 
+# 
 
+# Check the R-hats
+# options('max.print' = 1000)
+print(fit.bigc19,  pars=c("b0", "b1", "sigma_U", "sigma"), digits=2)
+print(fit.bigc19, pars=c("K"), digits=2)
+
+summary(fit.bigc19)
 #NB: tidybayes uses tidyverse lingo to fish around in stan outputs - USE IT TOO
 
 # What was the modeled uptake?
@@ -297,20 +323,20 @@ K_mod <- rstan::extract(fit.bigc19, pars = "K")$K
 K_mod_avg <- apply(K_mod, MARGIN = 2, FUN = mean) 
 K_mod_sd <- apply(K_mod, MARGIN = 2, FUN = sd)
 
-# Get conc_hat from fit; plot vs concMA
-conc_hat <- rstan::extract(fit.bigc19, pars = "conc_hat")$conc_hat 
-#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+# Get conc_pred from fit; plot vs concMA
+conc_pred <- rstan::extract(fit.bigc19, pars = "conc_pred")$conc_pred 
+#conc_pred.oe <- extract(fit.oe, pars = "conc_pred")$conc_pred 
 
-# > dim(conc_hat)
+# > dim(conc_pred)
 # [1] 4000   24   39
 
 # Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
-#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
-avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+#avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_pred_MA <- apply(conc_pred, MARGIN = c(2, 3), FUN = mean)  
 
  
-#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
-N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+#avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
+N_conc_pred <- as.vector(c(avg_conc_pred_MA))
 
 #U_mean <- as.vector(c(U_mod_avg))
 
@@ -325,7 +351,7 @@ mod_hours <- hour(model_datetime)
 
 mod_day <- unique(model_day)
 
-N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_pred)
 
 #mod_day <- unique(model_day)
 U_output.df <- data.frame(mod_day, U_mod_avg, U_mod_sd, sumlight.real, model_datetime) 
@@ -345,7 +371,7 @@ N_and_Nhat <- N_output.df %>%
   filter(model_day >= 175 & model_day <= 185) %>%  # to see these better...
   ggplot(aes(x=mod_hours)) +
   geom_point(aes(y=N_conc)) + 
-  geom_line(aes(y=N_conc_hat), col='red')+
+  geom_line(aes(y=N_conc_pred), col='red')+
   labs(
     x="Time (h)", y=expression("N"~(mmol~m^-3))
     ) +
@@ -353,7 +379,7 @@ N_and_Nhat <- N_output.df %>%
   ggtitle("NEON: Big Creek 2019 pooled model") +
   facet_wrap(~model_day)+
   #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
-  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
   theme_bw()
 
 quartz()
@@ -365,14 +391,14 @@ N_and_Nhat
 # quartz()
 # for (i in 1:nday) {
 #   plot (datetimeMA[,i], concMA[,i])  
-#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+#  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
 # }
 
 
 ########  N-hat vs N
 
 
-Nhat_V_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+Nhat_V_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_pred)) +
   geom_point() + 
   xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
   ggtitle("Measured N vs modeled N, Big Creek 2019 pooled model") +
@@ -602,12 +628,15 @@ sumlight.real <- sumlight.ideal  # just for now, to get the model running
 
 
 ### Other elements for the data list
-
+set.seed(0220)
 nday <-  132
 
-N_amb <- mean(cari.df.19h$surfWaterNitrateMean) # 51.9 mg/m^3  sd = 3.1
 N_init <- cari.df.19h$surfWaterNitrateMean[1] # 3.8... nconc_mg
 concMA <- matrix(unlist(cari.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+N_amb <- mean(cari.df.19h$surfWaterNitrateMean) # 27.4, 4.24 mg/m^3  sd = 3.1
+N_sd <- sd(cari.df.19h$surfWaterNitrateMean)
+N_e <- rnorm(length(cari.df.19h$surfWaterNitrateMean), mean=N_amb, sd=N_sd)
 
 
 z <- 0.4 #depth in m based on NEON manual Q measurements - constant for now
@@ -635,6 +664,8 @@ print(fit.cari19)
 
 # save the model fit summary
 p.cari19 <- summary(fit.cari19)
+saveRDS(fit.cari19, here("N_uptake_NEON/data/model_fits/cari19.fit.rds"))
+
 
 ```
 
@@ -665,19 +696,19 @@ K_mod <- rstan::extract(fit.cari19, pars = "K")$K
 K_mod_avg <- apply(K_mod, MARGIN = 2, FUN = mean) 
 K_mod_sd <- apply(K_mod, MARGIN = 2, FUN = sd)
 
-# Get conc_hat from fit; plot vs concMA
-conc_hat <- rstan::extract(fit.cari19, pars = "conc_hat")$conc_hat 
-#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+# Get conc_pred from fit; plot vs concMA
+conc_pred <- rstan::extract(fit.cari19, pars = "conc_pred")$conc_pred 
+#conc_pred.oe <- extract(fit.oe, pars = "conc_pred")$conc_pred 
 
-# > dim(conc_hat)
+# > dim(conc_pred)
 # [1] 4000   24   39
 
 # Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
-#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
-avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+#avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_pred_MA <- apply(conc_pred, MARGIN = c(2, 3), FUN = mean)  
 
-#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
-N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+#avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
+N_conc_pred <- as.vector(c(avg_conc_pred_MA))
 
 #U_mean <- as.vector(c(U_mod_avg))
 
@@ -690,13 +721,13 @@ hours <- hour(local_datetime)
 mod_hours <- hour(model_datetime)
 mod_day <- unique(model_day)
 
-N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_hat)
+N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, N_conc_pred)
 
 U_output.df <- data.frame(mod_day, U_mod_avg, U_mod_sd, sumlight.real) 
 K_output.df <- data.frame(mod_day, K_mod_avg, K_mod_sd, sumlight.real)
 
-mean(K_mod_avg) # 2.595
-mean(U_mod_avg)
+mean(K_mod_avg) # 1.85
+mean(U_mod_avg) # 0.72
 
 # credible intervals for each U
 # extract 2.5% and 97.5% values - see Alice's code?
@@ -710,12 +741,12 @@ N_and_Nhat <- N_output.df %>%
   filter(model_day >= 180 & model_day <= 199) %>%
   ggplot(aes(x=mod_hours)) +
   geom_point(aes(y=N_conc)) + 
-  geom_line(aes(y=N_conc_hat), col='red')+
+  geom_line(aes(y=N_conc_pred), col='red')+
   xlab("Time (h)") + ylab("umol/L") +
   ggtitle("N and N_hat over time - Caribou Creek pooled model")+
   facet_wrap(~model_day)+
   #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
-  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
   theme_bw()
 
 quartz()
@@ -727,13 +758,13 @@ N_and_Nhat
 # quartz()
 # for (i in 1:nday) {
 #   plot (datetimeMA[,i], concMA[,i])  
-#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+#  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
 # }
 
 
 ########  N-hat vs N
 
-Nhat_v_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+Nhat_v_N <- ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_pred)) +
   geom_point() + 
   xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
   ggtitle("Measured N vs modeled N, Caribou Creek pooled model") +
@@ -746,8 +777,8 @@ Nhat_v_N
 ##### U over time
 
 
-U_vs_time <- ggplot(data = U_output.df, aes(x=mod_day)) +
-  geom_point(y=U_mod_avg) + 
+U_vs_time <- ggplot(data = U_output.df, aes(x=mod_day, y=U_mod_avg)) +
+  geom_point() + 
   # geom_point(y = sumlight.real, color = 'gold') +
   # ADD IN HIGH AND LOW CIs
   xlab("Julian day") + ylab("modeled U (umol/day)") + 
@@ -757,19 +788,82 @@ U_vs_time <- ggplot(data = U_output.df, aes(x=mod_day)) +
 
 quartz()
 U_vs_time
+
 plot(U_output.df$mod_day, U_output.df$U_mod_avg)
 #plot(U_mod_avg, N_conc) difeerent lengths - FIX
 
+
+#####  N Timeseries
+
+cari_ts <- ggplot(data=N_output.df, aes(x=model_day, y=N_conc)) + 
+  geom_point() +
+  xlab("Datetime") + ylab("N (umol/L)") + 
+  ggtitle("Caribou Creek N timeseries") + 
+  theme_bw()
+
+quartz()
+cari_ts
+
 ###### U vs sumlight
 
- quartz()
-plot(sumlight.real, U_mod_avg, 
-    xlab = "true light (satellite)",
-    ylab = "modeled NO3 uptake",
-     main = "Scatterplot of NO3 uptake and daily light - fake data")
+#  quartz()
+# plot(sumlight.real, U_mod_avg, 
+#     xlab = "true light (satellite)",
+#     ylab = "modeled NO3 uptake",
+#      main = "Scatterplot of NO3 uptake and daily light - fake data")
 
 #######  
 
+U_vs_light <- ggplot(data = U_output.df, aes(x=sumlight.real, y=U_mod_avg)) +
+  geom_point() + 
+  #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+  xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+  ggtitle("Caribou Creek 2019: scatterplot of NO3 uptake and daily light") +
+  #ylim = c(-0.2, 1) +
+  theme_bw()
+
+quartz()
+U_vs_light
+
+#######  K over time
+
+
+K_time <- ggplot(data = K_output.df, aes(x=mod_day)) +
+  geom_point(y=K_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
+  ylim(0,20) +
+  ggtitle("modeled K over time, Caribou Creek 2019 pooled model w real light") +
+  theme_bw()
+
+quartz()
+K_time
+
+
+
+K_time_clip <- ggplot(data = K_output.df, aes(x=mod_day)) +
+  geom_point(y=K_mod_avg) + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  xlab("Julian day") + ylab("modeled K (umol/day)") + # ??? UNITS?
+  ylim(0,5) +
+  ggtitle("modeled K over time, Big Creek 2019 pooled model w real light") +
+  theme_bw()
+
+quartz()
+K_time_clip
+
+####### U vs K _______________________
+
+UvsK <- ggplot(data=comp.df, aes(x=p.U_mod_avg, y=p.K_mod_avg)) +
+  geom_point() +
+  xlab("process model U (mmol m-2 d-1)") + ylab("process model K (d-1)") + 
+  ggtitle("K vs U for the process model (Caribou Creek 2019 data)") +
+  theme_bw()
+
+quartz()
+UvsK
 
 # quartz()
 
@@ -951,20 +1045,20 @@ U_mod_sd <- apply(U_mod, MARGIN = 2, FUN = sd)
 
 
 
-# Get conc_hat from fit; plot vs concMA
-conc_hat <- extract(fit.king19, pars = "conc_hat")$conc_hat 
-#conc_hat.oe <- extract(fit.oe, pars = "conc_hat")$conc_hat 
+# Get conc_pred from fit; plot vs concMA
+conc_pred <- extract(fit.king19, pars = "conc_pred")$conc_pred 
+#conc_pred.oe <- extract(fit.oe, pars = "conc_pred")$conc_pred 
 
-# > dim(conc_hat)
+# > dim(conc_pred)
 # [1] 4000   24   39
 
 # Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
-#avg_conc_hat_oeMA <- apply(conc_hat.oe, MARGIN = c(2, 3), FUN = mean) 
-avg_conc_hat_MA <- apply(conc_hat, MARGIN = c(2, 3), FUN = mean)  
+#avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
+avg_conc_pred_MA <- apply(conc_pred, MARGIN = c(2, 3), FUN = mean)  
 
  
-#avg_conc_hat.oe <- as.vector(c(avg_conc_hat_oeMA))
-N_conc_hat <- as.vector(c(avg_conc_hat_MA))
+#avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
+N_conc_pred <- as.vector(c(avg_conc_pred_MA))
 
 U_mean <- as.vector(c(U_mod_avg))
 
@@ -976,7 +1070,7 @@ hours <- hour(local_datetime)
   # find a way to remove day #212
 
 
-N_output.df <- data.frame(local_datetime, hours, model_day, N_conc, N_conc_hat)
+N_output.df <- data.frame(local_datetime, hours, model_day, N_conc, N_conc_pred)
 
 mod_day <- unique(model_day)
 U_output.df <- data.frame(mod_day, U_mean, sumlight.real) 
@@ -993,12 +1087,12 @@ N_and_Nhat <- N_output.df %>%
   filter(model_day >= 100 & model_day <= 110) %>%
   ggplot(aes(x=hours)) +
   geom_point(aes(y=N_conc)) + 
-  geom_line(aes(y=N_conc_hat), col='red')+
+  geom_line(aes(y=N_conc_pred), col='red')+
   xlab("Time (h)") + ylab("[N] umol/L") +
   ggtitle("N and N_hat over time - Kings Creek (KS) pooled model")+
   facet_wrap(~model_day)+
   #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
-  #scale_color_manual(values=c("N_conc" = "black", "N_conc_hat" = "red"), name= "Big Creek N") +
+  #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
   theme_bw()
 
 quartz()
@@ -1010,7 +1104,7 @@ N_and_Nhat
 # quartz()
 # for (i in 1:nday) {
 #   plot (datetimeMA[,i], concMA[,i])  
-#  lines(datetimeMA[,i], avg_conc_hat_MA[,i], col='red')
+#  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
 # }
 
 
@@ -1041,7 +1135,7 @@ plot(sumlight.real, U_mod_avg,
 #######  
 
 quartz()
-ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_hat)) +
+ggplot(data = N_output.df, aes(x=N_conc, y=N_conc_pred)) +
   geom_point() + 
   xlab("measured N (mg/m3)") + ylab("modeled N (mg/m3)") + 
   ggtitle("Measured N vs modeled N, Big Creek pooled model") +

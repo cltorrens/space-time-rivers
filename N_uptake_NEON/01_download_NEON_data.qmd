@@ -37,13 +37,23 @@ options(stringsAsFactors=F)
 
 #### Download data files and save as Rdata
 
+Bobby Hensley informed us that Q and O2 data are unreliable before 2021. Currently (1/16/24) NEON NO3 data are provisional from July 2023 on. Downloading all of 2021-2023, and will run again once data are in final form.
+
 ```{r - DL and save data files}
 
 ### download NO3 and related datasets  ###
-sitelist <- c("ARIK", "BLDE", "BLUE", "BLWA", "COMO", "CUPE", "FLNT", "GUIL","HOPB", "LECO", "MART", "OKSR", "POSE", "REDB", "SYCA", "TECR", "WLOU")  #already have "CARI", "BIGC", "KING", "WALK"
+sitelist <- c("ARIK", "BIGC", "BLDE", "BLUE", "BLWA", "CARI", "COMO", "CUPE", "FLNT", "GUIL","HOPB", "KING", "LECO", "MART", "OKSR", "POSE", "REDB", "SYCA", "TECR", "WALK", "WLOU")  #already have "CARI", "BIGC", "KING", "WALK", bu re-downloading so everything is together
+
+# startdate and enddate need to be character strings in YYYY-MM format 
+# BUT, these are and it didn't run/ threw errors that the format is incorrect!
+
+startdate <- 2021-01
+enddate <- 2023-12
 
 no3.data <- loadByProduct(dpID = "DP1.20033.001", 
                           site = sitelist, 
+                          #startdate = startdate,
+                          #enddate = enddate,
                           package="expanded", check.size=F, 
                           token = Sys.getenv("NEON_TOKEN"))
 
@@ -85,14 +95,14 @@ no3.data <- loadByProduct(dpID = "DP1.20033.001",
 #                             token = Sys.getenv("NEON_TOKEN"))
 
 
-reaeration_data <- loadByProduct(dpID = "DP1.20190.001",  # reaeration field and lab data
-                        site = sitelist, 
-                        package="expanded", check.size=F, 
-                        token = Sys.getenv("NEON_TOKEN"))
+# reaeration_data <- loadByProduct(dpID = "DP1.20190.001",  # reaeration field and lab data
+#                         site = sitelist, 
+#                         package="expanded", check.size=F, 
+#                         token = Sys.getenv("NEON_TOKEN"))
 
 ### Save to data_raw ###
 
-save(no3.data, file=here("N_uptake_NEON/data/neon_data_raw/no3_data.Rdata"))
+save(no3.data, file=here("N_uptake_NEON/data/neon_data_raw/no3_data_all.Rdata"))
 # save(par_wsurf_data, file=here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.Rdata"))
 
 # save(precip_data, file=here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
@@ -100,7 +110,7 @@ save(no3.data, file=here("N_uptake_NEON/data/neon_data_raw/no3_data.Rdata"))
 # save(manual.q_data, file=here("N_uptake_NEON/data/neon_data_raw/manualq_data.Rdata"))
 # save(wtemp_data, file=here("N_uptake_NEON/data/neon_data_raw/wtemp_data.Rdata"))
 # save(wqual_data, file=here("N_uptake_NEON/data/neon_data_raw/wqual_data_BIGC.Rdata"))
-save(reaeration_data, file=here("N_uptake_NEON/data/neon_data_raw/reaeration_data.Rdata"))
+# save(reaeration_data, file=here("N_uptake_NEON/data/neon_data_raw/reaeration_data.Rdata"))
 
 
 ```

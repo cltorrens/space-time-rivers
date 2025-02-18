@@ -1,0 +1,1263 @@
+---
+title: "03_select and clean NEON data for model"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+## Selecting and cleaning NO3 data for the stan model
+
+First load the required packages
+
+```{r loading packages}
+
+# load packages
+library(scales)
+library(magrittr) # moved from  'light ea day as vector'
+library(tidyverse)
+library(lubridate)
+library(streamMetabolizer)
+library(rstan)
+library(tidybayes)
+library(GGally)
+library(shinystan)
+library(zoo)
+library(neonUtilities)
+library(ggpubr)
+library(brms)
+library(here) # allows project-based file paths
+library(pracma) # for 1 type of light AUC calcs
+library(httr) # helps w. the NSRDB light download
+
+```
+
+Then load the data files
+
+### Loading the data
+
+```{r load NEON NO3 site-year datasets}
+
+### I may need to re-set the datetime to the correct tz
+
+bigc.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2021.csv")) %>%
+   dplyr::mutate(local_datetime = with_tz(startDateTime, tzone="US/Pacific"), 
+         Jday = yday(local_datetime))  #130-365
+
+tz(bigc.df.2021$endDateTime)
+
+
+# %>%
+#   dplyr::mutate()
+
+bigc.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2022.csv"))
+
+bigc.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2023.csv"))
+
+cari.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2021.csv"))
+
+cari.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2022.csv"))
+
+cari.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2023.csv"))
+ 
+king.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2021.csv"))
+
+king.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2022.csv"))
+
+king.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2023.csv"))
+
+
+```
+
+
+#### Selecting, viewing and saving data by site and year
+Per Bobby Hensley, data from 2021 on will have the best discharge data
+
+```{r select, visualize and save site-years}
+
+
+
+
+
+
+##### WALK -------------------------------------------
+
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2021.csv")
+write_csv(walk.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2022.csv")
+write_csv(walk.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2023.csv")
+write_csv(walk.df.2023, path)
+
+
+
+##### HOPB -------------------------------------------
+
+##### filter data by selected year(s)
+hopb.df.2021 <- hopb.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+hopb.df.2022 <- hopb.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+hopb.df.2023 <- hopb.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2021.csv")
+write_csv(hopb.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2022.csv")
+write_csv(hopb.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2023.csv")
+write_csv(hopb.df.2023, path)
+
+
+
+##### POSE -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### FLNT -------------------------------------------
+
+##### filter data by selected year(s)
+flnt.df.2021 <- flnt.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+flnt.df.2022 <- flnt.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+flnt.df.2023 <- flnt.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2021.csv")
+write_csv(flnt.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2022.csv")
+write_csv(flnt.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2023.csv")
+write_csv(flnt.df.2023, path)
+
+
+##### CUPE -------------------------------------------
+
+##### filter data by selected year(s)
+cupe.df.2021 <- cupe.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cupe.df.2022 <- cupe.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cupe.df.2023 <- cupe.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2021.csv")
+write_csv(cupe.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2022.csv")
+write_csv(cupe.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2023.csv")
+write_csv(cupe.df.2023, path)
+
+
+##### GUIL -------------------------------------------
+
+##### filter data by selected year(s)
+guil.df.2021 <- guil.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+guil.df.2022 <- guil.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+guil.df.2023 <- guil.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2021.csv")
+write_csv(guil.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2022.csv")
+write_csv(guil.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2023.csv")
+write_csv(guil.df.2023, path)
+
+
+##### LECO -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### BLWA -------------------------------------------
+
+##### filter data by selected year(s)
+blwa.df.2021 <- blwa.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blwa.df.2022 <- blwa.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blwa.df.2023 <- blwa.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2021.csv")
+write_csv(blwa.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2022.csv")
+write_csv(blwa.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2023.csv")
+write_csv(blwa.df.2023, path)
+
+
+##### ARIK -------------------------------------------
+
+##### filter data by selected year(s)
+arik.df.2021 <- arik.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+arik.df.2022 <- arik.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+arik.df.2023 <- arik.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2021.csv")
+write_csv(arik.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2022.csv")
+write_csv(arik.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2023.csv")
+write_csv(arik.df.2023, path)
+
+
+##### BLUE -------------------------------------------
+
+##### filter data by selected year(s)
+blue.df.2021 <- blue.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blue.df.2022 <- blue.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blue.df.2023 <- blue.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2021.csv")
+write_csv(blue.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2022.csv")
+write_csv(blue.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2023.csv")
+write_csv(blue.df.2023, path)
+
+
+##### BLDE -------------------------------------------
+
+##### filter data by selected year(s)
+blde.df.2021 <- blde.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blde.df.2022 <- blde.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blde.df.2023 <- blde.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2021.csv")
+write_csv(blde.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2022.csv")
+write_csv(blde.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2023.csv")
+write_csv(blde.df.2023, path)
+
+
+##### COMO -------------------------------------------
+
+##### filter data by selected year(s)
+como.df.2021 <- como.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+como.df.2022 <- como.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+como.df.2023 <- como.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2021.csv")
+write_csv(como.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2022.csv")
+write_csv(como.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2023.csv")
+write_csv(como.df.2023, path)
+
+
+##### WLOU -------------------------------------------
+
+##### filter data by selected year(s)
+wlou.df.2021 <- wlou.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+wlou.df.2022 <- wlou.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+wlou.df.2023 <- wlou.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2021.csv")
+write_csv(wlou.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2022.csv")
+write_csv(wlou.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2023.csv")
+write_csv(wlou.df.2023, path)
+
+
+##### SYCA -------------------------------------------
+
+##### filter data by selected year(s)
+syca.df.2021 <- syca.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+syca.df.2022 <- syca.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+syca.df.2023 <- syca.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2021.csv")
+write_csv(syca.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2022.csv")
+write_csv(syca.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2023.csv")
+write_csv(syca.df.2023, path)
+
+
+##### REDB -------------------------------------------
+
+##### filter data by selected year(s)
+redb.df.2021 <- redb.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+redb.df.2022 <- redb.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+redb.df.2023 <- redb.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2021.csv")
+write_csv(redb.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2022.csv")
+write_csv(redb.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2023.csv")
+write_csv(redb.df.2023, path)
+
+
+##### MART -------------------------------------------
+
+##### filter data by selected year(s)
+mart.df.2021 <- mart.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+mart.df.2022 <- mart.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+mart.df.2023 <- mart.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2021.csv")
+write_csv(mart.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2022.csv")
+write_csv(mart.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2023.csv")
+write_csv(mart.df.2023, path)
+
+
+##### TECR -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### OKSR -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+
+
+```
+
+```{r plot selected data by site and year}
+
+##### data site and year plots for SI
+
+# When I'm ready to shade my study reach, insert this code into the graph(s):
+# geom_rect(xmin = as.Date("2019-01-01"), xmax = as.Date("2019-03-15"), ymin = -Inf, ymax = Inf, fill = "gray", alpha = 0.3) +
+
+# the geom_rect line adds a shaded rectangle to the specified portions of my graph. This is the code ChatGPT provided, I could probably use $local_datetime
+  
+
+bigc.plot.2019 <- bigc.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Big Creek nitrate: 2019") +
+  theme_bw()
+
+bigc.plot.2021 <- bigc.df.2021 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Big Creek CA nitrate: 2021") +
+  theme_bw()
+
+
+  
+cari.plot.2019 <- cari.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Caribou Creek AK nitrate: 2019") +
+  theme_bw()
+  
+cari.plot.2020 <- cari.df.2020 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Caribou Creek AK nitrate: 2020") +
+  theme_bw()
+
+
+
+king.plot.2019 <- king.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "King's Creek KS nitrate: 2019") +
+  theme_bw()
+
+king.plot.2020 <- king.df.2020 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "King's Creek KS nitrate: 2020") +
+  theme_bw()
+
+
+
+leco.plot.2019 <- leco.df.2019 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "lecoer Creek TN nitrate: 2019") +
+  theme_bw()
+
+leco.plot.2022 <- leco.df.2022 %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "lecoer Creek TN nitrate: 2022") +
+  theme_bw()
+
+
+# Plot all the selected site years 
+
+bigc.plot.2019 # Jday 74-227, missing 183:184, also 135-147 (precip event)
+bigc.plot.2021
+cari.plot.2019
+cari.plot.2020
+king.plot.2019
+king.plot.2020
+leco.plot.2019
+leco.plot.2022
+
+```
+
+**NEON site coordinates:**
+
+Big Creek, CA: 1128.13m (at DS sensor) site = 37.05972, -119.25755 DS sensor site = 37.05767, -119.25538 US sensor site = 37.05871, -119.25650
+
+Caribou Creek, AK: 225.45m (at DS sensor) site = 65.15322, -147.50397 DS sensor site = 65.15307, -147.50195 US sensor site = 65.15254, -147.50786
+
+King's Creek, KS: 525.24m (at sensor) site = 39.10506, -96.60383 sensor site = 39.10460, -96.60264 (the other sensors appear to be terrestrial? This site is by the discharge station)
+
+lecoer Branch, TN: 262.49m (at sensor) site = 35.95738, -84.27925 sensor site = 35.95722, -84.27921
+
+### Select and clean data, fill gaps etc.
+
+#### Big Creek, CA 2019
+
+```{r - select, clean, and fill data: BIGC19}
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+bigc.df.19 <- bigc.df.2019 %>%
+  filter(local_datetime >= ymd_hms('20190315 040000', tz='US/Pacific') &
+           local_datetime <= ymd_hms('20190814 040000', tz='US/Pacific')) 
+
+# Visualize selection
+bigc.df.19 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+bigc.df.19h <- bigc.df.19 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(bigc.df.19h$local_datetime, bigc.df.19h$N_mean_mgm3, type = 'l')  # used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+N_b <- mean(bigc.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 51.94 mg/L 
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs?
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 611:613)
+span <- 605:620
+plot(bigc.df.19h$local_datetime[span], bigc.df.19h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 6  # set the maximum gap for zoo() to fill
+bigc.df.19h$N_mean_mgm3 <- na.approx(bigc.df.19h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+bigc.df.19h$surfWaterNitrateMean <- na.approx(bigc.df.19h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) 
+
+##############################   LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+bigc.df.19h <- bigc.df.19h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+gap.start <- 2625
+gap.end <- 2652
+
+bigc.df.19h$model_day[gap.start] #183
+bigc.df.19h$model_day[gap.end] #184
+# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps AND with precip events
+daylist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 183, 184)
+bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% daylist),]
+
+# re-check NAs
+which(is.na(bigc.df.19h$surfWaterNitrateMean)) # None left!
+
+
+#################################  SAVE TO CSV #################################
+
+# Where does our data start and end? Use Jdays?
+min(bigc.df.19h$Jday) # 74
+max(bigc.df.19h$Jday) # 227  (only 4 hrs on Jday 227)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2019_74_226.csv")
+write_csv(bigc.df.19h, filepath)
+
+```
+
+#### Big Creek, CA 2021
+
+```{r - select, clean, and fill data: BIGC2021}
+
+# NOT DONE!!!
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+bigc.df.21 <- bigc.df.2021 %>%
+  filter(local_datetime >= ymd_hms('20210301 040000', tz='US/Pacific') &
+           local_datetime <= ymd_hms('20211008 040000', tz='US/Pacific')) 
+
+# Visualize selection
+bigc.df.21 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+bigc.df.21h <- bigc.df.21 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(bigc.df.21h$local_datetime, bigc.df.21h$surfWaterNitrateMean, type = 'l')  # used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+N_b <- mean(bigc.df.21h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 2.01 umol/L
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs?
+which(is.na(bigc.df.21h$surfWaterNitrateMean)) 
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 55:60, 389, 1374:1380)
+span <- 1370:1385
+plot(bigc.df.21h$local_datetime[span], bigc.df.21h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 7  # set the maximum gap for zoo() to fill (7 = 7h)
+bigc.df.21h$N_mean_mgm3 <- na.approx(bigc.df.21h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+bigc.df.21h$surfWaterNitrateMean <- na.approx(bigc.df.21h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(bigc.df.21h$surfWaterNitrateMean)) 
+
+##############################   LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+bigc.df.21h <- bigc.df.21h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+## Gaps: 894-1012; 2046-2093; 3046-3078; 3085-3155; 3177-3249; 3918-3940; 4254-4379
+##       97-102       145-147     =>         =>      186-195     223-224   237-242    
+
+gap.start <- 5765
+gap.end <- 7081
+ 
+bigc.df.21h$model_day[gap.start] #183
+bigc.df.21h$model_day[gap.end] #184
+# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps
+
+daylist <- c(97, 98, 99, 100, 101, 102, 145, 146, 147, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 223, 224, 237, 238, 239, 240, 241, 242)
+
+bigc.df.21h <- bigc.df.21h[!(bigc.df.21h$model_day %in% daylist),]
+
+# re-check NAs
+which(is.na(bigc.df.21h$surfWaterNitrateMean)) # None left!
+
+
+#################################  SAVE TO CSV #################################
+
+# Where does our data start and end? Use Jdays?
+min(bigc.df.21h$Jday) # 60
+max(bigc.df.21h$Jday) # 281  (only 4 hrs on final Jday bc of 4h model offset)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2021_60_281.csv") #MODIFY!!!
+write_csv(bigc.df.21h, filepath)
+
+```
+
+#### Caribou Creek, AK 2019
+
+```{r - select, clean, and fill data: CARI2019}
+
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+cari.df.19 <- cari.df.2019 %>%
+  filter(local_datetime >= ymd_hms('20190507 040000', tz='US/Alaska') &
+           local_datetime <= ymd_hms('20190925 040000', tz='US/Alaska')) 
+
+# Visualize selection
+cari.df.19 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+cari.df.19h <- cari.df.19 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(cari.df.19h$local_datetime, cari.df.19h$surfWaterNitrateMean, type = 'l')  # used 'l' for better visualization of diel patterns
+plot(cari.df.19h$local_datetime, cari.df.19h$surfWaterNitrateMean)
+
+
+## look at outlier point
+which(cari.df.19h$surfWaterNitrateMean > 50)  # 2374: CARI local_datetime = 2019-08-14 01:00:00, Jday = 226
+
+# This is only one datapoint, not a rise and fall, so will treat as an error... 
+
+# MARK THE SOLO BLIP AS NA
+cari.df.19h <- cari.df.19h %>%
+  mutate(surfWaterNitrateMean = ifelse(surfWaterNitrateMean > 50, NA, surfWaterNitrateMean))
+
+
+# Mean of selected dataset
+N_b <- mean(cari.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 27.40 umol/L
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs? 
+which(is.na(cari.df.19h$surfWaterNitrateMean)) 
+
+# several short and long runs of NAs
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 55:60, 389, 1374:1380)
+span <- 1370:1385
+plot(cari.df.19h$local_datetime[span], cari.df.19h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 7  # set the maximum gap for zoo() to fill (7 = 7h)
+cari.df.19h$N_mean_mgm3 <- na.approx(cari.df.19h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+cari.df.19h$surfWaterNitrateMean <- na.approx(cari.df.19h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(cari.df.19h$surfWaterNitrateMean)) 
+
+##############################   LARGE GAPS  ##############################
+
+# For large NA chunks (> 7 points), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+cari.df.19h <- cari.df.19h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+
+############ Check NA days
+# 279-286; 1904-1996; 3057-3076
+
+
+gap.start <- 3057
+gap.end <- 3076
+
+ 
+cari.df.19h$model_day[gap.start]
+cari.df.19h$model_day[gap.end]
+
+daylist <- c(138, 206, 207, 208, 209, 210, 254, 255)
+
+cari.df.19h <- cari.df.19h[!(cari.df.19h$model_day %in% daylist),]
+
+# re-check NAs
+which(is.na(cari.df.19h$surfWaterNitrateMean)) 
+
+#################################  SAVE TO CSV #################################
+
+# Where does our data start and end? Use Jdays?
+min(cari.df.19h$model_day) # 127
+max(cari.df.19h$model_day) # 267  (only 4 hrs on final Jday bc of 4h model offset)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2019_127_267.csv") #MODIFY!!!
+write_csv(cari.df.19h, filepath)
+
+
+```
+
+#### Caribou Creek, AK 2020
+
+```{r - select, clean, and fill data: CARI2020}
+
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+cari.df.20 <- cari.df.2020 %>%
+  filter(local_datetime >= ymd_hms('20200618 040000', tz='US/Alaska') &
+           local_datetime <= ymd_hms('20200909 040000', tz='US/Alaska')) 
+
+# Visualize selection
+cari.df.20 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+cari.df.20h <- cari.df.20 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(cari.df.20h$local_datetime, cari.df.20h$surfWaterNitrateMean, type = 'l')  # used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+N_b <- mean(cari.df.20h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 26.87 umol/L
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs?
+which(is.na(cari.df.20h$surfWaterNitrateMean)) 
+
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 55:60, 389, 1374:1380)
+span <- 1370:1385
+plot(cari.df.20h$local_datetime[span], cari.df.20h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 7  # set the maximum gap for zoo() to fill (7 = 7h)
+cari.df.20h$N_mean_mgm3 <- na.approx(cari.df.20h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+cari.df.20h$surfWaterNitrateMean <- na.approx(cari.df.20h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(cari.df.20h$surfWaterNitrateMean)) # None left!
+
+##############################   LARGE GAPS  ##############################
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+cari.df.20h <- cari.df.20h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+
+############ Check NA days
+
+gap.start <- 1
+gap.end <- 36
+
+## For this year, I just re-ran the earlier code to begin the ts after this gap (on 6/18/2020 at 0400); This avoided missing days
+ 
+# cari.df.20h$model_day[gap.start] 
+# cari.df.20h$model_day[gap.end] 
+# 
+# cari.df.20h <- cari.df.20h[!(cari.df.20h$model_day %in% c()),]
+
+#################################  SAVE TO CSV #################################
+
+# Where does our data start and end? Use Jdays?
+min(cari.df.20h$model_day) # 170
+max(cari.df.20h$model_day) # 252  (only 4 hrs on final Jday bc of 4h model offset)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2020_170_252.csv") #MODIFY!!!
+
+#~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_clean
+write_csv(bigc.df.21h, filepath)
+
+```
+
+#### Kings Creek, KS 2019 tz = 'US/Central'
+
+\`\`\`{r - select, clean, and fill data: KING2019}
+
+# Remind yourself what the data look like:
+
+king.plot.2019
+
+####################################################################### 
+
+############################ Filter data
+
+# filter to \~ 100 days w/o NAs
+
+king.df.19 \<- king.df.2019 %\>% filter(local_datetime \>= ymd_hms('20190820 040000', tz='US/Central') & local_datetime \<= ymd_hms('20191231 040000', tz='US/Central'))
+
+# Visualize selection
+
+king.df.19 %\>% ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + geom_point() + theme_bw()
+
+# may need to filter to Sept 01....
+
+## Select hourly no3 measurements to match what we've done =\> CHANGE THIS LATER
+
+king.df.19h \<- king.df.19 %\>% filter(minute(local_datetime) == 0) %\>% mutate(N_mean_mgm3 = surfWaterNitrateMean \* 14.0067) \# new col w. N units = mg m\^-3
+
+# Visualize hourly data
+
+plot(king.df.19h$local_datetime, king.df.19h$surfWaterNitrateMean) plot(king.df.19h$local_datetime, king.df.19h$surfWaterNitrateMean, type = 'l') \# used 'l' for better visualization of diel patterns
+
+# Mean of selected dataset
+
+N_b \<- mean(king.df.19h\$surfWaterNitrateMean, na.rm = TRUE) \# background N: here, = 3.71 uM or 3.87 umol/L
+
+########################################################################### 
+
+################### Deal with NAs
+
+# Where are the NAs?
+
+which(is.na(king.df.19h\$surfWaterNitrateMean))
+
+# several small, one large NA chunk
+
+############################## SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+# first see where in the curve this gap falls: (now 55:60, 389, 1374:1380)
+
+span \<- 1370:1385 plot(king.df.19h$local_datetime[span], king.df.19h$surfWaterNitrateMean\[span\], type = 'l') #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+maxgap \<- 7 \# set the maximum gap for zoo() to fill (7 = 7h) king.df.19h$N_mean_mgm3 <- na.approx(king.df.19h$N_mean_mgm3, maxgap = maxgap) \# maxgap = max \# of NAs to fill king.df.19h$surfWaterNitrateMean <- na.approx(king.df.19h$surfWaterNitrateMean, maxgap = maxgap)
+
+# re-check NAs
+
+which(is.na(king.df.19h\$surfWaterNitrateMean))
+
+############################## NO LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+king.df.19h \<- king.df.19h %\>% mutate(model_datetime = local_datetime - hours(4), model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+## Lareg gaps: 1569-1590
+
+gap.start \<- 1569 gap.end \<- 1590
+
+king.df.19h$model_day[gap.start] #297
+king.df.19h$model_day\[gap.end\] #298 \# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps
+
+daylist \<- c(297,298) king.df.19h \<- king.df.19h\[!(king.df.19h\$model_day %in% daylist),\]
+
+# re-check NAs
+
+which(is.na(king.df.19h\$surfWaterNitrateMean)) \# None left!
+
+################################# SAVE TO CSV
+
+# Where does our data start and end?
+
+min(king.df.19h$model_day) # 232
+max(king.df.19h$model_day) \# 365 (CHECK FOR FULL DAYS ON EACH END)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+
+filepath \<- here("N_uptake_NEON/data/neon_data_clean/king_2019_232_365.csv") #MODIFY!!! write_csv(king.df.19h, filepath)
+
+```         
+
+
+#### Not done - Kings Creek, KS 2020  tz = 'US/Central'
+
+```{r - select, clean, and fill data: KING2020}
+
+# Remind yourself what the data look like: 
+king.plot.2020
+
+#######################################################################
+############################ Filter data  #############################
+
+# filter to ~ 100 days w/o NAs
+
+king.df.20 <- king.df.2020 %>%
+  filter(local_datetime >= ymd_hms('20200101 040000', tz='US/Central') &
+           local_datetime <= ymd_hms('20201015 040000', tz='US/Central')) 
+
+# Visualize selection
+king.df.20 %>%
+  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
+  geom_point() + 
+  theme_bw()
+.
+
+## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
+king.df.20h <- king.df.20 %>%
+  filter(minute(local_datetime) == 0) %>%
+  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067)
+
+  # new col w. N units = mg m^-3
+
+# Visualize hourly data
+plot(king.df.20h$local_datetime, king.df.20h$surfWaterNitrateMean) #  , type = 'l')  # used 'l' for better visualization of diel patterns
+
+# ID and remove sub-zero values (errors)
+which(king.df.20h$surfWaterNitrateMean < 0)  # 2749
+
+
+king.df.20h$surfWaterNitrateMean <- replace(king.df.20h$surfWaterNitrateMean, king.df.20h$surfWaterNitrateMean < 0, NA)
+
+king.df.20h$N_mean_mgm3 <- replace(king.df.20h$N_mean_mgm3, king.df.20h$N_mean_mgm3 <0, NA)
+
+# Re-run l851 to check... 
+
+
+# Mean of selected dataset
+N_b <- mean(king.df.20h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 3.61 umol/L
+
+###########################################################################
+###################    Deal with  NAs   #############################
+
+
+# Where are the NAs? 
+which(is.na(king.df.20h$surfWaterNitrateMean)) 
+
+# several small, one large NA chunk
+
+##############################   SMALL GAPS
+
+# For smaller NA chunks, (6 or fewer hours?) e.g. 659-661 , we will interpolate using zoo()
+
+#    first see where in the curve this gap falls: (now 55:60, 389, 1374:1380)
+span <- 1370:1385
+plot(king.df.19h$local_datetime[span], king.df.19h$surfWaterNitrateMean[span], type = 'l')  #OK, linear seems reasonable
+
+# Then fill - currently filling both uM and mg_L, can delete later
+
+
+maxgap <- 7  # set the maximum gap for zoo() to fill (7 = 7h)
+king.df.20h$N_mean_mgm3 <- na.approx(king.df.20h$N_mean_mgm3, maxgap = maxgap)  # maxgap = max # of NAs to fill
+king.df.20h$surfWaterNitrateMean <- na.approx(king.df.20h$surfWaterNitrateMean, maxgap = maxgap)
+
+
+# re-check NAs
+which(is.na(king.df.20h$surfWaterNitrateMean)) 
+
+##############################   NO LARGE GAPS
+
+# For large NA chunks (eg 273-300), we will remove the entire day.
+
+# Our model day starts at 4a, so need to create additional columns to easily excise days w NAs
+
+king.df.20h <- king.df.20h %>%
+  mutate(model_datetime = local_datetime - hours(4), 
+         model_day = yday(model_datetime))
+
+##### CHECK NA DAYS
+
+## Lareg gaps: 1569-1590
+
+gap.start <- 4608
+gap.end <- 5243
+ 
+king.df.20h$model_day[gap.start] #297
+king.df.20h$model_day[gap.end] #298
+# For BIGC, we need to remove model_days 183 and 184
+
+# remove model days with big gaps
+daylist <- c(37, 145,146, 147, 148, 149, 150, 151, 152, 153, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219)
+king.df.20h <- king.df.20h[!(king.df.20h$model_day %in% daylist),]
+
+# re-check NAs
+which(is.na(king.df.20h$surfWaterNitrateMean)) # None left!
+
+#################################  SAVE TO CSV #################################
+
+# Where does our data start and end? Use Jdays?
+min(king.df.20h$Jday) # 1
+max(king.df.20h$Jday) # 289  (only 4 hrs on final Jday bc of 4h model offset)
+
+## The df is ready for the pooled-L NEON data model: save as a csv so these steps don't need to be repeated.
+filepath <- here("N_uptake_NEON/data/neon_data_clean/king_2020_1_289.csv") #MODIFY!!!
+write_csv(king.df.20h, filepath)
+
+## May want to end at 192, before the LARGE gap 
+```
+
+#### Not done - lecoer Branch, TN 2019 tz = 'US/Eastern'
+
+#### Not done - lecoer Branch, TN 2022 tz = 'US/Eastern'

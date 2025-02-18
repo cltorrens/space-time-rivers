@@ -36,8 +36,8 @@
     conc_hat[1,d] = concMA[1,d];        // initialize model matrix *each day* using observed data matrix
     
     for (i in 2:T){
-    //conc_hat[i,d]= concMA[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlight[d])+K[d]*(N_b[d]-concMA[i-1,d])*deltat;  //process error - carries forward; do need l38 in transformed params? 
-    conc_hat[i,d]= conc_hat[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-conc_hat[i-1,d])*deltat; //observation error 
+    conc_hat[i,d]= concMA[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-concMA[i-1,d])*deltat;  //process error - carries forward; do need l38 in transformed params? 
+    //conc_hat[i,d]= conc_hat[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-conc_hat[i-1,d])*deltat; //observation error 
     concMA[i,d]~ normal (conc_hat[i,d], sigma);     // likelihood
             }
          }
@@ -55,18 +55,22 @@
     
     generated quantities {
       matrix[T,D] conc_tilde; 
-      matrix[T,D] conc_hat;             // does not carry through from model block. Maybe do that part in Transform Params and not in model block.
+      matrix[T,D] conc_pred;             // does not carry through from model block. Maybe do that part in Transform Params and not in model block.
       for (d in 1:D) {
-      conc_hat[1,d] = concMA[1,d];                     //initialize matrix
+      conc_pred[1,d] = concMA[1,d];                     //initialize matrix
       conc_tilde[1,d] = normal_rng(concMA[1,d], sigma);
       
       for (i in 2:T){
     //conc_hat[i,d]= concMA[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlight[d])+K[d]*(N_b[d]-concMA[i-1,d])*deltat;  // predicted values
-        conc_hat[i,d]= conc_hat[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-conc_hat[i-1,d])*deltat;
-        conc_tilde[i,d] = normal_rng(conc_hat[i,d], sigma);     // each conc_tilde is 1) a new, faked dataset conditioned on the old dataset: posterior predictive diestribution (does it look like the old dataset? IT SHOULD!)  and 2) a full probability distribution of each new datapoint
+        conc_pred[i,d]= conc_pred[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-conc_pred[i-1,d])*deltat; //put conc_hat version in transformed parameters 
+        conc_tilde[i,d] = normal_rng(conc_pred[i,d], sigma);     // each conc_tilde is 1) a new, faked dataset conditioned on the old dataset: posterior predictive diestribution (does it look like the old dataset? IT SHOULD!)  and 2) a full probability distribution of each new datapoint
+        }
+        
+        //conc_hat[i,d]= conc_hat[i-1,d] -(U[d]*lightMA[i,d])/(zMA[i,d]*sumlightIdeal[d])+K[d]*(N_b[d]-conc_hat[i-1,d])*deltat;
+        //conc_tilde[i,d] = normal_rng(conc_hat[i,d], sigma);     // each conc_tilde is 1) a new, faked dataset conditioned on the old dataset: posterior predictive diestribution (does it look like the old dataset? IT SHOULD!)  and 2) a full probability distribution of each new datapoint
         }
       }
-    }
+    
     
     //plot conc_hat vs concMA to test fit
     

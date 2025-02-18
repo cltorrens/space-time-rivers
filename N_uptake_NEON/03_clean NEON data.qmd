@@ -1,5 +1,5 @@
 ---
-title: "02_select and clean NEON data for model"
+title: "03_clean and fill NEON data for model"
 author: "Christa Torrens"
 format: html
 editor: visual
@@ -33,135 +33,510 @@ library(httr) # helps w. the NSRDB light download
 
 Then load the data files
 
-### Loading and visualizing the data
+### Loading the data
 
-```{r load NEON NO3 data and separate by site}
+```{r load NEON NO3 site-year datasets}
 
-###### load NO3 data for all 4 streams ("KING" "WALK" "BIGC" "CARI")
-load(here("N_uptake_NEON/data/neon_data_derived/no3_dataset.Rdata"))  #no3_data_sensor is the object name
+### I may need to re-set the datetime to the correct tz
 
-# View(no3_data_sensor)
-# unique(no3_data_sensor$siteID)   #"KING" "WALK" "BIGC" "CARI"
-
-###### Filter by site ID and set appropriate time zone for local time (default for NEON is UTC)
-
-# grep("USA", OlsonNames(), value=TRUE) # not sure what this is supposed to do - returned "character(0)". grep() in base R is for pattern matching and replacement
-# use OlsonNames() to check for accurate timezone names
-
-bigc.df <- no3_data_sensor %>%
-  filter(siteID == "BIGC") %>% 
-  mutate(local_datetime = with_tz(startDateTime, tzone="US/Pacific"), 
+bigc.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2021.csv")) %>%
+   dplyr::mutate(local_datetime = with_tz(startDateTime, tzone="US/Pacific"), 
          Jday = yday(local_datetime))  #130-365
 
-cari.df <- no3_data_sensor %>%
-  filter(siteID == "CARI") %>% 
-  mutate(local_datetime = with_tz(startDateTime, tzone="US/Alaska"), 
-         Jday = yday(local_datetime)) 
+tz(bigc.df.2021$endDateTime)
 
-king.df <- no3_data_sensor %>%
-  filter(siteID == "KING") %>% 
-  mutate(local_datetime = with_tz(startDateTime, tzone="US/Central"), 
-         Jday = yday(local_datetime)) 
 
-walk.df <- no3_data_sensor %>%
-  filter(siteID == "WALK") %>% 
-  mutate(local_datetime = with_tz(startDateTime, tzone="US/Eastern"), ## in Knox Co. = Eastern Time
-         Jday = yday(local_datetime)) 
+# %>%
+#   dplyr::mutate()
+
+bigc.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2022.csv"))
+
+bigc.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2023.csv"))
+
+cari.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2021.csv"))
+
+cari.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2022.csv"))
+
+cari.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/cari.df_2023.csv"))
+ 
+king.df.2021 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2021.csv"))
+
+king.df.2022 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2022.csv"))
+
+king.df.2023 <- read_csv(here("N_uptake_NEON/data/neon_data_by_year/king.df_2023.csv"))
+
 
 ```
 
-For each site, select the year(s) to use in the model. For the 1st round, 2019 is what we will use for the 1st 4 sites ("KING" "WALK" "BIGC" "CARI")
 
-BIGC: https://www.neonscience.org/field-sites/bigc CARI: https://www.neonscience.org/field-sites/cari KING: https://www.neonscience.org/field-sites/king WALK: https://www.neonscience.org/field-sites/walk
+#### Selecting, viewing and saving data by site and year
+Per Bobby Hensley, data from 2021 on will have the best discharge data
 
-```{r select and plot years}
+```{r select, visualize and save site-years}
 
-##### visualize data by site and year for model dataset selection
 
-bigc.df %>%
-#cari.df %>%
-#king.df %>%
-#walk.df %>%
-  filter(year(local_datetime) == 2019) %>%
-  ggplot(aes(x=local_datetime, y = surfWaterNitrateMean)) + 
-  geom_point() + 
-  theme_bw()
 
+
+
+
+##### WALK -------------------------------------------
+
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2021.csv")
+write_csv(walk.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2022.csv")
+write_csv(walk.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2023.csv")
+write_csv(walk.df.2023, path)
+
+
+
+##### HOPB -------------------------------------------
 
 ##### filter data by selected year(s)
-bigc.df.2019 <- bigc.df %>%
-  filter(year(local_datetime) == 2019) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-#~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_by_year
-# save df
-force_tz(bigc.df.2019$local_datetime, tzone="US/Pacific")
-path <- here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2019.csv")
-write_csv(bigc.df.2019, path)
-
-
-bigc.df.2021 <- bigc.df %>%
+hopb.df.2021 <- hopb.df %>%
   filter(year(local_datetime) == 2021) %>%
   dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
 
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/bigc.df_2021.csv")
-write_csv(bigc.df.2021, path)
-
-
-cari.df.2019 <- cari.df %>%
-  filter(year(local_datetime) == 2019) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/cari.df_2019.csv")
-write_csv(cari.df.2019, path)
-
-
-cari.df.2020 <- cari.df %>%
-  filter(year(local_datetime) == 2020) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/cari.df_2020.csv")
-write_csv(cari.df.2020, path)
-
-
-
-king.df.2019 <- king.df %>%
-  filter(year(local_datetime) == 2019) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/king.df_2019.csv")
-write_csv(king.df.2019, path)
-
-
-king.df.2020 <-  king.df %>%
-  filter(year(local_datetime) == 2020) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/king.df_2020.csv")
-write_csv(king.df.2020, path)
-
-
-walk.df.2019 <- walk.df %>%
-  filter(year(local_datetime) == 2019) %>%
-  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
-
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2019.csv")
-write_csv(walk.df.2019, path)
-
-
-walk.df.2022 <- walk.df %>%
+hopb.df.2022 <- hopb.df %>%
   filter(year(local_datetime) == 2022) %>%
   dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
 
-# save df
-path <- here("N_uptake_NEON/data/neon_data_by_year/walk.df_2022.csv")
-write_csv(walk.df.2022, path)
+hopb.df.2023 <- hopb.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2021.csv")
+write_csv(hopb.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2022.csv")
+write_csv(hopb.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/hopb.df_2023.csv")
+write_csv(hopb.df.2023, path)
+
+
+
+##### POSE -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### FLNT -------------------------------------------
+
+##### filter data by selected year(s)
+flnt.df.2021 <- flnt.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+flnt.df.2022 <- flnt.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+flnt.df.2023 <- flnt.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2021.csv")
+write_csv(flnt.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2022.csv")
+write_csv(flnt.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/flnt.df_2023.csv")
+write_csv(flnt.df.2023, path)
+
+
+##### CUPE -------------------------------------------
+
+##### filter data by selected year(s)
+cupe.df.2021 <- cupe.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cupe.df.2022 <- cupe.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+cupe.df.2023 <- cupe.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2021.csv")
+write_csv(cupe.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2022.csv")
+write_csv(cupe.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/cupe.df_2023.csv")
+write_csv(cupe.df.2023, path)
+
+
+##### GUIL -------------------------------------------
+
+##### filter data by selected year(s)
+guil.df.2021 <- guil.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+guil.df.2022 <- guil.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+guil.df.2023 <- guil.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2021.csv")
+write_csv(guil.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2022.csv")
+write_csv(guil.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/guil.df_2023.csv")
+write_csv(guil.df.2023, path)
+
+
+##### LECO -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### BLWA -------------------------------------------
+
+##### filter data by selected year(s)
+blwa.df.2021 <- blwa.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blwa.df.2022 <- blwa.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blwa.df.2023 <- blwa.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2021.csv")
+write_csv(blwa.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2022.csv")
+write_csv(blwa.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blwa.df_2023.csv")
+write_csv(blwa.df.2023, path)
+
+
+##### ARIK -------------------------------------------
+
+##### filter data by selected year(s)
+arik.df.2021 <- arik.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+arik.df.2022 <- arik.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+arik.df.2023 <- arik.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2021.csv")
+write_csv(arik.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2022.csv")
+write_csv(arik.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/arik.df_2023.csv")
+write_csv(arik.df.2023, path)
+
+
+##### BLUE -------------------------------------------
+
+##### filter data by selected year(s)
+blue.df.2021 <- blue.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blue.df.2022 <- blue.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blue.df.2023 <- blue.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2021.csv")
+write_csv(blue.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2022.csv")
+write_csv(blue.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blue.df_2023.csv")
+write_csv(blue.df.2023, path)
+
+
+##### BLDE -------------------------------------------
+
+##### filter data by selected year(s)
+blde.df.2021 <- blde.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blde.df.2022 <- blde.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+blde.df.2023 <- blde.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2021.csv")
+write_csv(blde.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2022.csv")
+write_csv(blde.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/blde.df_2023.csv")
+write_csv(blde.df.2023, path)
+
+
+##### COMO -------------------------------------------
+
+##### filter data by selected year(s)
+como.df.2021 <- como.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+como.df.2022 <- como.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+como.df.2023 <- como.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2021.csv")
+write_csv(como.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2022.csv")
+write_csv(como.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/como.df_2023.csv")
+write_csv(como.df.2023, path)
+
+
+##### WLOU -------------------------------------------
+
+##### filter data by selected year(s)
+wlou.df.2021 <- wlou.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+wlou.df.2022 <- wlou.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+wlou.df.2023 <- wlou.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2021.csv")
+write_csv(wlou.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2022.csv")
+write_csv(wlou.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/wlou.df_2023.csv")
+write_csv(wlou.df.2023, path)
+
+
+##### SYCA -------------------------------------------
+
+##### filter data by selected year(s)
+syca.df.2021 <- syca.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+syca.df.2022 <- syca.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+syca.df.2023 <- syca.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2021.csv")
+write_csv(syca.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2022.csv")
+write_csv(syca.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/syca.df_2023.csv")
+write_csv(syca.df.2023, path)
+
+
+##### REDB -------------------------------------------
+
+##### filter data by selected year(s)
+redb.df.2021 <- redb.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+redb.df.2022 <- redb.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+redb.df.2023 <- redb.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2021.csv")
+write_csv(redb.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2022.csv")
+write_csv(redb.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/redb.df_2023.csv")
+write_csv(redb.df.2023, path)
+
+
+##### MART -------------------------------------------
+
+##### filter data by selected year(s)
+mart.df.2021 <- mart.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+mart.df.2022 <- mart.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+mart.df.2023 <- mart.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2021.csv")
+write_csv(mart.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2022.csv")
+write_csv(mart.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/mart.df_2023.csv")
+write_csv(mart.df.2023, path)
+
+
+##### TECR -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
+##### OKSR -------------------------------------------
+
+##### filter data by selected year(s)
+leco.df.2021 <- leco.df %>%
+  filter(year(local_datetime) == 2021) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2022 <- leco.df %>%
+  filter(year(local_datetime) == 2022) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+leco.df.2023 <- leco.df %>%
+  filter(year(local_datetime) == 2023) %>%
+  dplyr::select(siteID, local_datetime, Jday, startDateTime:surfWaterNitrateStdErMean)
+
+##### save dfs
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2021.csv")
+write_csv(leco.df.2021, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2022.csv")
+write_csv(leco.df.2022, path)
+
+path <- here("N_uptake_NEON/data/neon_data_by_year/leco.df_2023.csv")
+write_csv(leco.df.2023, path)
+
+
 
 
 ```
@@ -218,16 +593,16 @@ king.plot.2020 <- king.df.2020 %>%
 
 
 
-walk.plot.2019 <- walk.df.2019 %>%
+leco.plot.2019 <- leco.df.2019 %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
-  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Walker Creek TN nitrate: 2019") +
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "lecoer Creek TN nitrate: 2019") +
   theme_bw()
 
-walk.plot.2022 <- walk.df.2022 %>%
+leco.plot.2022 <- leco.df.2022 %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
-  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Walker Creek TN nitrate: 2022") +
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "lecoer Creek TN nitrate: 2022") +
   theme_bw()
 
 
@@ -239,8 +614,8 @@ cari.plot.2019
 cari.plot.2020
 king.plot.2019
 king.plot.2020
-walk.plot.2019
-walk.plot.2022
+leco.plot.2019
+leco.plot.2022
 
 ```
 
@@ -252,7 +627,7 @@ Caribou Creek, AK: 225.45m (at DS sensor) site = 65.15322, -147.50397 DS sensor 
 
 King's Creek, KS: 525.24m (at sensor) site = 39.10506, -96.60383 sensor site = 39.10460, -96.60264 (the other sensors appear to be terrestrial? This site is by the discharge station)
 
-Walker Branch, TN: 262.49m (at sensor) site = 35.95738, -84.27925 sensor site = 35.95722, -84.27921
+lecoer Branch, TN: 262.49m (at sensor) site = 35.95738, -84.27925 sensor site = 35.95722, -84.27921
 
 ### Select and clean data, fill gaps etc.
 
@@ -278,14 +653,15 @@ bigc.df.19 %>%
 
 ## Select hourly no3 measurements to match what we've done  => CHANGE THIS LATER
 bigc.df.19h <- bigc.df.19 %>%
-  filter(minute(local_datetime) == 0) %>%
-  mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
+  filter(minute(local_datetime) == 0) 
+# %>%
+#   mutate(N_mean_mgm3 = surfWaterNitrateMean * 14.0067) # new col w. N units = mg m^-3
 
 # Visualize hourly data
 plot(bigc.df.19h$local_datetime, bigc.df.19h$N_mean_mgm3, type = 'l')  # used 'l' for better visualization of diel patterns
 
 # Mean of selected dataset
-N_b <- mean(bigc.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 51.94 mg/L 
+N_e <- mean(bigc.df.19h$surfWaterNitrateMean, na.rm = TRUE) # background N: here, = 3.71 uM or 51.94 mg/L 
 
 ###########################################################################
 ###################    Deal with  NAs   #############################
@@ -883,6 +1259,6 @@ write_csv(king.df.20h, filepath)
 ## May want to end at 192, before the LARGE gap 
 ```
 
-#### Not done - Walker Branch, TN 2019 tz = 'US/Eastern'
+#### Not done - lecoer Branch, TN 2019 tz = 'US/Eastern'
 
-#### Not done - Walker Branch, TN 2022 tz = 'US/Eastern'
+#### Not done - lecoer Branch, TN 2022 tz = 'US/Eastern'
