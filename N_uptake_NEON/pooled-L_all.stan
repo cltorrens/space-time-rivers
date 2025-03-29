@@ -2,23 +2,23 @@
     
     data {
     int <lower = 1> T;         // number of hours each day (24) is an integer
-    int <lower = 1> D;         // number of total days (5) is an integer
-    real deltat;               // time increment of sampling (in d) is a real number
-    matrix[T,D] lightMA;       // light at each timestep is a matrix
+    int <lower = 1> D;         // number of total days is an integer
+    real deltat;               // time increment of sampling (units = day) is a real number
+    matrix[T,D] lightMA;       // StreamMetabolizer-derived light at each timestep is a matrix
     vector[D] sumlightIdeal;   // total summed daily light from StreamMetabolizer is a vector
     vector[D] sumlightReal;    // total summed daily light from satellite is a vector
-    matrix[T,D] zMA;           // depth /channel depth is a matrix
-    matrix[T,D] concMA;        // nitrate concentration is a matrix
+    matrix[T,D] zMA;           // depth /channel depth is a matrix (m)
+    matrix[T,D] concMA;        // nitrate concentration is a matrix (mmol m^-3)
     real Ne_meanprior; 
     real Ne_sdprior;
     }
     
     parameters {
     real<lower = 0> sigma;      // Standard deviation of NO3 variation relative to model
-    vector<lower=0>[D] K;       // Nitrate turnover rate
-    vector <lower=0> [D] N_e;// Equilibrium nitrate concentration (nighttime equilib value, w/o autotrophic uptake)
-    vector[D] logU;                // assimilatory autotrophic nitrate uptake 
-    //real<lower = 0> mean_U;   // mean U 
+    vector<lower=0>[D] K;       // Nitrate turnover rate (day^-1)
+    vector <lower=0> [D] N_e;   // Equilibrium nitrate concentration (nighttime equilib value, w/o autotrophic uptake; mmol m^-3)
+    vector[D] logU;             // assimilatory autotrophic nitrate uptake (unitless, because natural log and all logs are ratios)
+    //real<lower = 0> mean_U;   // mean U  (mmol m^-2)
     real<lower = 0> sigma_U;    // standard deviation of mean assimilatory autotrophic nitrate uptake over entire study
     real b0;                    // intercept of linear relationship between uptake and sum daily light
     real b1;                    // slope of linear relationship between uptake and sum daily light
@@ -63,9 +63,9 @@
     
     generated quantities {
       matrix[T,D] conc_tilde; 
-      matrix[T,D] conc_pred;             // does not carry through from model block. Maybe do that part in Transform Params and not in model block.
+      matrix[T,D] conc_pred;             // does not carry through from model block. Maybe do that part in Transform Params and not in model block (nope, needs to be here - ROH).
       for (d in 1:D) {
-      conc_pred[1,d] = concMA[1,d];                     //initialize matrix
+      conc_pred[1,d] = concMA[1,d];      //initialize matrix
       conc_tilde[1,d] = normal_rng(concMA[1,d], sigma);
       
       for (i in 2:T){
@@ -75,5 +75,6 @@
       }
     }
     
-    //plot conc_hat vs concMA to test fit
+    //plot conc_pred vs concMA to test observation error model fit
+    //plot conc_hat vs concMA to test observation error model fit
     

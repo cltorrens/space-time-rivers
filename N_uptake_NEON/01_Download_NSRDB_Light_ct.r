@@ -46,11 +46,15 @@
 
 ########################## download NSRDB satellite-generated light  ############
 
-## The data downloads by 1 site and 1 year
+## The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command; oops, nope, only goes to 2022
 
-year <- 2020
-site <- "CARI"
+years <- 2021:2023
+site <- "CUPE"
 
+setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+for (i in 2021:2023) {
 # API request parameters, except for longitude and latitude
 # Declare all variables as strings. Spaces must be replaced with '+'.
 ################################################################################
@@ -59,13 +63,14 @@ api_key <- 'oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq' #CT's api
 # Set the attributes to extract (e.g., dhi, ghi, etc.), separated by commas.
 attributes <- 'clearsky_ghi,ghi,air_temperature,surface_pressure,wind_speed'
 # Choose year of data
-year = year
+year = i
 # Set leap year to true or false. True will return leap day data if present, false will not.
 leap_year = 'true'
 # Set time interval in minutes, i.e., '30' is half hour intervals. Valid intervals are 30 & 60 for this data source. 
 #   2019-21 may have shorter (5-10 min) intervals, would need to change the URL string declaration below (in ~ L62)
 
-interval = '30'
+#interval = '30' #use for sites w. 15-minute interval measurements: 
+interval = '5' #use for sites w. 45-min interval measurements: WLOU, 
 # Specify Coordinated Universal Time (UTC), 'true' will use UTC, 'false' will use the local time zone of the data.
 utc = 'false'
 # Your full name, use '+' instead of spaces.
@@ -84,26 +89,151 @@ mailing_list = 'false'
 # lat <- 37.05767
 # lon <- -119.25538
 
+# BLDE
+# lat <- 44.953606	
+# lon <- -110.589396
+
 # #CARI: NOT AVAILABLE ON THIS PLATFORM
 # lat <- 65.15307
 # lon <- -147.50195
+
+# COMO
+# lat <- 40.034934
+# long <- -105.544417
+
+# CUPE
+lat <- 18.110265
+lon <- -66.986411
 
 # #KING
 # lat <- 39.10460
 # lon <- -96.60264
 
-# #WALK
+# LECO
+# lat <- 35.692205	
+# long <- -83.504421
+
+# MART
+# lat <- 45.792321	
+# long <- -121.929418
+
+# POSE
+# lat <- 38.895193
+# long <- -78.147862
+
+# PRIN
+# lat <- 33.37836
+# long <- -97.78134
+
+#TECR
+# lat <- 36.955228	
+# long <- -119.023553	
+
+# WALK
 # lat <- 35.95722
 # lon <- -84.27921
 
+# WLOU
+# lat <- 39.890673
+# lon <- -105.911297
+
 # Declare url string
-URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+## 30 or 60-min data
+#URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+# OR - updated? as of Feb 2025
+#URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+
+## 10-min data
+# URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-full-disc-v4-0-0-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+## 5-min data
+URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-conus-v4-0-0-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
 
 
 # name the output file
 output_file <- paste0(site, '_', lat, '_', lon, '_', year, '_', interval, '.csv')
+
 # API request and saving
 GET(url = URL, write_disk(output_file))
+
+}
+
+# reset wd
+#setwd(here())
+
+
+########################### Bind site data into 1 file ############################
+
+## Note that wd is set to:  here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+
+bind_nsrdb <- function(filepath, site) {
+  files <- list.files(path=filepath, pattern=site)%>%
+    lapply(read.csv, skip = 2) %>%
+    bind_rows()%>%
+    select(1:7)%>%
+    #rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clear.sky.GHI"= 6, "GHI"= 7)%>% 
+    mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+    select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+}
+
+
+
+##### WLOU
+
+filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+site="WLOU"
+#filelist <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern=site, full.names=TRUE)
+
+  
+  
+filelist <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern=site, full.names=TRUE) %>%
+  map(~ read_csv(.x, skip = 2)) 
+
+wlou.satlight <- bind_rows(filelist) %>%
+  select(1:7) %>%
+  # rename(
+    # year = 1, month = 2, day = 3, hour = 4, minute = 5,  
+    # clearsky_GHI_wm2 = 6, GHI_wm2 = 7, 
+    # ) %>%
+  mutate(local_datetime = lubridate::make_datetime(year, month, day, hour, minute)) %>%
+  select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+
+  
+  
+  
+  
+wlou.satlight <-  list.files(path=filepath, pattern=site) %>% 
+  lapply(read_csv, skip = 2) %>%
+  bind_rows() %>%
+  select(1:7) %>%
+  #rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5,  "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>% #rownames are retained, that's how the list binds 
+  mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+  select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+
+
+write_csv(wlou.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/WLOU_satlight_all.csv"))
+
+
+
+# from Lauren's code... but only seems to work for the 1st element in the list
+wlou.satlight <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern="WLOU") %>% 
+  lapply(read.csv, skip = 2) %>%
+  bind_rows()%>%
+  select(1:7)%>%
+  rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "GHI"= 7, "clear.sky.GHI"= 6)%>%
+  mutate(date = as.Date(paste(year, month, day, sep = "-")))%>%
+  mutate(time = paste(hour, minute, sep = ":"))
+
+write.csv(wlou.light, "")
+
+
+
+
+
+
 
 
 ##### Get light data for the period of interest 

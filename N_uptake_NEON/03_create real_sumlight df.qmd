@@ -9,8 +9,7 @@ This script loads the NSRDB satellite data and trims to match the NEON NO3 datas
 
 The final script is saved, and can be reloaded and used to calculate real daily sunlight (sumlight.real) in the model-run script
 
-Note that NSRDB does not provide light data for higher latitudes, so these data/ files do not exist for the Caribou Creek, AK site. 
-
+Note that NSRDB does not provide light data for higher latitudes, so these data/ files do not exist for the Caribou Creek, AK site.
 
 Load satellite-light data
 
@@ -23,6 +22,13 @@ library(lubridate)
 library(ggpubr)
 library(brms)
 library(here)
+
+setwd(here)
+
+```
+
+## Load data
+```{ r load data} 
 
 ##### Load data
 
@@ -47,7 +53,34 @@ csv.name.walk19 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/WALK_35.95722_-
 csv.name.walk22 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/WALK_35.95722_-84.27921_2022_30.csv')
 
 ## Change wd to get files
-setwd(here('N_uptake_NEON/data/NSRDB_light_data_raw'))
+#setwd(here('N_uptake_NEON/data/NSRDB_light_data_raw/5m'))
+# setwd(here('N_uptake_NEON/data/NSRDB_light_data_raw/30m'))
+
+
+```
+
+#### WLOU
+```{r WLOU}
+
+
+
+wlou.sat_light <- list.files(path="5m", pattern='WLOU', full.names = TRUE) %>%
+  lapply(read.csv, skip = 3) %>%
+  bind_rows() %>%
+  select(1:7) %>%
+  rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5,  "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>%
+  mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+  select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+  
+
+write_csv(wlou.sat_light,file=here("N_uptake_NEON/data/NSRDB_data_clean/WLOU_satlight_all.csv"))
+
+```
+
+
+
+
+
 
 
 #################### BIGC 2019 ######################

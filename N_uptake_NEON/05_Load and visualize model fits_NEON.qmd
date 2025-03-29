@@ -5,606 +5,865 @@ format: html
 editor: visual
 ---
 
-## Intro
+# Intro
 
-This document uses rstan::extract and tidybayes to extract and visualize model fit params for the BIGC (Big Creek, CA) runs comparing process and observation error.
+This document uses rstan::extract and tidybayes to extract and visualize model fit params for the NEON data/ autotrohic uptake project
 
-Created 1/10/2025 by Christa Torrens
+Created 2/25/2025 by Christa Torrens
 
-#### Load needed libraries and model fits
+### Load needed libraries and model fits
 
-```{r}
+```{r - load libraries}
+#| echo: false
+
 # Load libraries
 library(tidyverse)
 library(tidybayes)
 library(bayesplot)
 library(rstanarm)
 library(here)
+library(plotly)
 
-# load saved model fits (stored as rds)
-# general path: here("N_uptake_NEON/data/model_fits/FILENAME HERE")
-bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/bigc19.fit.rds"))
-
-cari.fit <- readRDS(here("N_uptake_NEON/data/model_fits/cari19.fit.rds"))
-
-
-# Load source data
-bigc.data <- 
-
-cari.data <- 
-
-  
-# Load real sunlight data
-
-  
 ```
+
+
+### Plotting functions
+This keeps all of the core plotting code in 1 place, and allows site-level customization (mostly titles)
+```{r - plotting functions}
+#| echo: false
+
+##### Model fit - Npred + Nobs over time
+
+plot_Nmodelfit_ts <- function(data, start_jday, end_jday, plot_title) {
+  plot <- data %>%
+    filter(model_jday >= start_jday & model_jday <= end_jday) %>%
+    ggplot(aes(x = mod_hours)) +
+    geom_point(aes(y = N_conc)) + 
+    geom_line(aes(y = N_conc_pred), col = 'red') +
+    labs(
+      x = "Time (h)",
+      y = expression("N" ~ (mmol ~ m^-3))
+    ) +
+    ggtitle(plot_title) +
+    facet_wrap(~yr_jday) +
+    theme_bw()
+}
+
+##### Model fit - Npred v Nobs w. 1:1 line
+
+plot_Npred_v_Nobs <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=N_conc, y=N_conc_pred)) +
+  geom_point() + 
+  labs( x=expression("measured N"~(mmol~m^-3)), # OR (mu*mol~L^-1)
+        y=expression("modeled N"~(mmol~m^-3))  # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+}
+
+##### Equifinality checks
+
+## K vs U
+
+plot_KvU <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=K, x=U)) +
+  geom_point() + 
+  labs(y=expression("modeled K"~(d^-1)),
+       x=expression("modeled U"~(mmol~m^-2~d^-1))
+        ) + 
+  ggtitle(plot_title) + 
+  # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+  theme_bw()
+
+}
+  
+
+## K vs N_e
+
+plot_KvNe <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=K, x=N_e)) +
+   geom_point() + 
+   labs(y=expression("modeled K"~(d^-1)),
+        x=expression("modeled N_e"~(mmol~m^-3)) 
+        ) + 
+   ggtitle(plot_title) + 
+   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+  theme_bw()
+}
+
+
+## U vs N_e
+
+plot_UvNe <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=U, x=N_e)) +
+   geom_point() + 
+   labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),
+        x=expression("modeled N_e"~(mmol~m^-3)) 
+        ) + 
+   ggtitle(plot_title) + 
+  theme_bw()
+}
+
+
+##### K over time
+
+plot_K_ts <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=d, y=K)) +
+  geom_point() + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  labs( x= "Index", 
+        y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+  
+##### U over time
+
+plot_U_ts <- function(data, plot_title) {
+  ggplot(data=data, aes(x=d, y=U)) +
+  geom_point() + 
+  # geom_point(y = sumlight.real_wlou, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  labs( x= "Index", 
+        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+
+##### U vs. real sumlight
+
+plot_UvLight <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=sumlightReal, y=U)) +
+  geom_point() + 
+  labs( x= "measured daily light (add units)", 
+        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+      ) + 
+  scale_x_log10() + scale_y_log10() + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+
+##### U + daily (or hourly?) sumlight over time
+
+
+
+##### Autotrophic U vs total U
+
+plot_autoUperc <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=d, y=U_auto_perc)) +
+  geom_point() + 
+  xlab("Index") + ylab("Percent autotrophic uptake") + 
+  ggtitle(plot_title) + 
+  theme_bw()
+}
+
+
+```
+
+
+### load model fits and data by site (stored as rds), then extract parameters
 
 Hmmm: error notes when loading the rds files:
 
 The legacy packages maptools, rgdal, and rgeos, underpinning the sp package, which was just loaded, will retire in October 2023. Please refer to R-spatial evolution reports for details, especially <https://r-spatial.org/r/2023/05/15/evolution4.html.> It may be desirable to make the sf package available; package maintainers should consider adding sf to Suggests:. The sp package is now running under evolution status 2 (status 2 uses the sf package in place of rgdal)
 
 
-### Extract model parameters
 
-##### BIGC
+#### BIGC
+Ouptuts and visualizations for Big Creek, CA 
 
+###### Load model fits and data
 ```{r - extract obs. error model params}
 #| echo: false
 
 # TIDYBAYES
 
-#U.obsE.spread <- spread_draws(fit.bigc19.obsE, regex = "U")
-bigc.fit <- fit.bigc19
-
-# What was the modeled uptake?
-U_mod_bigc <- rstan::extract(bigc.fit, pars = "U")$U
-U_mod_avg_bigc <- apply(U_mod_bigc, MARGIN = 2, FUN = mean) 
-U_mod_sd_bigc <- apply(U_mod_bigc, MARGIN = 2, FUN = sd)
-
-# what was modeled K? 
-
-K_mod_bigc <- rstan::extract(bigc.fit, pars = "K")$K
-K_mod_avg_bigc <- apply(K_mod_bigc, MARGIN = 2, FUN = mean) 
-K_mod_sd_bigc <- apply(K_mod_bigc, MARGIN = 2, FUN = sd)
-
-#########  TO DO: GET CREDIBLE INTERVAL VALS FOR U AND K (2.5%, 97.5%) ##############
-
-# Get conc_pred from fit; plot vs concMA
-conc_pred_bigc <- rstan::extract(bigc.fit, pars = "conc_pred")$conc_pred 
-
-
-# > dim(conc_pred)
-# [1] 4000   24   39
-
-# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
-#avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
-avg_conc_pred_MA_bigc <- apply(conc_pred_bigc, MARGIN = c(2, 3), FUN = mean)  
-
-
-
-#avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
-N_conc_pred_bigc <- as.vector(c(avg_conc_pred_MA_bigc))
-
-#U_mean_bigc <- as.vector(c(U_mod_avg_bigc))
-
-
-## Extract modeled N_e
-
-# Equilibrium N from model fit (can egt these from summry too)
-Ne_mod_bigc <- rstan::extract(bigc.fit, pars = "N_e")$N_e  #dim = 4000, 137
-Ne_mod_avg_bigc <- apply(Ne_mod_bigc, MARGIN = 2, FUN = mean)
-Ne_mod_sd_bigc <- apply(Ne_mod_bigc, MARGIN = 2, FUN = sd)
-# 137 days of equillibrium N values used in the model
-nday = 137
-concMA_bigc <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
-
-
-####### FROM REAL DATA --------------------------------------------
-nday_bigc = 137
-N_conc_bigc <- bigc.df.19h$surfWaterNitrateMean
-concMA_bigc <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday_bigc, byrow = FALSE)
-##as.vector(c(concMA)) would give the same values
-
-local_datetime_bigc <- bigc.df.19h$local_datetime  
-model_datetime_bigc <- bigc.df.19h$local_datetime - hours(4)
-model_day_bigc <-bigc.df.19h$model_day
-hours_bigc <- hour(local_datetime_bigc)
-mod_hours_bigc <- hour(model_datetime_bigc)
-# find a way to remove day #212
-
-mod_day_bigc <- unique(model_day_bigc)
-
-######### LOAD DEPTH ###################
-
-z_bigc <- apply(zMA, MARGIN = 2, FUN = mean)
-
-######### LOAD REAL SUMLIGHT ###########
-sumlight.real_bigc <- sumlight.real
-
-###################  Compile dataframes
-
-N_output_bigc.df <- data.frame(local_datetime_bigc, hours_bigc, mod_hours_bigc, model_datetime_bigc, model_day_bigc, N_conc_bigc, N_conc_pred_bigc, z_bigc)
-
-# U_output_bigc.df <- data.frame(mod_day, U_mod_avg_bigc, U_mod_sd_bigc, sumlight.real, model_datetime) 
-# K_output_bigc.df <- data.frame(mod_day, K_mod_avg_bigc, K_mod_sd_bigc, sumlight.real, model_datetime)
-
-daily_output_bigc.df <- data.frame(mod_day_bigc, Ne_mod_avg_bigc, Ne_mod_sd_bigc, U_mod_avg_bigc, U_mod_sd_bigc, K_mod_avg_bigc, K_mod_sd_bigc, sumlight.real_bigc, model_datetime_bigc, z_bigc)
-
-mean(K_mod_avg_bigc) # 3.248
-mean(U_mod_avg_bigc) # 0.266
-
-# credible intervals for each U
-# extract 2.5% and 97.5% values - see Alice's code?
-
+# bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/bigc19.fit.rds"))
+# 
+# #U.obsE.spread <- spread_draws(fit.bigc19.obsE, regex = "U")
+# bigc.fit <- fit.bigc19
+# 
+# # What was the modeled uptake?
+# U_mod_bigc <- rstan::extract(bigc.fit, pars = "U")$U
+# U_mod_avg_bigc <- apply(U_mod_bigc, MARGIN = 2, FUN = mean) 
+# U_mod_sd_bigc <- apply(U_mod_bigc, MARGIN = 2, FUN = sd)
+# 
+# # what was modeled K? 
+# 
+# K_mod_bigc <- rstan::extract(bigc.fit, pars = "K")$K
+# K_mod_avg_bigc <- apply(K_mod_bigc, MARGIN = 2, FUN = mean) 
+# K_mod_sd_bigc <- apply(K_mod_bigc, MARGIN = 2, FUN = sd)
+# 
+# #########  TO DO: GET CREDIBLE INTERVAL VALS FOR U AND K (2.5%, 97.5%) ##############
+# 
+# # Get conc_pred from fit; plot vs concMA
+# conc_pred_bigc <- rstan::extract(bigc.fit, pars = "conc_pred")$conc_pred 
+# 
+# 
+# # > dim(conc_pred)
+# # [1] 4000   24   39
+# 
+# # Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
+# #avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
+# avg_conc_pred_MA_bigc <- apply(conc_pred_bigc, MARGIN = c(2, 3), FUN = mean)  
+# 
+# 
+# 
+# #avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
+# N_conc_pred_bigc <- as.vector(c(avg_conc_pred_MA_bigc))
+# 
+# #U_mean_bigc <- as.vector(c(U_mod_avg_bigc))
+# 
+# 
+# ## Extract modeled N_e
+# 
+# # Equilibrium N from model fit (can egt these from summry too)
+# Ne_mod_bigc <- rstan::extract(bigc.fit, pars = "N_e")$N_e  #dim = 4000, 137
+# Ne_mod_avg_bigc <- apply(Ne_mod_bigc, MARGIN = 2, FUN = mean)
+# Ne_mod_sd_bigc <- apply(Ne_mod_bigc, MARGIN = 2, FUN = sd)
+# # 137 days of equillibrium N values used in the model
+# nday = 137
+# concMA_bigc <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+# 
+# 
+# ####### FROM REAL DATA --------------------------------------------
+# nday_bigc = 137
+# N_conc_bigc <- bigc.df.19h$surfWaterNitrateMean
+# concMA_bigc <- matrix(unlist(bigc.df.19h$surfWaterNitrateMean), ncol = nday_bigc, byrow = FALSE)
+# ##as.vector(c(concMA)) would give the same values
+# 
+# local_datetime_bigc <- bigc.df.19h$local_datetime  
+# model_datetime_bigc <- bigc.df.19h$local_datetime - hours(4)
+# model_day_bigc <-bigc.df.19h$model_day
+# hours_bigc <- hour(local_datetime_bigc)
+# mod_hours_bigc <- hour(model_datetime_bigc)
+# # find a way to remove day #212
+# 
+# mod_day_bigc <- unique(model_day_bigc)
+# 
+# ######### LOAD DEPTH ###################
+# 
+# z_bigc <- apply(zMA, MARGIN = 2, FUN = mean)
+# 
+# ######### LOAD REAL SUMLIGHT ###########
+# sumlight.real_bigc <- sumlight.real
+# 
+# ###################  Compile dataframes
+# 
+# N_output_bigc.df <- data.frame(local_datetime_bigc, hours_bigc, mod_hours_bigc, model_datetime_bigc, model_day_bigc, N_conc_bigc, N_conc_pred_bigc, z_bigc)
+# 
+# # U_output_bigc.df <- data.frame(mod_day, U_mod_avg_bigc, U_mod_sd_bigc, sumlight.real, model_datetime) 
+# # K_output_bigc.df <- data.frame(mod_day, K_mod_avg_bigc, K_mod_sd_bigc, sumlight.real, model_datetime)
+# 
+# daily_output_bigc.df <- data.frame(mod_day_bigc, Ne_mod_avg_bigc, Ne_mod_sd_bigc, U_mod_avg_bigc, U_mod_sd_bigc, K_mod_avg_bigc, K_mod_sd_bigc, sumlight.real_bigc, model_datetime_bigc, z_bigc)
+# 
+# mean(K_mod_avg_bigc) # 3.248
+# mean(U_mod_avg_bigc) # 0.266
+# 
+# # credible intervals for each U
+# # extract 2.5% and 97.5% values - see Alice's code?
+# 
 
 
 ```
 
-##### Compare U_total and U_auto
+###### Compare U_total and U_auto for Big Creek
 
-```{r - comparing autotrophic NO3 uptake w total NO3 uptake}
+```{r - bigc: percent autotrophic NO3 uptake}
 
 
 # NON-AUTOTROPHIC UPTAKE: Equilibrium nitrate * K
 # TOTAL UPTAKE = U + (Equilibrium nitrate * K)  # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
-daily_output_bigc.df <- daily_output_bigc.df %>%
-  mutate(U_het = Ne_mod_avg_bigc*K_mod_avg_bigc*z_bigc, 
-         U_tot = U_het + U_mod_avg_bigc, 
-         U_auto_perc = 100*U_mod_avg_bigc/U_tot)
+# daily_output_bigc.df <- daily_output_bigc.df %>%
+#   mutate(U_het = Ne_mod_avg_bigc*K_mod_avg_bigc*z_bigc, 
+#          U_tot = U_het + U_mod_avg_bigc, 
+#          U_auto_perc = 100*U_mod_avg_bigc/U_tot)
+# 
+# U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #6.8% on average
+# 
+# Uauto_plot_bigc <- ggplot(data=daily_output_bigc.df, aes(x=mod_day_bigc, y=U_auto_perc)) + 
+#   geom_point() + 
+#   xlab("Julian day") + ylab("Percent autotrophic uptake") + 
+#   ggtitle("Percent of autotrophc uptake each day, Big Creek CA") + 
+#   theme_bw()
+# 
+# quartz()
+# Uauto_plot_bigc  ## (one huge outlier towards the end of the TS...)
+# 
+# 
+# 
+# #################  CODE BELOW COMPARES AUTOTROPHIC UPTAKE W. DAYTIME UPTAKE  ##########
+# # U_allMA_bigc <- sweep(sweep(concMA_bigc, 2, Ne_mod_avg_bigc, "-"), 2, K_mod_avg_bigc, "*") / 24
+# # 
+# # U_all_bigc <- colSums((U_allMA_bigc))
+# # U_perc = (U_mod_avg_bigc/-U_all_bigc)*100
+# # 
+# # Utot_bigc.tib <- tibble(Jday = mod_day, U_all=U_all_bigc, U_aut = U_mod_avg_bigc, U_perc=U_perc, K=K_mod_avg_bigc, N_eq=Ne_mod_avg_bigc)
+# # 
+# # 
+# # #Overall uptake comparison
+# # sum(U_all_bigc)  #-151.7154
+# # sum(U_mod_avg_bigc) # -40.64523
+# # 
+# # # Daily comparison
+# # 
+# # plot(mod_day, U_perc)
+# # mean(U_perc) # 28.3782
+# # 
+# # 
+# # print(summary(bigc.fit))
+# 
+# 
+# ```
+# 
+# ###### Create visualizations - Big Creek
+# 
+# ```{r - create bigc visualizations}
+# 
+# N_and_Nhat_bigc <- N_output_bigc.df %>%
+#   #filter(model_day_bigc >= 175 & model_day_bigc <= 185) %>%  # to see these better...
+#   ggplot(aes(x=mod_hours_bigc)) +
+#   geom_point(aes(y=N_conc_bigc)) + 
+#   geom_line(aes(y=N_conc_pred_bigc), col='red')+
+#   labs(
+#     x="Time (h)", y=expression("N"~(mmol~m^-3))
+#   ) +
+#   #ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
+#   ggtitle("NEON: Big Creek N data + model") +
+#   facet_wrap(~model_day_bigc)+
+#   #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
+#   #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
+#   theme_bw()
+# 
+# quartz()
+# N_and_Nhat_bigc
+# # Use 'for' loop with matrix version or use hours as the x-axis... 
+# 
+# # datetimeMA <- matrix(local_datetime, nrow=24)
+# # 
+# # quartz()
+# # for (i in 1:nday) {
+# #   plot (datetimeMA[,i], concMA[,i])  
+# #  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
+# # }
+# 
+# 
+# ########  N-hat vs N
+# 
+# 
+# Nhat_v_N_bigc <- ggplot(data = N_output_bigc.df, aes(x=N_conc_bigc, y=N_conc_pred_bigc)) +
+#   geom_point() + 
+#   #xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
+#   labs( x=expression("measured N"~(mu*mol~L^-1)), 
+#         y=expression("modeled N"~(mu*mol~L^-1))  # ~ = a space, * = no space
+#       ) + 
+#   ggtitle("Measured N vs modeled N, Big Creek, CA") +
+#   geom_abline(intercept = 0, slope = 1, color = "red") + 
+#   theme_bw()
+# 
+# quartz()
+# Nhat_v_N_bigc
+# 
+# ##### U over time
+# 
+# U_time_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=U_mod_avg_bigc)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real_bigc, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   #xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+#   labs( x= "Julian day", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,1) +
+#   #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+#   ggtitle("Diel nitrate uptake (modeled), Big Creek, CA") +
+#   theme_bw()
+# 
+# quartz()
+# U_time_bigc
+# 
+# 
+# # U_time_clip_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=U_mod_avg_bigc)) +
+# #    geom_point() +
+# #    # geom_point(y = sumlight.real, color = 'gold') +
+# #    # ADD IN HIGH AND LOW CIs
+# #    xlab("Julian day") + ylab("modeled U (mmol/m2/day)") +
+# #    ylim(0,1) +
+# #    ggtitle("modeled U over time, Big Creek - ylim = 0-1") +
+# #    theme_bw()
+# # 
+# #  quartz()
+# #  U_time_clip_bigc
+# 
+# ###### U vs sumlight
+# 
+# 
+# U_vs_light_bigc <- ggplot(data = daily_output_bigc.df, aes(x=sumlight.real_bigc, y=U_mod_avg_bigc)) +
+#   geom_point() + 
+#   #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   # xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   labs( x= "light (satellite)", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   scale_x_log10() + scale_y_log10() + 
+#   ggtitle("Scatterplot of NO3 uptake and daily light: Big Creek, CA") +
+#   #ylim = c(-0.2, 1) +
+#   theme_bw()
+# 
+# quartz()
+# U_vs_light_bigc
+# 
+# #######  K over time
+# 
+# 
+# K_time_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=K_mod_avg_bigc)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   # xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
+#   labs( x= "Julian day", 
+#         y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,20) +
+#   ggtitle("modeled K over time, Big Creek, CA") +
+#   theme_bw()
+# 
+# quartz()
+# K_time_bigc
+# 
+# 
+# 
+# # K_time_clip_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=K_mod_avg_bigc)) +
+# #   geom_point() + 
+# #   # geom_point(y = sumlight.real, color = 'gold') +
+# #   # ADD IN HIGH AND LOW CIs
+# #   xlab("Julian day") + ylab("modeled K (day -1)") + # ??? UNITS?
+# #   ylim(0,10) +
+# #   ggtitle("modeled K over time, Big Creek, CA - ylim = 0,10") +
+# #   theme_bw()
+# # 
+# # quartz()
+# # K_time_clip_bigc
+# 
+# 
+# ####### Check equifinality!! U vs K
+# 
+# KvU_bigc <- ggplot(data=daily_output_bigc.df, aes(y=K_mod_avg_bigc, x=U_mod_avg_bigc)) +
+#   geom_point() + 
+#   labs(y=expression("modeled K"~(d^-1)),
+#        x=expression("modeled U"~(mmol~m^-2~d^-1))
+#         ) + 
+#   ggtitle("Equifinality check, Big Creek, CA: modeled K vs modeled U") + 
+#   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+#   theme_bw()
+#   
+#   quartz()
+#   KvU_bigc
+#   
+#   
+#   #plot(U_mod_avg_bigc, K_mod_avg_bigc)
+#   
+#   
+#   ##### Equifinality check: K vs N_e
+#   
+#   
+#   
+#   
+#   ##### Equifinlity check: U vs N_e
 
-U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #6.8% on average
-
-Uauto_plot_bigc <- ggplot(data=daily_output_bigc.df, aes(x=mod_day_bigc, y=U_auto_perc)) + 
-  geom_point() + 
-  xlab("Julian day") + ylab("Percent autotrophic uptake") + 
-  ggtitle("Percent of autotrophc uptake each day, Big Creek CA") + 
-  theme_bw()
-
-quartz()
-Uauto_plot_bigc  ## (one huge outlier towards the end of the TS...)
+```
 
 
 
-#################  CODE BELOW COMPARES AUTOTROPHIC UPTAKE W. DAYTIME UPTAKE  ##########
-# U_allMA_bigc <- sweep(sweep(concMA_bigc, 2, Ne_mod_avg_bigc, "-"), 2, K_mod_avg_bigc, "*") / 24
-# 
-# U_all_bigc <- colSums((U_allMA_bigc))
-# U_perc = (U_mod_avg_bigc/-U_all_bigc)*100
-# 
-# Utot_bigc.tib <- tibble(Jday = mod_day, U_all=U_all_bigc, U_aut = U_mod_avg_bigc, U_perc=U_perc, K=K_mod_avg_bigc, N_eq=Ne_mod_avg_bigc)
-# 
-# 
-# #Overall uptake comparison
-# sum(U_all_bigc)  #-151.7154
-# sum(U_mod_avg_bigc) # -40.64523
-# 
-# # Daily comparison
-# 
-# plot(mod_day, U_perc)
-# mean(U_perc) # 28.3782
-# 
-# 
-# print(summary(bigc.fit))
+#### WLOU
+
+###### Load model fits and data
+```{r load WLOU model fit and data}
+
+###### Load model fit __________________________________________________________
+
+wlou.fit <- readRDS(here("N_uptake_NEON/data/model_fits/wlou.fit.rds"))
+
+# if working from model run
+# wlou.fit <- fit.wlou
+
+
+###### Load model data ________________________________________________________
+
+# data from model
+
+wlou.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/wlou.data.rds"))
+
+###### Load dataset (includes datatime info, which model data does not) _______
+
+# full dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/wlou_clean.csv")
+wlou.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv")
+wlou.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+         model_datetime = local_datetime - hours(4))  
+  
+  
+```
+
+###### Extract model parameters and real-data values
+
+```{r - wlou: extract obs. error model params and real-data values}
+##| echo: false
+
+# get list of variables for the model fit
+# get_variables(wlou.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+###### Check the fit for sigmas and betas (tough to fit): ______________________
+print(wlou.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+###### Summarize daily variables (K, U, N_e) ___________________________________
+
+# First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+wlou.spread <- spread_draws(wlou.fit, K[d], U[d], N_e[d]) 
+
+
+# Then get the mean/median + 95% QI (CI) for each parameter/day
+
+### median + CI
+wlou.medqi <- wlou.spread %>%
+  # dplyr::group_by(d) %>%  # Unnecessary: tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+  median_qi() %>%
+  # summarise_draws() %>%
+  # pivot_wider(names_from = variable, values_from = mean, median, sd, mad, q5, q95, rhat, ess_bulk, ess_tail) %>%
+  add_column(site = "WLOU")
+
+### mean + QI
+wlou.meanqi <- wlou.spread %>%
+  mean_qi() %>%
+  add_column(site = "WLOU")
+
+### Add median param info to the meanqi df
+wlou.meanqi$K.median <- wlou.medqi$K
+wlou.meanqi$U.median <- wlou.medqi$U
+wlou.meanqi$N_e.median <- wlou.medqi$N_e
+
+
+### tried the 'summarise_draws()' fcn but couldn't get it to pivot_wider() and make each variable its own column... So, good for checking all 'values_from' columns listed below, but not super useful for plotting etc. 
+
+# wlou.spreadsummary <- wlou.spread %>%
+#   summarise_draws() %>%
+#   #### pivot_wider(names_from = variable, values_from = mean, median, sd, mad, q5, q95, rhat, ess_bulk, ess_tail) %>%  # DOESN'T WORK HERE
+#   add_column(site = "WLOU")
+#   
+# View(wlou.spreadsummary)
+
+
+### Summarize hourly variable (conc_pred)
+
+wlou.spread.h <- spread_draws(wlou.fit, conc_pred[h,d])
+# View(wlou.spread.h)
+
+
+wlou.meanqi.h <- wlou.spread.h %>%
+  dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  mean_qi() %>%
+  add_column(site = "WLOU")
+
+
+####### FROM REAL DATA --------------------------------------------
+
+nday_wlou <- wlou.modeldata$D
+
+concMA_wlou <- wlou.modeldata$concMA
+
+# change no3 data from a matrix (concMA) w. column names V1, V2...V[nday] to a vector w. numeric day indices (1, 2, ...198).  Remove "V"?  
+
+N_obs <- as.vector(concMA_wlou)
+
+local_datetime_wlou <- wlou.df.h$local_datetime 
+# local_date_wlou <- unique(date(wlou.df.h$local_datetime))  # not quite there w. extracting dates from the hourly data
+# model_date_wlou <- wlou.df$model_datetime # nope, this is the FULL 15-min dataset 
+model_datetime_wlou <- wlou.df.h$local_datetime - hours(4)
+# model_jday_wlou <-wlou.df.h$model_jday
+model_yrjday_wlou <- wlou.df.h$yr_jday  # hourly data
+mod_yrjday_wlou <- unique(wlou.df.h$yr_jday) # daily data
+# hours_wlou <- hour(local_datetime_wlou)
+# mod_hours_wlou <- hour(model_datetime_wlou)
+
+
+####### LOAD DEPTH #################################
+zMA <- wlou.modeldata$zMA
+#z.daily <- apply(zMA, MARGIN = 2, FUN = mean) ##this wouldn't knit in Quarto, IDK why not
+
+####### LOAD REAL DAILY SUMLIGHT ###################
+sumlight.real_wlou <- wlou.modeldata$sumlightReal
+sumlight.ideal_wlou <- wlou.modeldata$sumlightIdeal
+
+###################  Compile dataframes _________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+
+N_output_wlou.df <- wlou.df.h %>%
+  select(local_datetime, model_datetime, surfWaterNitrateMean, GHI_wm2, Year, yr_jday, Jday, model_jday) %>%
+  rename(N_conc = surfWaterNitrateMean, 
+         realLight_wm2 = GHI_wm2) %>%
+  mutate(hours = hour(local_datetime), 
+         mod_hours = hour(model_datetime))
+  
+N_output_wlou.df$N_conc_pred <- wlou.meanqi.h$conc_pred
+N_output_wlou.df$z <- as.vector(zMA) #average daily depth
+
+
+####### Daily dataframe: U, K, N_e ##################
+
+daily_output_wlou.df <- wlou.meanqi %>%
+  add_column(sumlightReal = sumlight.real_wlou, 
+             sumlightIdeal = sumlight.ideal_wlou, 
+             z = colMeans(zMA), # daily depth = average of hourly depth
+             yr_jday = mod_yrjday_wlou)  # the daily yr_jday object
+
+mean(daily_output_wlou.df$K) # 3.225407
+mean(daily_output_wlou.df$U) # 0.1986689
+mean(daily_output_wlou.df$N_e) # 3.395281
+
 
 
 ```
 
 
-##### Create visualizations - Big Creek
+###### Create visualizations - West St. Louis Creek, CO
 
-```{r - create bigc visualizations}
+```{r - wlou: create visualizations}
+#| echo: true
 
-N_and_Nhat_bigc <- N_output_bigc.df %>%
-  #filter(model_day_bigc >= 175 & model_day_bigc <= 185) %>%  # to see these better...
-  ggplot(aes(x=mod_hours_bigc)) +
-  geom_point(aes(y=N_conc_bigc)) + 
-  geom_line(aes(y=N_conc_pred_bigc), col='red')+
-  labs(
-    x="Time (h)", y=expression("N"~(mmol~m^-3))
-  ) +
-  #ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
-  ggtitle("NEON: Big Creek N data + model") +
-  facet_wrap(~model_day_bigc)+
-  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
-  #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
-  theme_bw()
+############  N Model fit to data _____________________________________________
 
-quartz()
-N_and_Nhat_bigc
-# Use 'for' loop with matrix version or use hours as the x-axis... 
+######  N model fit over time  #######
 
-# datetimeMA <- matrix(local_datetime, nrow=24)
-# 
-# quartz()
-# for (i in 1:nday) {
-#   plot (datetimeMA[,i], concMA[,i])  
-#  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
-# }
+# N_and_Npred_wlou <- N_output_wlou.df %>%
+#   #group_by(year(model_datetime_wlou)) %>%
+#   filter(model_jday >= 35 & model_jday <= 60) %>%  # to see the little boxes better...
+#   ggplot(aes(x=mod_hours)) +
+#   geom_point(aes(y=N_conc)) + 
+#   geom_line(aes(y=N_conc_pred), col='red')+
+#   labs(
+#     x="Time (h)", y=expression("N"~(mmol~m^-3))
+#   ) +
+#   ggtitle("NEON: West St. Louis Creek N data + model predictions") +
+#   facet_wrap(~yr_jday) +
+#   theme_bw()
+
+N_Npred_ts_wlou <- plot_Nmodelfit_ts(data=N_output_wlou.df, start_jday = 35, end_jday = 60, plot_title = "NEON: West St. Louis Creek N data + model predictions")
+
+quartz(width=6,height=6)
+N_Npred_ts_wlou
 
 
-########  N-hat vs N
+######  N-pred vs N  #######
+
+# Npred_v_N_wlou <- ggplot(data = N_output_wlou.df, aes(x=N_conc, y=N_conc_pred)) +
+#   geom_point() + 
+#   labs( x=expression("measured N"~(mu*mol~L^-1)), # fcn changed both to mmol~m^-3
+#         y=expression("modeled N"~(mu*mol~L^-1))  # ~ = a space, * = no space
+#       ) + 
+#   ggtitle("Measured N vs predicted N, West St. Louis Creek, CO") +
+#   geom_abline(intercept = 0, slope = 1, color = "red") + 
+#   theme_bw()
+
+Npred_v_N_wlou <- plot_Npred_v_Nobs(data=N_output_wlou.df, plot_title="Measured N vs predicted N, West St. Louis Creek, CO")
+
+quartz(width=6, height=6)
+Npred_v_N_wlou
+
+###### Equifinality checks __________________________________________________
+
+####### Check equifinality!! K vs U
+
+# KvU_wlou <- ggplot(data=daily_output_wlou.df, aes(y=K_mod_avg_wlou, x=U_mod_avg_wlou)) +
+#   geom_point() + 
+#   labs(y=expression("modeled K"~(d^-1)),
+#        x=expression("modeled U"~(mmol~m^-2~d^-1))
+#         ) + 
+#   ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U") + 
+#   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+#   theme_bw()
 
 
-Nhat_v_N_bigc <- ggplot(data = N_output_bigc.df, aes(x=N_conc_bigc, y=N_conc_pred_bigc)) +
-  geom_point() + 
-  #xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
-  labs( x=expression("measured N"~(mu*mol~L^-1)), 
-        y=expression("modeled N"~(mu*mol~L^-1))  # ~ = a space, * = no space
-      ) + 
-  ggtitle("Measured N vs modeled N, Big Creek, CA") +
-  geom_abline(intercept = 0, slope = 1, color = "red") + 
-  theme_bw()
+KvU_wlou <- plot_KvU(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U")
 
-quartz()
-Nhat_v_N_bigc
+  
+quartz(width=7.5, height=6)
+KvU_wlou
+  
 
-##### U over time
+####### Check equifinality!! K vs N_e  
 
-U_time_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=U_mod_avg_bigc)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real_bigc, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  #xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
-  labs( x= "Julian day", 
-        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
-      ) + 
-  #ylim(0,1) +
-  #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
-  ggtitle("Diel nitrate uptake (modeled), Big Creek, CA") +
-  theme_bw()
-
-quartz()
-U_time_bigc
+# KvNe_wlou <- ggplot(data=daily_output_wlou.df, aes(y=K, x=N_e)) +
+#    geom_point() + 
+#    labs(y=expression("modeled K"~(d^-1)),
+#         x=expression("modeled N_e"~(mmol~m^-3)) 
+#         ) + 
+#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N") + 
+#    # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+#   theme_bw()
 
 
-# U_time_clip_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=U_mod_avg_bigc)) +
-#    geom_point() +
-#    # geom_point(y = sumlight.real, color = 'gold') +
-#    # ADD IN HIGH AND LOW CIs
-#    xlab("Julian day") + ylab("modeled U (mmol/m2/day)") +
-#    ylim(0,1) +
-#    ggtitle("modeled U over time, Big Creek - ylim = 0-1") +
-#    theme_bw()
-# 
-#  quartz()
-#  U_time_clip_bigc
+KvNe_wlou <- plot_KvNe(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N")
 
-###### U vs sumlight
+quartz(width=7.5, height=6)
+KvNe_wlou
 
 
-U_vs_light_bigc <- ggplot(data = daily_output_bigc.df, aes(x=sumlight.real_bigc, y=U_mod_avg_bigc)) +
-  geom_point() + 
-  #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
-  # xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
-  labs( x= "light (satellite)", 
-        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
-      ) + 
-  scale_x_log10() + scale_y_log10() + 
-  ggtitle("Scatterplot of NO3 uptake and daily light: Big Creek, CA") +
-  #ylim = c(-0.2, 1) +
-  theme_bw()
+####### Check equifinality!! U vs N_e  
 
-quartz()
-U_vs_light_bigc
+# UvNe_wlou <- ggplot(data=daily_output_wlou.df, aes(y=U, x=N_e)) +
+#    geom_point() + 
+#    labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),
+#         x=expression("modeled N_e"~(mmol~m^-3)) 
+#         ) + 
+#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N") + 
+#   theme_bw()
+
+UvNe_wlou <- plot_UvNe(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N")
+ 
+quartz(width=7.5, height=6)
+UvNe_wlou
+
+
 
 #######  K over time
 
-
-K_time_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=K_mod_avg_bigc)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  # xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
-  labs( x= "Julian day", 
-        y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
-      ) + 
-  #ylim(0,20) +
-  ggtitle("modeled K over time, Big Creek, CA") +
-  theme_bw()
-
-quartz()
-K_time_bigc
+# K_v_time_wlou <- ggplot(data = daily_output_wlou.df, aes(x=d, y=K)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   # xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
+#   labs( x= "Index", 
+#         y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,20) +
+#   ggtitle("modeled K over time, West St. Louis Creek, CO") +
+#   theme_bw()
 
 
+K_v_time_wlou <- plot_K_ts(data=daily_output_wlou.df, plot_title = "modeled K over time, West St. Louis Creek, CO")
 
-# K_time_clip_bigc <- ggplot(data = daily_output_bigc.df, aes(x=mod_day_bigc, y=K_mod_avg_bigc)) +
+quartz(width=6.5, height=6)
+K_v_time_wlou
+
+##### to clip: no function yet
+# K_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=K_mod_avg_wlou)) +
 #   geom_point() + 
 #   # geom_point(y = sumlight.real, color = 'gold') +
 #   # ADD IN HIGH AND LOW CIs
 #   xlab("Julian day") + ylab("modeled K (day -1)") + # ??? UNITS?
 #   ylim(0,10) +
-#   ggtitle("modeled K over time, Big Creek, CA - ylim = 0,10") +
+#   ggtitle("modeled K over time, West St. Louis Creek, CO - ylim = 0,10") +
 #   theme_bw()
 # 
 # quartz()
-# K_time_clip_bigc
-
-####### Check equifinality!! U vs K
-
-KvU_bigc <- ggplot(data=daily_output_bigc.df, aes(y=K_mod_avg_bigc, x=U_mod_avg_bigc)) +
-  geom_point() + 
-  labs(y=expression("modeled K"~(d^-1)),
-       x=expression("modeled U"~(mmol~m^-2~d^-1))
-        ) + 
-  ggtitle("Equifinality check, Big Creek, CA: modeled K vs modeled U") + 
-  # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
-  theme_bw()
-  
-  quartz()
-  KvU_bigc
-  
-  
-  #plot(U_mod_avg_bigc, K_mod_avg_bigc)
-
-```
-
-### Process error model
-
-##### Extract model parameters
-
-```{r - extract process error model params}
-#| echo: false
-
-# What was the modeled uptake?
-p.U_mod <- rstan::extract(process.fit, pars = "U")$U
-p.U_mod_avg <- apply(p.U_mod, MARGIN = 2, FUN = mean) 
-p.U_mod_sd <- apply(p.U_mod, MARGIN = 2, FUN = sd)
-
-# what was modeled K? 
-
-p.K_mod <- rstan::extract(process.fit, pars = "K")$K
-p.K_mod_avg <- apply(p.K_mod, MARGIN = 2, FUN = mean) 
-p.K_mod_sd <- apply(p.K_mod, MARGIN = 2, FUN = sd)
-
-# Get conc_pred from fit; plot vs concMA
-p.conc_pred <- rstan::extract(process.fit, pars = "conc_pred")$conc_pred 
-#conc_pred.oe <- extract(fit.oe, pars = "conc_pred")$conc_pred 
-
-# > dim(conc_pred)
-# [1] 4000   24   39
-
-# Collapse the 4000-layer array to a matrix rows = hours, columns = days - just like concMA
-#avg_conc_pred_oeMA <- apply(conc_pred.oe, MARGIN = c(2, 3), FUN = mean) 
-p.avg_conc_pred_MA <- apply(p.conc_pred, MARGIN = c(2, 3), FUN = mean)  
+# K_time_clip_wlou
 
 
-#avg_conc_pred.oe <- as.vector(c(avg_conc_pred_oeMA))
-p.N_conc_pred <- as.vector(c(p.avg_conc_pred_MA))
-
-#U_mean <- as.vector(c(U_mod_avg))
-
-N_conc <- bigc.df.19h$surfWaterNitrateMean ##as.vector(c(concMA)) would give the same values
-
-local_datetime <- bigc.df.19h$local_datetime  
-model_datetime <- bigc.df.19h$local_datetime - hours(4)
-model_day <-bigc.df.19h$model_day
-hours <- hour(local_datetime)
-mod_hours <- hour(model_datetime)
-# find a way to remove day #212
-
-mod_day <- unique(model_day)
-
-p.N_output.df <- data.frame(local_datetime, hours, mod_hours, model_datetime, model_day, N_conc, p.N_conc_pred)
-
-#mod_day <- unique(model_day)
-p.U_output.df <- data.frame(mod_day, p.U_mod_avg, p.U_mod_sd, sumlight.real, model_datetime) 
-p.K_output.df <- data.frame(mod_day, p.K_mod_avg, p.K_mod_sd, sumlight.real, model_datetime)
-
-mean(p.K_mod_avg) # 2.950436
-
-# credible intervals for each U
-# extract 2.5% and 97.5% values - see Alice's code?
-
-which.min(p.U_output.df$p.U_mean)
-
-p.U_output.df$p.U_mod_avg
-
-
-```
-
-##### Create visualizations
-
-```{r - create process error visualizations}
-p.N_and_Nhat <- p.N_output.df %>%
-  #filter(model_day >= 175 & model_day <= 185) %>%  # to see these better...
-  ggplot(aes(x=mod_hours)) +
-  geom_point(aes(y=N_conc)) + 
-  geom_line(aes(y=p.N_conc_pred), col='red')+
-  labs(
-    x="Time (h)", y=expression("N"~(mmol~m^-3))
-  ) +
-  #ggtitle("N and N_hat over time - Big Creek 2019 pooled model")+
-  ggtitle("NEON: Big Creek 2019 pooled model - process error model") +
-  facet_wrap(~model_day)+
-  #title("N conc vs conc-hat, Big Creek pooled 1 (by mean)")+
-  #scale_color_manual(values=c("N_conc" = "black", "N_conc_pred" = "red"), name= "Big Creek N") +
-  theme_bw()
-
-quartz()
-p.N_and_Nhat
-# Use 'for' loop with matrix version or use hours as the x-axis... 
-
-# datetimeMA <- matrix(local_datetime, nrow=24)
-# 
-# quartz()
-# for (i in 1:nday) {
-#   plot (datetimeMA[,i], concMA[,i])  
-#  lines(datetimeMA[,i], avg_conc_pred_MA[,i], col='red')
-# }
-
-
-########  N-hat vs N
-
-
-p.Nhat_V_N <- ggplot(data = p.N_output.df, aes(x=N_conc, y=p.N_conc_pred)) +
-  geom_point() + 
-  xlab("measured N (umol/L)") + ylab("modeled N (umol/L)") + 
-  ggtitle("Measured N vs modeled N, Big Creek 2019 pooled model - process error model") +
-  geom_abline(intercept = 0, slope = 1, color = "red") + 
-  theme_bw()
-
-quartz()
-p.Nhat_V_N
 
 ##### U over time
 
+# U_time_wlou <- ggplot(data = daily_output_wlou.df, aes(x=d, y=U)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real_wlou, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   #xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+#   labs( x= "Index", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,1) +
+#   #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+#   ggtitle("Diel nitrate uptake (modeled), West St. Louis Creek, CO") +
+#   theme_bw()
 
-p.U_time <- ggplot(data = p.U_output.df, aes(x=mod_day, y=p.U_mod_avg)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
-  #ylim(0,1) +
-  #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
-  ggtitle("Diel nitrate uptake (modeled), Big Creek 2019 - process error model") +
-  theme_bw()
+U_time_wlou <- plot_U_ts(data=daily_output_wlou.df, plot_title="Diel nitrate uptake (modeled), West St. Louis Creek, CO")
 
-quartz()
-p.U_time
+quartz(width=6, height=6)
+U_time_wlou
 
 
-p.U_time_clip <- ggplot(data = p.U_output.df, aes(x=mod_day, y=p.U_mod_avg)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
-  ylim(0,2) +
-  ggtitle("modeled U over time, Big Creek 2019 pooled model w real light - process error model") +
-  theme_bw()
+# U_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=U_mod_avg_wlou)) +
+#    geom_point() +
+#    # geom_point(y = sumlight.real, color = 'gold') +
+#    # ADD IN HIGH AND LOW CIs
+#    xlab("Julian day") + ylab("modeled U (mmol/m2/day)") +
+#    ylim(0,1) +
+#    ggtitle("modeled U over time, West St. Louis Creek, CO - ylim = 0-1") +
+#    theme_bw()
+# 
+#  quartz()
+#  U_time_clip_wlou
 
-quartz()
-p.U_time_clip
+
 
 ###### U vs sumlight
 
+# U_vs_light_wlou <- ggplot(data = daily_output_wlou.df, aes(x=sumlightReal, y=U)) +
+#   geom_point() + 
+#   #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   # xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   labs( x= "light (satellite)", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   scale_x_log10() + scale_y_log10() + 
+#   ggtitle("Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO") +
+#   #ylim = c(-0.2, 1) +
+#   theme_bw()
 
-p.U_vs_light <- ggplot(data = p.U_output.df, aes(x=sumlight.real, y=p.U_mod_avg)) +
-  geom_point() + 
-  #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
-  xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
-  ggtitle("Big Creek 2019: scatterplot of NO3 uptake and daily light - process error model") +
-  #ylim = c(-0.2, 1) +
-  theme_bw()
+U_vs_light_wlou <- plot_UvLight(data=daily_output_wlou.df, plot_title = "Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO")
 
-quartz()
-p.U_vs_light
-
-#######  K over time
-p.UK_output.df <- p.U_output.df
-
-
-p.K_time <- ggplot(data = p.K_output.df, aes(x=mod_day, y=p.K_mod_avg)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
-  ylim(0,20) +
-  ggtitle("modeled K over time, Big Creek 2019 pooled model w real light - process error model") +
-  theme_bw()
-
-quartz()
-p.K_time
-
-
-
-p.K_time_clip <- ggplot(data = p.K_output.df, aes(x=mod_day, y=p.K_mod_avg)) +
-  geom_point() + 
-  # geom_point(y = sumlight.real, color = 'gold') +
-  # ADD IN HIGH AND LOW CIs
-  xlab("Julian day") + ylab("modeled K (umol/day)") + # ??? UNITS?
-  ylim(0,10) +
-  ggtitle("modeled K over time, Big Creek 2019 pooled model w real light - process error model") +
-  theme_bw()
-
-quartz()
-p.K_time_clip
-
-
-
-# U vs K
-
-UvsK.p <- ggplot(p.U_mod_avg, p.K_mod_avg)
-
-
-dev.off()
-
-```
-
-#### Comparing process and observation error models
-
-```{r - comparing process and obs error models}
-
-comp.df <- tibble(o.U_mod_avg, p.U_mod_avg, o.K_mod_avg, p.K_mod_avg)
-
-compU <- ggplot(data=comp.df, aes(x=o.U_mod_avg, y=p.U_mod_avg)) + 
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1, color = "red") + 
-  xlab("U - observation model") + ylab("U - process model") +
-  ggtitle("Comparing U from process error vs observation error models") +
-  theme_bw()
-  
-quartz()
-compU
-
-  
-compK <- ggplot(data=comp.df, aes(x=o.K_mod_avg, y=p.K_mod_avg)) + 
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1, color = "red") + 
-  xlab("K - observation model") + ylab("K - process model") +
-  ggtitle("Comparing K from process error vs observation error models") +
-  theme_bw()
-                
-quartz()
-compK
-
-
-p.UvsK <- ggplot(data=comp.df, aes(x=p.U_mod_avg, y=p.K_mod_avg)) +
-  geom_point() +
-  xlab("process model U (mmol m-2 d-1)") + ylab("process model K (d-1)") + 
-  ggtitle("K vs U for the process model (Big Creek 2019 data)") +
-  theme_bw()
-
-quartz()
-p.UvsK
-#dev.off
+quartz(width=6.5, height=6)
+U_vs_light_wlou
 
 
 ```
 
-Observation and process mod posterior prediction checks - WORK IN PROGRESS
 
-```{r - posterior pred check}
-######### Parameter density distrib for U and K (separate plots) - observation
+###### Compare U_total and U_auto
 
-posterior <- as.matrix(fit.bigc19.obsE)
+```{r - wlou: percent autotrophic NO3 uptake}
 
-plot_title <- ggtitle("Posterior distributions for U",
-                      "with medians and 80% intervals")
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+daily_output_wlou.df <- daily_output_wlou.df %>%
+  mutate(U_het = N_e*K*z,      
+         U_tot = U_het + U, 
+         U_auto_perc = 100*U/U_tot)
+
+
+U_auto_avg <- mean(daily_output_wlou.df$U_auto_perc) #10.3% on average
+
+# Uauto_plot_wlou <- ggplot(data=daily_output_wlou.df, aes(x=d, y=U_auto_perc)) +
+#   geom_point() + 
+#   xlab("Index") + ylab("Percent autotrophic uptake") + 
+#   ggtitle("Percent of autotrophic uptake each day, West St. Louis Creek, CO") + 
+#   theme_bw()
+
+
+Uauto_perc_wlou <- plot_autoUperc(data=daily_output_wlou.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), West St. Louis Creek, CO")
+
 quartz()
-mcmc_areas(posterior,
-           regex_pars = "U\\[[1-5]\\]",
-           prob = 0.8) + plot_title
+Uauto_perc_wlou 
 
-dev.off()
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_wlou)
 
-# write.csv(p.bigc,file="N_output_pooledU_bigc.csv")
-# output_bigc <- read_csv("N_output_pooledU_bigc.csv")
-# 
-# max.print(fit,pars="conc_tilde")
 
 ```
-
-### Process model warning messages (generated when fitting the model in 04\_... ):
-
-Warning messages generated for the process error model fit: Warning messages: 1: There were 39 divergent transitions after warmup. See https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup to find out why this is a problem and how to eliminate them.
-
-2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See https://mc-stan.org/misc/warnings.html#bfmi-low
-
-3: Examine the pairs() plot to diagnose sampling problems
-
-4: The largest R-hat is NA, indicating chains have not mixed. Running the chains for more iterations may help. See https://mc-stan.org/misc/warnings.html#r-hat
-
-5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable. Running the chains for more iterations may help. See https://mc-stan.org/misc/warnings.html#bulk-ess
-
-6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable. Running the chains for more iterations may help. See https://mc-stan.org/misc/warnings.html#tail-ess

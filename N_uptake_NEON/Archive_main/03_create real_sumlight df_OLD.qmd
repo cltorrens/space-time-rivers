@@ -1,0 +1,263 @@
+---
+title: "03_create real_sumlight df"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+This script loads the NSRDB satellite data and trims to match the NEON NO3 datasets (including the start-end period and days removed for NAs).
+
+The final script is saved, and can be reloaded and used to calculate real daily sunlight (sumlight.real) in the model-run script
+
+Note that NSRDB does not provide light data for higher latitudes, so these data/ files do not exist for the Caribou Creek, AK site.
+
+Load satellite-light data
+
+```{r - load satellite-light data}
+
+#### Load packages
+
+library(tidyverse)
+library(lubridate)
+library(ggpubr)
+library(brms)
+library(here)
+
+##### Load data
+
+########### get this working w mapply
+
+#  use a name LIST, not one name
+# csv.name <-  '37.05767_-119.25538_2019_30.csv'  # EDIT AS NEEDED - Also ensure that csv structure fits the code below
+#   
+# real_sumlight.df <- read_csv(csv.name, skip=2) %>%
+#   mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field to work with
+#          Time = format(Datetime, format = "%H:%M"), 
+#          Jday = yday(Datetime))
+
+
+csv.name.bigc19 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/BIGC_37.05767_-119.25538_2019_30.csv')
+csv.name.bigc21 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/BIGC_37.05767_-119.25538_2021_30.csv')
+csv.name.cari19 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/CARI_65.15307_-147.50195_2019_30.csv')
+csv.name.cari20 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/CARI_65.15307_-147.50195_2020_30.csv')
+csv.name.king19 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/KING_39.1046_-96.60264_2019_30.csv')
+csv.name.king20 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/KING_39.1046_-96.60264_2020_30.csv')
+csv.name.walk19 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/WALK_35.95722_-84.27921_2019_30.csv')
+csv.name.walk22 <- here('N_uptake_NEON/data/NSRDB_light_data_raw/WALK_35.95722_-84.27921_2022_30.csv')
+
+## Change wd to get files
+setwd(here('N_uptake_NEON/data/NSRDB_light_data_raw'))
+
+
+#################### BIGC 2019 ######################
+
+bigc19_real.sumlight_73_227 <- read_csv(csv.name.bigc19, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)), 
+         Time = hm(paste(Hour, Minute)), #create a datetime field
+         model_datetime = Datetime - hours(4), 
+         model_hour = hour(model_datetime),
+         model_min = minute(model_datetime),# adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime),
+         model_time = ifelse(model_min==0, model_hour, model_hour+0.5) 
+         ) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     #light.t = hours of sunlight in the day 
+            #sumlight.sum = sum(GHI)/2,  
+            sumlight.real = trapz(model_time, GHI)) %>%
+  filter(model_day >= 73 & model_day <= 227)
+
+
+### filter out days to match the cleaned NEON dataset 
+daylist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 183, 184)
+bigc19_real.sumlight_73_227 <- bigc19_real.sumlight_73_227[!(bigc19_real.sumlight_73_227$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/bigc2019_realsumlight_73_227.csv") 
+write_csv(bigc19_real.sumlight_73_227, filepath)
+
+  
+
+#################### BIGC 2021 ######################
+
+bigc21_real.sumlight_60_281 <- read_csv(csv.name.bigc21, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 60 & model_day <= 281)
+
+
+### filter out days to match the cleaned NEON dataset 
+daylist <- c(97, 98, 99, 100, 101, 102, 145, 146, 147, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 223, 224, 237, 238, 239, 240, 241, 242)
+bigc21_real.sumlight_60_281 <- bigc21_real.sumlight_60_281[!(bigc21_real.sumlight_60_281$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/bigc2021_realsumlight_60_281.csv") #MODIFY!!!
+write_csv(bigc21_real.sumlight_60_281, filepath)
+
+  
+  
+#################### CARI 2019 - INCORRECT DL, GET DATA AND RUN ######################    
+
+cari19_real.sumlight_127_267 <- read_csv(csv.name.cari19, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 127 & model_day <= 267)
+
+
+### filter out days to match the cleaned NEON dataset 
+daylist <- c(138, 206, 207, 208, 209, 210, 254, 255)
+cari19_real.sumlight_127_267 <- cari19_real.sumlight_127_267[!(cari19_real.sumlight_127_267$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/cari2019_realsumlight_127_267.csv") #MODIFY!
+write_csv(cari19_real.sumlight_127_267, filepath)
+
+  
+
+#################### CARI 2020 - INCORRECT DL, GET DATA AND RUN ###################### 
+
+cari20_real.sumlight_170_252 <- read_csv(csv.name.cari20, skip=2) %>%
+ mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 170 & model_day <= 252)
+
+
+### filter out days to match the cleaned NEON dataset -NOT NEEDED THIS SITE + YEAR
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/cari2020_realsumlight_170_252.csv") #MODIFY!
+write_csv(cari20_real.sumlight_170_252, filepath)
+
+
+#################### KING 2019 ######################
+
+king19_real.sumlight_232_365 <- read_csv(csv.name.king19, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 232 & model_day <= 365)
+
+
+### filter out days to match the cleaned NEON dataset 
+daylist <- c(297,298)
+king19_real.sumlight_232_365 <- king19_real.sumlight_232_365[!(king19_real.sumlight_232_365$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/king2019_realsumlight_232_365.csv") #MODIFY!!!
+write_csv(king19_real.sumlight_232_365, filepath)
+
+
+
+#################### KING 2020 ######################
+
+king20_real.sumlight_1_289 <- read_csv(csv.name.king20, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 1 & model_day <= 289)
+
+### filter out days to match the cleaned NEON dataset 
+daylist <- c(37, 145,146, 147, 148, 149, 150, 151, 152, 153, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219)
+king20_real.sumlight_1_289 <- king20_real.sumlight_1_289[!(king20_real.sumlight_1_289$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/king2020_realsumlight_1_289.csv") #MODIFY!!!
+write_csv(king20_real.sumlight_1_289, filepath)
+
+
+
+#################### WALK 2019 ######################
+
+walk19_real.sumlight_XX_XX <- read_csv(csv.name.walk19, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= 73 & model_day <= 227)  # MODIFY WHEN KNOWN
+
+
+### filter out days to match the cleaned NEON dataset 
+#daylist <- c(297,298)
+king19_real.sumlight_232_365 <- king19_real.sumlight_232_365[!(king19_real.sumlight_232_365$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/king2019_realsumlight_232_365.csv") #MODIFY!!!
+write_csv(king19_real.sumlight_232_365, filepath)
+
+
+
+#################### WALK 2020 ######################
+
+walk20_real.sumlight_XX_XX <- read_csv(csv.name.walk20, skip=2) %>%
+  mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)),  #create a datetime field
+         Time = format(Datetime, format = "%H:%M"),
+         model_datetime = Datetime - hours(4),  # adjusting the time -4 to fit our model day 4a
+         model_day = yday(model_datetime)) %>%  # getting model jday to allow clean removal of model days
+  group_by(model_day) %>% 
+  summarize(light.t = sum(GHI != 0)/2,     # gotta divide by the # of non-0 light windows
+            sumlight.sum = sum(GHI)/2, 
+            sumlight.real = trapz(Hour, GHI)) %>%
+  filter(model_day >= XX & model_day <= XX) # MODIFY WHEN KNOWN
+
+
+### filter out days to match the cleaned NEON dataset 
+# daylist <- c(297,298)
+king19_real.sumlight_232_365 <- king19_real.sumlight_232_365[!(king19_real.sumlight_232_365$model_day %in% daylist),]
+
+### Save real.sumlight data
+
+filepath <- here("N_uptake_NEON/data/NSRDB_data_clean/king2019_realsumlight_232_365.csv") #MODIFY!!!
+write_csv(king19_real.sumlight_232_365, filepath)
+
+
+
+
+
+## set wd back to NEON project folder
+setwd(here('N_uptake_NEON'))
+
+##### start of mapply - revisit later
+# list_satlight <- c()
+
+
+
+```
+
+## 

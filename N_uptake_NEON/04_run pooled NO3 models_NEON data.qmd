@@ -5,9 +5,9 @@ format: html
 editor: visual
 ---
 
-# Loading data and running the stan model
+# Loading data and running the stan pooled-light model
 
-This script has different sections for each site and year, so they can be run individually or together.
+This script runs the pooled-light NO3 model for selected NEON aquatic sites. It has different sections for each site, so they can be run individually.
 
 First load the required packages
 
@@ -35,9 +35,11 @@ options(mc.cores = parallel::detectCores())
 
 ```
 
-Then load the data files
+### BIGC - Upper Big Creek, Fresno, CA
 
-```{r - load data files}
+#####Load data files
+
+```{r - load BIGC data files}
 
 ###### NB: the local_datetime reverted to UTC when saved; need to re-apply the tz change here
 
@@ -120,14 +122,7 @@ king20_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king20
 
 ```
 
-## Collect data and run each model
-
-### Big Creek, CA models
-
-#### 2019
-
-##### Look at the NO3 data, clip further as needed
-
+##### Visualize NO3 data if needed
 ```{r - bigc19 - visualize data, plot, clip as needed}
 #low <- 175
 #high <- 186
@@ -253,7 +248,7 @@ lightMA <- matrix(light, nrow=24)
 
 ##### List data and call to stan
 
-```{r - bigc19 - list data and call to stan}
+```{r - BIGC list data and call to stan}
 
 
 
@@ -274,6 +269,11 @@ print(fit.bigc19)
 # p.bigc19 <- summary(fit.bigc19)
 # p.bigc19
 
+```
+
+##### Save the model fit as Rdata
+
+```{r - save BIGC model fit}
 saveRDS(fit.bigc19, here("N_uptake_NEON/data/model_fits/bigc19.fit.new02.rds"))
 # Path: ~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_raw
 
@@ -286,6 +286,10 @@ saveRDS(fit.bigc19, here("N_uptake_NEON/data/model_fits/bigc19.fit.new02.rds"))
 # saveRDS(fit.bigc19.procE, here("N_uptake_NEON/obs_v_process/process.fit.rds"))
 
 ```
+
+
+
+
 
 ##### Explore the model output
 
