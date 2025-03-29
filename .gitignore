@@ -17,3 +17,6 @@ field_data_workup/GPP/augBC_fit_old.RData
 field_data_workup/GPP/octBC_fit.RData
 field_data_workup/GPP/old/augBC_fit.RData
 field_data_workup/GPP/old/octBC_fit.RData
+.DS_Store
+N_uptake_NEON/.DS_Store
+N_uptake_NEON/data/.DS_Store

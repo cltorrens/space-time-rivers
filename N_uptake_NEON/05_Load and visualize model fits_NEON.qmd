@@ -558,6 +558,9 @@ wlou.meanqi$U.median <- wlou.medqi$U
 wlou.meanqi$N_e.median <- wlou.medqi$N_e
 
 
+
+### Save the daily output + quantiles
+
 ### tried the 'summarise_draws()' fcn but couldn't get it to pivot_wider() and make each variable its own column... So, good for checking all 'values_from' columns listed below, but not super useful for plotting etc. 
 
 # wlou.spreadsummary <- wlou.spread %>%
@@ -613,7 +616,7 @@ sumlight.ideal_wlou <- wlou.modeldata$sumlightIdeal
 
 ####### Hourly dataframe: N and N_pred #############
 
-N_output_wlou.df <- wlou.df.h %>%
+N_output_wlou.df <- wlou.df.h %>%  # change to the medqi.h file! then add as needed
   select(local_datetime, model_datetime, surfWaterNitrateMean, GHI_wm2, Year, yr_jday, Jday, model_jday) %>%
   rename(N_conc = surfWaterNitrateMean, 
          realLight_wm2 = GHI_wm2) %>%
