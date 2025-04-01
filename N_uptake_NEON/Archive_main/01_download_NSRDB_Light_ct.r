@@ -1,0 +1,278 @@
+###  Downloading NSRDB light data to generate light and sumlight 
+# Adapted from Laurel Genzoli's script, "Download_NSRDB_Light_LaurelG.R"
+
+######################### Using satellite data  ####################################
+
+# Per Laurel Genzoli and her Klamath colleagues, NSRDB light was the best match to actual light under cloudy/ smoky conditions, compared to CIMIS (intermediate) and NLDAS (worst of the 3). 
+
+# Also, get an API here: https://developer.nrel.gov/signup/
+# 
+# CT's API key: oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq
+# 
+# Parameter options include:  
+# 
+# air_temperature,    clearsky_dhi,     clearsky_dni,                       clearsky_ghi, 
+# cloud_type,         dew_point,        dhi (diffuse horizontal irrad),     dni (direct normal irrad), 
+# fill_flag,          ghi (global horizontal irrad),                        relative_humidity, 
+# solar_zenith_angle, surface_albedo,   surface_pressure,                   total_precipitable_water, 
+# wind_direction,     wind_speed
+# 
+# Figure out what I want... this link helps: https://www.yellowhaze.in/solar-irradiance/
+# I believe I want ghi, global horizontal irradiance, which = direct normal irradiance*cos(solar zenith angle) + diffuse horizontal irrad.
+# 
+# 
+# NEON sensor site coordinates:
+# 
+# Big Creek, CA: 
+#   1128.13m (at DS sensor)
+#   DS sensor site = 37.05767, -119.25538
+#   US sensor site = 37.05871, -119.25650
+#   
+# Caribou Creek, AK: 
+#   225.45m (at DS sensor)
+#   DS sensor site = 65.15307, -147.50195
+#   US sensor site = 65.15254, -147.50786
+
+# King's Creek, KS: 
+#   525.24m (at sensor)
+#   sensor site = 39.10460, -96.60264 
+#   (the other sensors appear to be terrestrial? This site is by the discharge station)
+# 
+# Walker Branch, TN: 
+#   262.49m (at sensor)
+#   sensor site = 35.95722, -84.27921
+
+
+
+########################## download NSRDB satellite-generated light  ############
+
+## The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command; oops, nope, only goes to 2022
+
+years <- 2021:2023
+site <- "CUPE"
+
+setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+for (i in 2021:2023) {
+# API request parameters, except for longitude and latitude
+# Declare all variables as strings. Spaces must be replaced with '+'.
+################################################################################
+# You must request an NSRDB api key from the link above
+api_key <- 'oI3p4xXBwjRlO5IwJpmQWyN3djftQeMC8DlkLIXq' #CT's api
+# Set the attributes to extract (e.g., dhi, ghi, etc.), separated by commas.
+attributes <- 'clearsky_ghi,ghi,air_temperature,surface_pressure,wind_speed'
+# Choose year of data
+year = i
+# Set leap year to true or false. True will return leap day data if present, false will not.
+leap_year = 'true'
+# Set time interval in minutes, i.e., '30' is half hour intervals. Valid intervals are 30 & 60 for this data source. 
+#   2019-21 may have shorter (5-10 min) intervals, would need to change the URL string declaration below (in ~ L62)
+
+#interval = '30' #use for sites w. 15-minute interval measurements: 
+interval = '5' #use for sites w. 45-min interval measurements: WLOU, 
+# Specify Coordinated Universal Time (UTC), 'true' will use UTC, 'false' will use the local time zone of the data.
+utc = 'false'
+# Your full name, use '+' instead of spaces.
+your_name = 'Christa+Torrens'
+# Your reason for using the NSRDB.
+reason_for_use = 'research'
+# Your affiliation
+your_affiliation = 'University+of+Montana'
+# Your email address
+your_email = 'christa.torrens@flbs.umt.edu'
+# Please join our mailing list so we can keep you up-to-date on new developments.
+mailing_list = 'false'
+
+################################################################################
+# BIGC
+# lat <- 37.05767
+# lon <- -119.25538
+
+# BLDE
+# lat <- 44.953606	
+# lon <- -110.589396
+
+# #CARI: NOT AVAILABLE ON THIS PLATFORM
+# lat <- 65.15307
+# lon <- -147.50195
+
+# COMO
+# lat <- 40.034934
+# long <- -105.544417
+
+# CUPE
+lat <- 18.110265
+lon <- -66.986411
+
+# #KING
+# lat <- 39.10460
+# lon <- -96.60264
+
+# LECO
+# lat <- 35.692205	
+# long <- -83.504421
+
+# MART
+# lat <- 45.792321	
+# long <- -121.929418
+
+# POSE
+# lat <- 38.895193
+# long <- -78.147862
+
+# PRIN
+# lat <- 33.37836
+# long <- -97.78134
+
+#TECR
+# lat <- 36.955228	
+# long <- -119.023553	
+
+# WALK
+# lat <- 35.95722
+# lon <- -84.27921
+
+# WLOU
+# lat <- 39.890673
+# lon <- -105.911297
+
+# Declare url string
+
+## 30 or 60-min data
+#URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/psm3-2-2-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+# OR - updated? as of Feb 2025
+#URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+
+## 10-min data
+# URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-full-disc-v4-0-0-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+## 5-min data
+URL <- paste0('https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-conus-v4-0-0-download.csv?wkt=POINT(', lon, '+', lat, ')&names=', year, '&leap_day=', leap_year, '&interval=', interval, '&utc=', utc, '&full_name=', your_name, '&email=', your_email, '&affiliation=', your_affiliation, '&mailing_list=', mailing_list, '&reason=', reason_for_use, '&api_key=', api_key, '&attributes=', attributes)
+
+
+# name the output file
+output_file <- paste0(site, '_', lat, '_', lon, '_', year, '_', interval, '.csv')
+
+# API request and saving
+GET(url = URL, write_disk(output_file))
+
+}
+
+# reset wd
+#setwd(here())
+
+
+########################### Bind site data into 1 file ############################
+
+## Note that wd is set to:  here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+
+bind_nsrdb <- function(filepath, site) {
+  files <- list.files(path=filepath, pattern=site)%>%
+    lapply(read.csv, skip = 2) %>%
+    bind_rows()%>%
+    select(1:7)%>%
+    #rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clear.sky.GHI"= 6, "GHI"= 7)%>% 
+    mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+    select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+}
+
+
+
+##### WLOU
+
+filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+site="WLOU"
+#filelist <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern=site, full.names=TRUE)
+
+  
+  
+filelist <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern=site, full.names=TRUE) %>%
+  map(~ read_csv(.x, skip = 2)) 
+
+wlou.satlight <- bind_rows(filelist) %>%
+  select(1:7) %>%
+  # rename(
+    # year = 1, month = 2, day = 3, hour = 4, minute = 5,  
+    # clearsky_GHI_wm2 = 6, GHI_wm2 = 7, 
+    # ) %>%
+  mutate(local_datetime = lubridate::make_datetime(year, month, day, hour, minute)) %>%
+  select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+
+  
+  
+  
+  
+wlou.satlight <-  list.files(path=filepath, pattern=site) %>% 
+  lapply(read_csv, skip = 2) %>%
+  bind_rows() %>%
+  select(1:7) %>%
+  #rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5,  "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>% #rownames are retained, that's how the list binds 
+  mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+  select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+
+
+write_csv(wlou.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/WLOU_satlight_all.csv"))
+
+
+
+# from Lauren's code... but only seems to work for the 1st element in the list
+wlou.satlight <- list.files(path=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), pattern="WLOU") %>% 
+  lapply(read.csv, skip = 2) %>%
+  bind_rows()%>%
+  select(1:7)%>%
+  rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "GHI"= 7, "clear.sky.GHI"= 6)%>%
+  mutate(date = as.Date(paste(year, month, day, sep = "-")))%>%
+  mutate(time = paste(hour, minute, sep = ":"))
+
+write.csv(wlou.light, "")
+
+
+
+
+
+
+
+
+##### Get light data for the period of interest 
+   ## this code is also in the FAKEdata and NEONdata scripts
+
+# Read in light CSV - NSRDB
+# light units for GHI (average global horizontal irradiance) = Watt m^-2
+# Conversion factor = approx 4.6 umol m^-2 sec ^-1 for each watt m^-2
+
+# real_sumlight.df <- read_csv('37.05767_-119.25538_2019_30.csv', skip=2) %>%
+#   mutate(Datetime = ymd_hm(paste(Year, Month, Day, Hour, Minute)), 
+#          Time = format(Datetime, format = "%H:%M"), 
+#          Jday = yday(Datetime))
+# 
+# # ID light NAs
+# na_count <- sum(is.na(real_sumlight.df$GHI))  #0
+# na_position <- which(is.na(real_sumlight.df$GHI))
+
+# calculate the daily sumlight by integrating the light-time curve for each day
+
+# AUC <- function(time, light) {
+#   integrate(approxfun(time, light), min(time), max(time))$value
+# }
+
+# real_sumlight <- real_sumlight.df %>%
+#   filter(Jday >= 176 & Jday <= 206) %>%  #Big Creek currently looking at Jdays 176:206
+#   group_by(Jday) %>%
+#   summarize(light.t = sum(GHI != 0),     # gotta divide by the # of non-0 light windows
+#             sumlight.real = sum(GHI)/light.t)
+# 
+# plot(real_sumlight$Jday, real_sumlight$sumlight.real)
+# 
+# 
+# sumlight.real <- real_sumlight$sumlight.real # sumlight.real = auc for that Jday
+# 
+# plot(x=sumlight.real, y=sumlight.ideal, 
+#      xlab = "true light (satellite)",
+#      ylab = "modeled light (StreamMetabolizer)",
+#      main = "Scatter Plot of ideal vs real daily light",
+#      xlim = c(450,650))
+# 
+

@@ -2,6 +2,8 @@
 title: "Download NSRDB light data"
 author: "Christa Torrens"
 format: html
+    code-fold: true #enables collapsible code blocks
+    code-summary: "Show the code"
 editor: visual
 ---
 
@@ -21,11 +23,11 @@ Parameter options include: air_temperature, clearsky_dhi, clearsky_dni, clearsky
 
 This link helps determine the parameters you want: https://www.yellowhaze.in/solar-irradiance/
 
-I believe I want ghi, global horizontal irradiance, which = direct normal irradiance\*cos(solar zenith angle) + diffuse horizontal irrad.
+I selected ghi, global horizontal irradiance, which = direct normal irradiance\*cos(solar zenith angle) + diffuse horizontal irradiance. I also selected clearsky ghi to enable comparisons between the two.
 
 ### Downloading the NSRDB data
 
-The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command. Updated links download data up to the present (roughly - haven't checked 2025).
+The data downloads by 1 site and 1 year. This for loop downloads 2021-23 with one command. Updated links download data up to the present (roughly - I haven't checked 2025).
 
 ```{r - load libraries, echo=FALSE}
 library(tidyverse) # includes dplyr*, forcats, ggplot2*, lubridate*, purrr, readr, stringr, tibble, tidyr* (*used here)
@@ -165,8 +167,6 @@ GET(url = URL, write_disk(output_file))
 
 ```{r - function to bind data into 1 file per site}
 
-## Note that wd is set to: here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"), BECAUSE for whatever reason, list.files() is searching the current directory and not the filepath :/
-
 bind_nsrdb  <- function(path, site) {
   files  <- list.files(path=filepath, pattern=site) %>%
     lapply(read.csv, skip = 2) %>%
@@ -179,11 +179,13 @@ bind_nsrdb  <- function(path, site) {
 
 ```
 
+Note that on L48, wd is set to: here("N_uptake_NEON/data/NSRDB_light_data_raw/5m") to ensure appropriate filing, and has not been changed back yet BECAUSE for whatever reason, list.files() is searching the current directory and not the filepath. Each of the site code blocks ensures the wd is set correctly, in case it is run by block.
+
 ##### BIGC
 
 ```{r - BIGC file bind}
 
-# change the wd if needed
+# change the wd if needed:
 setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
 # setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
