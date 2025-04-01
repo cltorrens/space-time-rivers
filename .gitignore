@@ -12,15 +12,14 @@
 .N uptake_CT/data/neon_data_raw/q_data.Rdata
 .DS_Store
 **/.DS_Store
+N_uptake_NEON/.DS_Store
+N_uptake_NEON/data/.DS_Store
+N_uptake_NEON/images/.DS_Store
 field_data_workup/GPP/augBC_fit.RData
 field_data_workup/GPP/augBC_fit_old.RData
 field_data_workup/GPP/octBC_fit.RData
 field_data_workup/GPP/old/augBC_fit.RData
 field_data_workup/GPP/old/octBC_fit.RData
-.DS_Store
-.DS_Store
-N_uptake_NEON/.DS_Store
-N_uptake_NEON/data/.DS_Store
 N_uptake_NEON/data/Archive_data/no3_derived_data/CARI-KING-BIGC-WALK_deriveddata/par_wsurf_dataset_01m.Rdata
 N_uptake_NEON/data/Archive_data/no3_derived_data/CARI-KING-BIGC-WALK_deriveddata/precip_dataset_through.precip01.Rdata
 N_uptake_NEON/data/Archive_data/no3_derived_data/CARI-KING-BIGC-WALK_deriveddata/q_dataset.Rdata
