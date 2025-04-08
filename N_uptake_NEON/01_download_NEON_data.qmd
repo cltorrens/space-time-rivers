@@ -6,7 +6,7 @@ editor: visual
 
 ## Download NEON data
 
-part of the space-time-rivers NO3 sensor data project. download and visualize R data from NEON streams: BIGC (CA), CARI (AK), KING (KS), WALK (TN) *also consider MART (WA), MAYF (?? - also, needs to change scale)*
+part of the space-time-rivers NO3 sensor data project. download and visualize R data from NEON streams.
 
 Code to DL: Nitrate in surface water: DP1.20033.001
 
@@ -52,19 +52,30 @@ sitelist <- c("ARIK", "BIGC", "BLDE", "BLUE", "BLWA", "CARI", "COMO", "CUPE", "F
 # startdate <- 2021-01
 # enddate <- 2023-12
 
-no3.data.2124 <- loadByProduct(dpID = "DP1.20033.001", 
-                          site = sitelist, 
-                          # startdate = 2021-01,
-                          # enddate = 2023-06,
-                          package="expanded", check.size=F, 
-                          token = Sys.getenv("NEON_TOKEN"))
+# no3.data.2124 <- loadByProduct(dpID = "DP1.20033.001", 
+                          # site = sitelist, 
+                          # startdate="2021-01", enddate="2024-06",
+                          # include.provisional=FALSE,
+                          # package="expanded", check.size=F, 
+                          # token = Sys.getenv("NEON_TOKEN"))
 
 # # PAR is HUGE. Wait on this/ do individually? Store in cloud?
-# par_wsurf_data <- loadByProduct(dpID = "DP1.20042.001", 
-#                                 site = sitelist,
-#                                 #site = c("CARI", "BIGC"),
-#                                 package="expanded", check.size=F, 
-#                                 token = Sys.getenv("NEON_TOKEN"))
+par_wsurf_data <- loadByProduct(dpID = "DP1.20042.001",
+                                # site = sitelist,
+                                site = c("CARI", "OKSR", "BIGC", "WALK"),
+                                startdate="2021-01", enddate="2024-06",
+                                include.provisional=FALSE,
+                                package="expanded", check.size=F,
+                                token = Sys.getenv("NEON_TOKEN"))
+
+
+par_data <- loadByProduct(dpID = "DP1.00024.001",
+                                # site = sitelist,
+                                startdate="2021-01", enddate="2024-06",
+                                site = c("CARI", "OKSR", "BIGC", "WALK"),
+                                include.provisional=FALSE,
+                                package="expanded", check.size=F,
+                                token = Sys.getenv("NEON_TOKEN"))
 
 
 # precip_data <- loadByProduct(dpID = "DP1.00006.001", 
@@ -104,7 +115,10 @@ no3.data.2124 <- loadByProduct(dpID = "DP1.20033.001",
 ### Save to data_raw ###
 
 save(no3.data.2124, file=here("N_uptake_NEON/data/neon_data_raw/no3_data_all_2124.Rdata"))
-# save(par_wsurf_data, file=here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.Rdata"))
+
+save(par_wsurf_data, file=here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.Rdata"))
+
+save(par_data, file=here("N_uptake_NEON/data/neon_data_raw/par_data.Rdata"))
 
 # save(precip_data, file=here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
 # save(q_data, file= here("N_uptake_NEON/data/neon_data_raw/q_data.Rdata"))

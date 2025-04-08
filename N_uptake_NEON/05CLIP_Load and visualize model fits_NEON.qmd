@@ -1,0 +1,1474 @@
+---
+title: "Load and visualize fits for NEON NO3 models"
+author: "Christa Torrens"
+format: 
+  html: 
+    code-fold: true #enables collapsible code blocks
+    code-summary: "Show the code"
+editor: visual
+execute:
+    message: false
+---
+
+# Intro
+
+This document uses tidybayes to extract and visualize model fit params for the NEON data/ autotrophic uptake project
+
+First created 2/25/2025 by Christa Torrens, with ongoing amendments
+
+### Load needed libraries and model fits
+
+```{r - load libraries}
+#| warning: false
+#| output: false
+
+# Load libraries
+library(tidyverse)
+library(tidybayes)
+library(bayesplot)
+library(rstanarm)
+library(here)
+library(plotly)
+library(sf)
+
+```
+
+
+### Plotting functions
+This keeps all of the core plotting code in 1 place, and allows site-level customization (mostly dataframes and titles)
+```{r - plotting functions}
+
+##### Model fit - Npred + Nobs over time
+
+plot_Nmodelfit_ts <- function(data, start_jday, end_jday, plot_title) {
+  plot <- data %>%
+    filter(model_jday >= start_jday & model_jday <= end_jday) %>%
+    ggplot(aes(x = mod_hours)) +
+    geom_point(aes(y = N_conc)) + 
+    geom_line(aes(y = N_pred), col = 'red') +
+    labs(
+      x = "Time (h)",
+      y = expression("N" ~ (mmol ~ m^-3))
+    ) +
+    ggtitle(plot_title) +
+    facet_wrap(~yr_jday) +
+    theme_bw()
+}
+
+plot_Nmodelfit_tsCI <- function(data, start_jday, end_jday, plot_title) {
+  plot <- data %>%
+    filter(model_jday >= start_jday & model_jday <= end_jday) %>%
+    ggplot(aes(x = mod_hours)) +
+    geom_ribbon(aes(ymin=N_pred.lower, ymax=N_pred.upper), alpha = 0.7, fill = "slategray") +
+    geom_point(aes(y = N_conc)) + 
+    geom_line(aes(y = N_pred), col = 'red') +
+    labs(
+      x = "Time (h)",
+      y = expression("N" ~ (mmol ~ m^-3))
+    ) +
+    ggtitle(plot_title) +
+    facet_wrap(~yr_jday) +
+    theme_bw()
+}
+
+##### Model fit - Npred v Nobs w. 1:1 line
+
+plot_Npred_v_Nobs <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=N_conc, y=N_pred)) +
+  geom_point() + 
+  labs( x=expression("measured N"~(mmol~m^-3)), # OR (mu*mol~L^-1)
+        y=expression("predicted N"~(mmol~m^-3))  # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  geom_abline(intercept = 0, slope = 1, color = "red") + 
+  theme_bw()
+}
+
+##### Equifinality checks
+
+## K vs U
+
+plot_KvU <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=K, x=U)) +
+  geom_point() + 
+  labs(y=expression("modeled K"~(d^-1)),
+       x=expression("modeled U"~(mmol~m^-2~d^-1))
+        ) + 
+  ggtitle(plot_title) + 
+  # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+  theme_bw()
+
+}
+  
+
+## K vs N_e
+
+plot_KvNe <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=K, x=N_e)) +
+   geom_point() + 
+   labs(y=expression("modeled K"~(d^-1)),
+        x=expression("modeled N_e"~(mmol~m^-3)) 
+        ) + 
+   ggtitle(plot_title) + 
+   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+  theme_bw()
+}
+
+
+## U vs N_e
+# Includes CI bars because this relationship tends to look a bit linear - checking whether that holds even w ci values in place
+
+plot_UvNe <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(y=U, x=N_e)) +
+  geom_errorbar(aes(ymin = U.lower, ymax = U.upper), width = 0.2, color='grey70') + # CI bars
+  geom_point() + 
+  labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),
+        x=expression("modeled N_e"~(mmol~m^-3)) 
+        ) + 
+  ggtitle(plot_title) + 
+  theme_bw()
+}
+
+
+##### K over time
+
+plot_K_ts <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=d, y=K)) +
+  geom_errorbar(aes(ymin = K.lower, ymax = K.upper), width = 0.2, color='grey70') + # CI bars
+  geom_point() + 
+  # geom_point(y = sumlight.real, color = 'gold') +
+  labs( x= "Index", 
+        y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+  
+##### U over time
+
+plot_U_ts <- function(data, plot_title) {
+  ggplot(data=data, aes(x=d, y=U)) +
+  geom_errorbar(aes(ymin = U.lower, ymax = U.upper), width = 0.2, color='grey70') + # CI bars
+  geom_point() + 
+  # geom_point(y = sumlight.real_wlou, color = 'gold') +
+  # ADD IN HIGH AND LOW CIs
+  labs( x= "Index", 
+        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+      ) + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+
+##### U vs. real sumlight
+
+plot_UvLight <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=sumlightReal, y=U)) +
+  geom_point() + 
+  labs( x=expression("measured daily light"~(w~m^-2)), 
+        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+      ) + 
+  scale_x_log10() + scale_y_log10() + 
+  ggtitle(plot_title) +
+  theme_bw()
+}
+
+
+##### U + daily (or hourly?) sumlight over time
+
+
+
+##### Autotrophic U vs total U
+
+plot_autoUperc <- function(data, plot_title) {
+  plot <- ggplot(data=data, aes(x=d, y=U_auto_perc)) +
+  geom_point() + 
+  xlab("Index") + ylab("Percent autotrophic uptake") + 
+  ggtitle(plot_title) + 
+  theme_bw()
+}
+
+
+```
+
+
+### Load model fits and data by site (stored as RDS files), then extract parameters
+
+```{r, error notes}
+#| echo: false
+
+# Hmmm: error notes when loading the rds files:
+# 
+# The legacy packages maptools, rgdal, and rgeos, underpinning the sp package, which was just loaded, will retire in October 2023. Please refer to R-spatial evolution reports for details, especially <https://r-spatial.org/r/2023/05/15/evolution4.html.> It may be desirable to make the sf package available; package maintainers should consider adding sf to Suggests:. The sp package is now running under evolution status 2 (status 2 uses the sf package in place of rgdal)
+
+# I've added sf() to the library block
+
+```
+
+
+#### BIGC
+Outputs and visualizations for Upper Big Creek, Fresno, CA 
+
+###### Load model fits and data
+```{r load BIGC model fit and data}
+#| output: false
+#| message: false
+#| warning: false
+
+########## Load model fit ______________________________________________________
+
+bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/bigc.fit.rds"))
+
+# if working from model run
+# bigc.fit <- fit.bigc
+
+
+########## Load model data _____________________________________________________
+
+bigc.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/bigc.data.rds"))
+
+
+########## Load full daily and hourly datasets _________________________________
+# these include datatime info, and the model data does not)
+
+# daily dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/bigc_clean.csv")
+bigc.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv")
+bigc.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
+         model_datetime = local_datetime - hours(4))  
+  
+  
+```
+
+###### Extract model parameters and real-data values
+
+First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a BIGC tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data. 
+
+```{r - bigc: extract model params and real-data values}
+#| echo: false
+#| message: false
+#| warning: false
+
+# get list of variables for the model fit
+# get_variables(bigc.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+########## Check the fit for sigmas and betas (tough to fit): __________________
+print(bigc.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+
+########## Summarize daily variables (K, U, N_e) _______________________________
+
+# First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+bigc.spread <- spread_draws(bigc.fit, K[d], U[d], N_e[d]) 
+
+
+# Then get the mean/median + 95% QI (CI) for each parameter/day
+# median + QI
+bigc.medqi <- bigc.spread %>%
+  # dplyr::group_by(d) %>%  # Unnecessary: tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+  median_qi() %>%
+  add_column(site = "BIGC")
+
+# mean + QI
+bigc.meanqi <- bigc.spread %>%
+  mean_qi() %>%
+  add_column(site = "BIGC")
+
+### Add median param estimate info to the meanqi df
+bigc.meanqi$K.median <- bigc.medqi$K
+bigc.meanqi$U.median <- bigc.medqi$U
+bigc.meanqi$N_e.median <- bigc.medqi$N_e
+
+
+########## Summarize the hourly variable (conc_pred) ____________________________
+
+# Again, using spread_draws for the hourly parameter, conc_pred (predicted N concentration)
+bigc.spread.h <- spread_draws(bigc.fit, conc_pred[h,d])
+# View(bigc.spread.h)
+
+# Getting the mean and 95% credible interval values (= 0.95 QI)
+bigc.meanqi.h <- bigc.spread.h %>%
+  dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  mean_qi() %>%
+  add_column(site = "BIGC")
+
+# median + 0.95 QI
+bigc.medqi.h <- bigc.spread.h %>%
+  dplyr::group_by(d, h) %>% #again, explicit grouping is needed here
+  median_qi() %>%
+  add_column(site = "BIGC")
+
+### Add median param info to the hourly meanqi df
+bigc.meanqi.h$conc_pred.median <- bigc.medqi.h$conc_pred
+
+
+########## Compile dataframes ___________________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+
+# start w. the hourly dataframe and add mean, QI, modeldata info
+N_output_bigc.df <- bigc.df.h %>%  
+  add_column(N_pred = bigc.meanqi.h$conc_pred, 
+         N_pred.lower = bigc.meanqi.h$.lower, 
+         N_pred.upper = bigc.meanqi.h$.upper, 
+         z=as.vector(bigc.modeldata$zMA), 
+         site = "BIGC") %>%
+  rename(N_conc = surfWaterNitrateMean, 
+         lightReal_wm2 = GHI_wm2) %>%
+   mutate(hours = hour(local_datetime), 
+         mod_hours = hour(model_datetime)) %>%
+  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal_wm2, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+
+####### Daily dataframe: U, K, N_e ##################
+
+# Create a domainID vector length(nday) (may be handy later)
+nday <- bigc.modeldata$D
+domainID <- bigc.df.h$domainID[1:nday]
+
+# start w. the meanqi dataframe and add modeldata and datetime info as needed
+daily_output_bigc.df <- bigc.meanqi %>%
+  add_column(yr_jday = unique(bigc.df$yr_jday), 
+             sumlightReal = bigc.modeldata$sumlightReal, 
+             sumlightIdeal = bigc.modeldata$sumlightIdeal, 
+             z = colMeans(bigc.modeldata$zMA), # daily depth = average of hourly depth
+             domainID = domainID) %>%
+  separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>% # makes the new columns numeric if possible, and retains the old column
+  mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+         
+# Check means for all 3 params
+# mean(daily_output_bigc.df$K) # 3.225407
+# mean(daily_output_bigc.df$U) # 0.1986689
+# mean(daily_output_bigc.df$N_e) # 3.395281
+
+```
+
+
+###### Create visualizations
+
+```{r - bigc: create visualizations}
+#| echo: true
+
+########## N Model fit to data __________________________________________________
+
+######  N model fit over time - predicted N vs measured N  #######
+
+N_Npred_ts_bigc <- plot_Nmodelfit_ts(data=N_output_bigc.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Upper Big Creek, CA")
+
+# quartz(width=6,height=6)
+N_Npred_ts_bigc
+
+### w. credible interval ribbon
+N_Npred_tsCI_bigc <- plot_Nmodelfit_tsCI(data=N_output_bigc.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Upper Big Creek, CA")
+
+# quartz(width=6,height=6)
+N_Npred_tsCI_bigc
+
+######  predicted N vs measured N + 1:1 line  #######
+
+Npred_v_N_bigc <- plot_Npred_v_Nobs(data=N_output_bigc.df, plot_title="Predicted N vs. measured N, Upper Big Creek, CA")
+
+# quartz(width=6, height=6)
+Npred_v_N_bigc
+
+
+########## Equifinality checks _________________________________________________
+
+####### Check equifinality!! K vs U  #######  
+
+KvU_bigc <- plot_KvU(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled K vs modeled U")
+  
+# quartz(width=7.5, height=6)
+KvU_bigc
+  
+
+####### Check equifinality!! K vs N_e  #######  
+
+KvNe_bigc <- plot_KvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled K vs modeled equilibrium N")
+
+# quartz(width=7.5, height=6)
+KvNe_bigc
+
+
+####### Check equifinality!! U vs N_e  #######  
+
+UvNe_bigc <- plot_UvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled U vs modeled equilibrium N")
+ 
+# quartz(width=7.5, height=6)
+UvNe_bigc
+
+
+########## Other parameter visualizations _______________________________________
+
+#######  K over time  #######  
+
+K_v_time_bigc <- plot_K_ts(data=daily_output_bigc.df, plot_title = "modeled K over time, Upper Big Creek, CA")
+
+# quartz(width=6.5, height=6)
+K_v_time_bigc
+
+
+##### U over time  #######  
+
+U_time_bigc <- plot_U_ts(data=daily_output_bigc.df, plot_title="Diel nitrate uptake (modeled), Upper Big Creek, CA")
+
+# quartz(width=6, height=6)
+U_time_bigc
+
+
+###### U vs sumlight  #######  
+
+U_vs_light_bigc <- plot_UvLight(data=daily_output_bigc.df, plot_title = "Scatterplot of NO3 uptake and daily light: Upper Big Creek, CA")
+
+# quartz(width=6.5, height=6)
+U_vs_light_bigc
+
+
+```
+
+
+###### Compare U_total and U_auto
+What percentage of total uptake is the autotrophic uptake?
+
+```{r - bigc: percent autotrophic NO3 uptake}
+
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+daily_output_bigc.df <- daily_output_bigc.df %>%
+  mutate(U_het = N_e*K*z,      
+         U_tot = U_het + U, 
+         U_auto_perc = 100*U/U_tot)
+
+U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #11.7% on average
+
+Uauto_perc_bigc <- plot_autoUperc(data=daily_output_bigc.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), Upper Big Creek, CA")
+
+# quartz(width=7.5, height=6)
+Uauto_perc_bigc 
+
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_bigc)
+
+```
+
+###### Save updated model output datasets
+
+```{r bigc: save updated datasets}
+#| output: false
+#| message: false
+#| warning: false
+
+# path = here("N_uptake_NEON/data/model_output/bigc_output_daily")
+# write_csv(daily_output_bigc.df, file=path)
+# 
+# path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly")
+# write_csv(N_output_bigc.df, file=path.h)
+
+```
+
+
+#### CARI
+Outputs and visualizations for Caribou Creek, Fairbanks North Star, AK
+
+###### Load model fits and data
+```{r load CARI model fit and data}
+#| output: false
+#| message: false
+#| warning: false
+
+
+########## Load model fit ______________________________________________________
+
+# cari.fit <- readRDS(here("N_uptake_NEON/data/model_fits/cari.fit.rds"))
+
+# if working from model run
+# cari.fit <- fit.cari
+
+
+########## Load model data _____________________________________________________
+
+# cari.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/cari.data.rds"))
+
+
+########## Load full daily and hourly datasets __________________________________
+# these include datatime info, and the model data does not)
+
+# daily dataset
+# path <- here("N_uptake_NEON/data/neon_data_clean/cari_clean.csv")
+# cari.df <- read_csv(path) %>%
+#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
+#          model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+# path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
+# cari.df.h <- read_csv(path_h) %>%
+#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
+#          model_datetime = local_datetime - hours(4))  
+#   
+  
+```
+
+###### Extract model parameters and real-data values
+
+First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a CARI tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data. 
+
+```{r - cari: extract model params and real-data values}
+#| echo: false
+#| message: false
+#| warning: false
+
+# get list of variables for the model fit
+# get_variables(cari.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+########## Check the fit for sigmas and betas (tough to fit): ___________________
+# print(cari.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+########## Summarize daily variables (K, U, N_e) ________________________________
+
+# First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+# cari.spread <- spread_draws(cari.fit, K[d], U[d], N_e[d]) 
+
+
+# Then get the mean/median + 95% QI (CI) for each parameter/day
+
+### median + CI
+# cari.medqi <- cari.spread %>%
+#   # dplyr::group_by(d) %>%  # Unnecessary: tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+#   median_qi() %>%
+#   # summarise_draws() %>%
+#   # pivot_wider(names_from = variable, values_from = mean, median, sd, mad, q5, q95, rhat, ess_bulk, ess_tail) %>%
+#   add_column(site = "CARI")
+
+### mean + QI
+# cari.meanqi <- cari.spread %>%
+#   mean_qi() %>%
+#   add_column(site = "CARI")
+# 
+# ### Add median param info to the meanqi df
+# cari.meanqi$K.median <- cari.medqi$K
+# cari.meanqi$U.median <- cari.medqi$U
+# cari.meanqi$N_e.median <- cari.medqi$N_e
+
+
+########## Summarize the hourly variable (conc_pred) ____________________________
+
+# Again, using spread_draws for the hourly parameter, conc_pred (predicted N concentration)
+# cari.spread.h <- spread_draws(cari.fit, conc_pred[h,d])
+# View(cari.spread.h)
+
+# Getting the mean and 95% credible interval values ( = 0.95 QI)
+# cari.meanqi.h <- cari.spread.h %>%
+#   dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  # mean_qi() %>%
+  # add_column(site = "CARI")
+
+# Median + 0.95 QI
+# cari.medqi.h <- cari.spread.h %>%
+#   dplyr::group_by(d, h) %>% #again, explicit grouping is needed here
+#   median_qi() %>%
+#   add_column(site = "CARI")
+
+### Add median param info to the hourly meanqi df
+# cari.meanqi.h$conc_pred.median <- cari.medqi.h$conc_pred
+
+
+########## Compile dataframes __________________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+
+# start w. the hourly dataframe and add mean, QI, modeldata info
+# N_output_cari.df <- cari.df.h %>%  
+#   add_column(N_pred = cari.meanqi.h$conc_pred, 
+#          N_pred.lower = cari.meanqi.h$.lower, 
+#          N_pred.upper = cari.meanqi.h$.upper, 
+#          z=as.vector(cari.modeldata$zMA), 
+#          site = "CARI") %>%
+#   rename(N_conc = surfWaterNitrateMean, 
+#          lightReal_wm2 = GHI_wm2) %>%
+#    mutate(hours = hour(local_datetime), 
+#          mod_hours = hour(model_datetime)) %>%
+#   select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal_wm2, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+#   
+# 
+# ####### Daily dataframe: U, K, N_e ##################
+# 
+# # Create a domainID vector length(nday)
+# nday <- cari.modeldata$D
+# domainID <- cari.df.h$domainID[1:nday]
+# 
+# # start w. the meanqi dataframe and add modeldata and datetime info as needed
+# daily_output_cari.df <- cari.meanqi %>%
+#   add_column(yr_jday = unique(cari.df$yr_jday), 
+#              sumlightReal = cari.modeldata$sumlightReal, 
+#              sumlightIdeal = cari.modeldata$sumlightIdeal, 
+#              z = colMeans(cari.modeldata$zMA), # daily depth = average of hourly depth
+#              domainID = domainID) %>%
+#   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%   # makes the new columns numeric if possible, and retains the old column
+#   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
+#   select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+#          
+# Check means for all 3 params
+# mean(daily_output_cari.df$K) # 3.225407
+# mean(daily_output_cari.df$U) # 0.1986689
+# mean(daily_output_cari.df$N_e) # 3.395281
+
+
+```
+
+
+###### Create visualizations - Caribou Creek, AK
+
+```{r - cari: create visualizations}
+#| echo: true
+
+########## N Model fit to data _________________________________________________
+
+######  N model fit over time - predicted N vs measured N  #######
+
+# N_Npred_ts_cari <- plot_Nmodelfit_ts(data=N_output_cari.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Caribou Creek, AK")
+# 
+# quartz(width=6,height=6)
+# 
+# N_Npred_ts_cari
+# 
+# 
+# ######  predicted N vs measured N + 1:1 line  #######
+# 
+# Npred_v_N_cari <- plot_Npred_v_Nobs(data=N_output_cari.df, plot_title="Predicted N vs. measured N, Caribou Creek, AK")
+# 
+# #quartz(width=6, height=6)
+# Npred_v_N_cari
+# 
+# 
+# ########## Equifinality checks ________________________________________________
+# 
+# ####### Check equifinality!! K vs U  #######  
+# 
+# KvU_cari <- plot_KvU(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled U")
+#   
+# #quartz(width=7.5, height=6)
+# KvU_cari
+#   
+# 
+# ####### Check equifinality!! K vs N_e  #######  
+# 
+# KvNe_cari <- plot_KvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled equilibrium N")
+# 
+# #quartz(width=7.5, height=6)
+# KvNe_cari
+# 
+# 
+# ####### Check equifinality!! U vs N_e  #######  
+# 
+# UvNe_cari <- plot_UvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled U vs modeled equilibrium N")
+#  
+# #quartz(width=7.5, height=6)
+# UvNe_cari
+# 
+# 
+# ########## Other parameter visualizations ______________________________________
+# 
+# #######  K over time  #######  
+# 
+# K_v_time_cari <- plot_K_ts(data=daily_output_cari.df, plot_title = "modeled K over time, Caribou Creek, AK")
+# 
+# #quartz(width=6.5, height=6)
+# K_v_time_cari
+# 
+# 
+# ##### U over time  #######  
+# 
+# U_time_cari <- plot_U_ts(data=daily_output_cari.df, plot_title="Diel nitrate uptake (modeled), Caribou Creek, AK")
+# 
+# #quartz(width=6, height=6)
+# U_time_cari
+# 
+# 
+# ###### U vs sumlight  #######  
+# 
+# U_vs_light_cari <- plot_UvLight(data=daily_output_cari.df, plot_title = "Scatterplot of NO3 uptake and daily light: Caribou Creek, AK")
+# 
+# # quartz(width=6.5, height=6)
+# U_vs_light_cari
+# 
+
+```
+
+
+###### Compare U_total and U_auto
+What percentage of total uptake is the autotrophic uptake?
+
+```{r - cari: percent autotrophic NO3 uptake}
+
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+# daily_output_cari.df <- daily_output_cari.df %>%
+#   mutate(U_het = N_e*K*z,      
+#          U_tot = U_het + U, 
+#          U_auto_perc = 100*U/U_tot)
+# 
+# U_auto_avg <- mean(daily_output_cari.df$U_auto_perc) #10.3% on average
+# 
+# Uauto_perc_cari <- plot_autoUperc(data=daily_output_cari.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), Caribou Creek, AK")
+# 
+# # quartz(width=7.5, height=6)
+# Uauto_perc_cari 
+
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_cari)
+
+```
+
+###### Save updated model output datasets
+
+```{r cari:save updated datasets} 
+#| output: false
+#| message: false
+#| warning: false
+
+# path = here("N_uptake_NEON/data/model_output/cari_output_daily")
+# write_csv(daily_output_cari.df, file=path)
+# 
+# path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly")
+# write_csv(N_output_cari.df, file=path.h)
+
+```
+
+
+#### CUPE
+Outputs and visualizations for Rio Cupeyes, San German Municipio, PR
+
+###### Load model fits and data
+```{r load CUPE model fit and data}
+#| output: false
+#| message: false
+#| warning: false
+
+########## Load model fit ______________________________________________________
+
+cupe.fit <- readRDS(here("N_uptake_NEON/data/model_fits/cupe.fit.rds"))
+
+# if working from model run
+# cupe.fit <- fit.cupe
+
+
+########## Load model data _____________________________________________________
+
+cupe.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/cupe.data.rds"))
+
+########## Load full daily and hourly datasets __________________________________
+# these include datatime info, and the model data does not)
+
+# daily dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/cupe_clean.csv")
+cupe.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv")
+cupe.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
+         model_datetime = local_datetime - hours(4))  
+  
+  
+```
+
+###### Extract model parameters and real-data values
+
+First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a CUPE tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data. 
+
+```{r - cupe: extract model params and real-data values}
+#| echo: false
+#| message: false
+#| warning: false
+
+# get list of variables for the model fit
+# get_variables(cupe.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+########## Check the fit for sigmas and betas (tough to fit): ___________________
+print(cupe.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+########## Summarize daily variables (K, U, N_e) ________________________________
+
+#### First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+cupe.spread <- spread_draws(cupe.fit, K[d], U[d], N_e[d]) 
+
+
+##### Then get the mean/median + 95% QI (CI) for each parameter/day
+
+# NB: for the daily data, it is unnecessary to group by day using  dplyr::group_by(d): tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+
+### median + CI
+cupe.medqi <- cupe.spread %>%
+  median_qi() %>%
+  add_column(site = "CUPE")
+
+### mean + QI
+cupe.meanqi <- cupe.spread %>%
+  mean_qi() %>%
+  add_column(site = "CUPE")
+
+### Add median param info to the meanqi df
+cupe.meanqi$K.median <- cupe.medqi$K
+cupe.meanqi$U.median <- cupe.medqi$U
+cupe.meanqi$N_e.median <- cupe.medqi$N_e
+
+
+########## Summarize hourly variable (conc_pred) _______________________________
+
+# Again, using spread_draws for the hourly parameter, conc_pred (predicted N concentration)
+cupe.spread.h <- spread_draws(cupe.fit, conc_pred[h,d])
+# View(cupe.spread.h)
+
+# Get the mean and 95% credible interval values (= 0.95 QI)
+cupe.meanqi.h <- cupe.spread.h %>%
+  dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  mean_qi() %>%
+  add_column(site = "CUPE")
+
+# Median + 0.95 QI
+cupe.medqi.h <- cupe.spread.h %>%
+  dplyr::group_by(d, h) %>% #again, explicit grouping is needed here
+  median_qi() %>%
+  add_column(site = "CUPE")
+
+### Add median param info to the hourly meanqi df
+cupe.meanqi.h$conc_pred.median <- cupe.medqi.h$conc_pred
+
+
+########## Compile dataframes __________________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+
+# start w. the hourly dataframe and add mean, QI, modeldata info
+N_output_cupe.df <- cupe.df.h %>%  
+  add_column(N_pred = cupe.meanqi.h$conc_pred, 
+         N_pred.lower = cupe.meanqi.h$.lower, 
+         N_pred.upper = cupe.meanqi.h$.upper, 
+         z=as.vector(cupe.modeldata$zMA), 
+         site = "CUPE") %>%
+  rename(N_conc = surfWaterNitrateMean, 
+         lightReal_wm2 = GHI_wm2) %>%
+   mutate(hours = hour(local_datetime), 
+         mod_hours = hour(model_datetime)) %>%
+  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal_wm2, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+  
+
+####### Daily dataframe: U, K, N_e ##################
+
+# Create a domainID vector length(nday)
+nday <- cupe.modeldata$D
+domainID <- cupe.df.h$domainID[1:nday]
+
+# start w. the meanqi dataframe and add modeldata and datetime info as needed
+daily_output_cupe.df <- cupe.meanqi %>%
+  add_column(yr_jday = unique(cupe.df$yr_jday), 
+             sumlightReal = cupe.modeldata$sumlightReal, 
+             sumlightIdeal = cupe.modeldata$sumlightIdeal, 
+             z = colMeans(cupe.modeldata$zMA), # daily depth = average of hourly depth
+             domainID = domainID) %>%
+  separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
+  mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+         
+# Check means for all 3 params
+# mean(daily_output_cupe.df$K) # 3.225407
+# mean(daily_output_cupe.df$U) # 0.1986689
+# mean(daily_output_cupe.df$N_e) # 3.395281
+
+
+```
+
+
+###### Create visualizations - Rio Cupeyes, San German Municipio, PR
+
+```{r - cupe: create visualizations}
+#| echo: true
+
+########## N Model fit to data __________________________________________________
+
+######  N model fit over time - predicted N vs measured N  #######
+
+N_Npred_ts_cupe <- plot_Nmodelfit_ts(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
+
+# quartz(width=6,height=6)
+N_Npred_ts_cupe
+
+### w. credible interval ribbon
+N_Npred_tsCI_cupe <- plot_Nmodelfit_tsCI(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
+
+# quartz(width=6,height=6)
+N_Npred_tsCI_cupe
+
+######  predicted N vs measured N + 1:1 line  #######
+
+Npred_v_N_cupe <- plot_Npred_v_Nobs(data=N_output_cupe.df, plot_title="Predicted N vs. measured N, Rio Cupeyes, PR")
+
+# quartz(width=6, height=6)
+Npred_v_N_cupe
+
+
+########## Equifinality checks _________________________________________________
+
+####### Check equifinality!! K vs U  #######  
+
+KvU_cupe <- plot_KvU(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled K vs modeled U")
+  
+# quartz(width=7.5, height=6)
+KvU_cupe
+  
+
+####### Check equifinality!! K vs N_e  #######  
+
+KvNe_cupe <- plot_KvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled K vs modeled equilibrium N")
+
+# quartz(width=7.5, height=6)
+KvNe_cupe
+
+
+####### Check equifinality!! U vs N_e  #######  
+
+UvNe_cupe <- plot_UvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled U vs modeled equilibrium N")
+ 
+# quartz(width=7.5, height=6)
+UvNe_cupe
+
+
+########## Other parameter visualizations ______________________________________
+
+#######  K over time  #######  
+
+K_v_time_cupe <- plot_K_ts(data=daily_output_cupe.df, plot_title = "modeled K over time, Rio Cupeyes, PR")
+
+# quartz(width=6.5, height=6)
+K_v_time_cupe
+
+
+##### U over time  #######  
+
+U_time_cupe <- plot_U_ts(data=daily_output_cupe.df, plot_title="Diel nitrate uptake (modeled), Rio Cupeyes, PR")
+
+# quartz(width=6, height=6)
+U_time_cupe
+
+
+###### U vs sumlight  #######  
+
+U_vs_light_cupe <- plot_UvLight(data=daily_output_cupe.df, plot_title = "Scatterplot of NO3 uptake and daily light: Rio Cupeyes, PR")
+
+# quartz(width=6.5, height=6)
+U_vs_light_cupe
+
+
+```
+
+
+###### Compare U_total and U_auto
+What percentage of total uptake is the autotrophic uptake?
+
+```{r - cupe: percent autotrophic NO3 uptake}
+
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K * z
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K * z)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+daily_output_cupe.df <- daily_output_cupe.df %>%
+  mutate(U_het = N_e*K*z,      
+         U_tot = U_het + U, 
+         U_auto_perc = 100*U/U_tot)
+
+U_auto_avg <- mean(daily_output_cupe.df$U_auto_perc) #4.7% on average
+
+Uauto_perc_cupe <- plot_autoUperc(data=daily_output_cupe.df, plot_title = "Daily autotrophic uptake (as % of total uptake), Rio Cupeyes, PR")
+
+# quartz(width=7.5, height=6)
+Uauto_perc_cupe 
+
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_cupe)
+
+```
+
+###### Save updated model output datasets
+
+```{r cupe: save updated datasets}
+#| output: false
+#| message: false
+#| warning: false
+
+# path = here("N_uptake_NEON/data/model_output/cupe_output_daily")
+# write_csv(daily_output_cupe.df, file=path)
+# 
+# path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly")
+# write_csv(N_output_cupe.df, file=path.h)
+
+```
+
+
+
+#### WLOU
+Ouptuts and visualizations for West St Louis Creek, Grand, CO
+
+###### Load model fits and data
+```{r load WLOU model fit and data}
+#| output: false
+#| message: false
+#| warning: false
+
+########## Load model fit ______________________________________________________
+
+wlou.fit <- readRDS(here("N_uptake_NEON/data/model_fits/wlou.fit.rds"))
+
+# if working from model run
+# wlou.fit <- fit.wlou
+
+
+########## Load model data _____________________________________________________
+
+# data from model
+
+wlou.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/wlou.data.rds"))
+
+###### Load dataset (includes datatime info, which model data does not) _______
+
+# full dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/wlou_clean.csv")
+wlou.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv")
+wlou.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+         model_datetime = local_datetime - hours(4))  
+  
+  
+```
+
+###### Extract model parameters and real-data values
+
+First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a WLOU tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data. 
+
+```{r - wlou: extract obs. error model params and real-data values}
+#| echo: false
+#| message: false
+#| warning: false
+
+# get list of variables for the model fit
+# get_variables(wlou.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+########## Check the fit for sigmas and betas (tough to fit): _________________
+print(wlou.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+
+########## Summarize daily variables (K, U, N_e) ______________________________
+
+# First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+wlou.spread <- spread_draws(wlou.fit, K[d], U[d], N_e[d]) 
+
+# Then get the mean/median + 95% QI (CI) for each parameter/day
+# median + CI
+wlou.medqi <- wlou.spread %>%
+  # dplyr::group_by(d) %>%  # Unnecessary: tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+  median_qi() %>%
+  add_column(site = "WLOU")
+
+# ### tried the 'summarise_draws()' fcn instead of median_qi(), but couldn't get it to pivot_wider() and make each variable its own column... So, it was good for checking all 'values_from' columns listed below, but not super useful for plotting etc. 
+
+  # summarise_draws() %>%
+  # pivot_wider(names_from = variable, values_from = mean, median, sd, mad, q5, q95, rhat, ess_bulk, ess_tail) %>%
+
+## Also tried: 
+#
+# wlou.spreadsummary <- wlou.spread %>%
+#   summarise_draws() %>%
+#   #### pivot_wider(names_from = variable, values_from = mean, median, sd, mad, q5, q95, rhat, ess_bulk, ess_tail) %>%  # DOESN'T WORK HERE
+#   add_column(site = "WLOU")
+#   
+# View(wlou.spreadsummary)
+
+
+### mean + QI
+wlou.meanqi <- wlou.spread %>%
+  mean_qi() %>%
+  add_column(site = "WLOU")
+
+### Add median param info to the meanqi df
+wlou.meanqi$K.median <- wlou.medqi$K
+wlou.meanqi$U.median <- wlou.medqi$U
+wlou.meanqi$N_e.median <- wlou.medqi$N_e
+
+
+########## Summarize hourly variable (conc_pred) ______________________________
+
+# Again, using spread_draws for the hourly parameter, conc_pred (predicted N concentration)
+wlou.spread.h <- spread_draws(wlou.fit, conc_pred[h,d])
+# View(wlou.spread.h)
+
+# Getting the mean and 95% credible interval values
+wlou.meanqi.h <- wlou.spread.h %>%
+  dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  mean_qi() %>%
+  add_column(site = "WLOU")
+
+wlou.medqi.h <- wlou.spread.h %>%
+  dplyr::group_by(d, h) %>% #again, explicit grouping is needed here
+  median_qi() %>%
+  add_column(site = "WLOU")
+
+### Add median param info to the hourly meanqi df
+wlou.meanqi.h$conc_pred.median <- wlou.medqi.h$conc_pred
+
+
+########## Compile dataframes __________________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+
+# start w. the hourly dataframe and add mean, QI, modeldata info
+N_output_wlou.df <- wlou.df.h %>%  
+  add_column(N_pred = wlou.meanqi.h$conc_pred, 
+         N_pred.lower = wlou.meanqi.h$.lower, 
+         N_pred.upper = wlou.meanqi.h$.upper, 
+         z=as.vector(wlou.modeldata$zMA), 
+         site = "WLOU") %>%
+  rename(N_conc = surfWaterNitrateMean, 
+         lightReal_wm2 = GHI_wm2) %>%
+   mutate(hours = hour(local_datetime), 
+         mod_hours = hour(model_datetime)) %>%
+  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal_wm2, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+  
+
+####### Daily dataframe: U, K, N_e ##################
+
+# Create a domainID vector length(nday)
+nday <- wlou.modeldata$D
+domainID <- wlou.df.h$domainID[1:nday]
+
+# start w. the meanqi dataframe and add modeldata and datetime info as needed
+daily_output_wlou.df <- wlou.meanqi %>%
+  add_column(yr_jday = unique(wlou.df$yr_jday), 
+             sumlightReal = wlou.modeldata$sumlightReal, 
+             sumlightIdeal = wlou.modeldata$sumlightIdeal, 
+             z = colMeans(wlou.modeldata$zMA), # daily depth = average of hourly depth
+             domainID = domainID) %>%
+  separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
+  mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+         
+# Check means for all 3 params
+# mean(daily_output_wlou.df$K) # 3.225407
+# mean(daily_output_wlou.df$U) # 0.1986689
+# mean(daily_output_wlou.df$N_e) # 3.395281
+
+
+```
+
+
+###### Create visualizations - West St. Louis Creek, CO
+
+```{r - wlou: create visualizations}
+#| echo: true
+
+########## N Model fit to data ________________________________________________
+
+######  N model fit over time  #######
+
+# N_and_Npred_wlou <- N_output_wlou.df %>%
+#   #group_by(year(model_datetime_wlou)) %>%
+#   filter(model_jday >= 35 & model_jday <= 60) %>%  # to see the little boxes better...
+#   ggplot(aes(x=mod_hours)) +
+#   geom_point(aes(y=N_conc)) + 
+#   geom_line(aes(y=N_conc_pred), col='red')+
+#   labs(
+#     x="Time (h)", y=expression("N"~(mmol~m^-3))
+#   ) +
+#   ggtitle("NEON: West St. Louis Creek N data + model predictions") +
+#   facet_wrap(~yr_jday) +
+#   theme_bw()
+
+N_Npred_ts_wlou <- plot_Nmodelfit_ts(data=N_output_wlou.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: West St. Louis Creek, CO ")
+
+#quartz(width=6,height=6)
+N_Npred_ts_wlou
+
+### w. credible interval ribbon
+N_Npred_tsCI_wlou <- plot_Nmodelfit_tsCI(data=N_output_wlou.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: West St. Louis Creek, CO")
+
+# quartz(width=6,height=6)
+N_Npred_tsCI_wlou
+
+
+######  N-pred vs N  #######
+
+# Npred_v_N_wlou <- ggplot(data = N_output_wlou.df, aes(x=N_conc, y=N_conc_pred)) +
+#   geom_point() + 
+#   labs( x=expression("measured N"~(mu*mol~L^-1)), # fcn changed both to mmol~m^-3
+#         y=expression("modeled N"~(mu*mol~L^-1))  # ~ = a space, * = no space
+#       ) + 
+#   ggtitle("Measured N vs predicted N, West St. Louis Creek, CO") +
+#   geom_abline(intercept = 0, slope = 1, color = "red") + 
+#   theme_bw()
+
+Npred_v_N_wlou <- plot_Npred_v_Nobs(data=N_output_wlou.df, plot_title="Predicted N vs. measured N, West St. Louis Creek, CO")
+
+#quartz(width=6, height=6)
+Npred_v_N_wlou
+
+########## Equifinality checks ________________________________________________
+
+####### Check equifinality!! K vs U  #######  
+
+# KvU_wlou <- ggplot(data=daily_output_wlou.df, aes(y=K_mod_avg_wlou, x=U_mod_avg_wlou)) +
+#   geom_point() + 
+#   labs(y=expression("modeled K"~(d^-1)),
+#        x=expression("modeled U"~(mmol~m^-2~d^-1))
+#         ) + 
+#   ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U") + 
+#   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+#   theme_bw()
+
+
+KvU_wlou <- plot_KvU(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U")
+
+  
+#quartz(width=7.5, height=6)
+KvU_wlou
+  
+
+####### Check equifinality!! K vs N_e  #######  
+
+# KvNe_wlou <- ggplot(data=daily_output_wlou.df, aes(y=K, x=N_e)) +
+#    geom_point() + 
+#    labs(y=expression("modeled K"~(d^-1)),
+#         x=expression("modeled N_e"~(mmol~m^-3)) 
+#         ) + 
+#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N") + 
+#    # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+#   theme_bw()
+
+
+KvNe_wlou <- plot_KvNe(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N")
+
+#quartz(width=7.5, height=6)
+KvNe_wlou
+
+
+####### Check equifinality!! U vs N_e  #######  
+
+# UvNe_wlou <- ggplot(data=daily_output_wlou.df, aes(y=U, x=N_e)) +
+#    geom_point() + 
+#    labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),
+#         x=expression("modeled N_e"~(mmol~m^-3)) 
+#         ) + 
+#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N") + 
+#   theme_bw()
+
+UvNe_wlou <- plot_UvNe(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N")
+ 
+#quartz(width=7.5, height=6)
+UvNe_wlou
+
+
+########## Other parameter visualizations ______________________________________
+
+######## K over time  #######  
+
+# K_v_time_wlou <- ggplot(data = daily_output_wlou.df, aes(x=d, y=K)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   # xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration
+#   labs( x= "Index", 
+#         y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,20) +
+#   ggtitle("modeled K over time, West St. Louis Creek, CO") +
+#   theme_bw()
+
+
+K_v_time_wlou <- plot_K_ts(data=daily_output_wlou.df, plot_title = "modeled K over time, West St. Louis Creek, CO")
+
+#quartz(width=6.5, height=6)
+K_v_time_wlou
+
+##### to clip: no function yet
+# K_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=K_mod_avg_wlou)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   xlab("Julian day") + ylab("modeled K (day -1)") + # ??? UNITS?
+#   ylim(0,10) +
+#   ggtitle("modeled K over time, West St. Louis Creek, CO - ylim = 0,10") +
+#   theme_bw()
+# 
+# quartz()
+# K_time_clip_wlou
+
+
+######## U over time  #######  
+
+# U_time_wlou <- ggplot(data = daily_output_wlou.df, aes(x=d, y=U)) +
+#   geom_point() + 
+#   # geom_point(y = sumlight.real_wlou, color = 'gold') +
+#   # ADD IN HIGH AND LOW CIs
+#   #xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + 
+#   labs( x= "Index", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   #ylim(0,1) +
+#   #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +
+#   ggtitle("Diel nitrate uptake (modeled), West St. Louis Creek, CO") +
+#   theme_bw()
+
+U_time_wlou <- plot_U_ts(data=daily_output_wlou.df, plot_title="Diel nitrate uptake (modeled), West St. Louis Creek, CO")
+
+#quartz(width=6, height=6)
+U_time_wlou
+
+
+# U_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=U_mod_avg_wlou)) +
+#    geom_point() +
+#    # geom_point(y = sumlight.real, color = 'gold') +
+#    # ADD IN HIGH AND LOW CIs
+#    xlab("Julian day") + ylab("modeled U (mmol/m2/day)") +
+#    ylim(0,1) +
+#    ggtitle("modeled U over time, West St. Louis Creek, CO - ylim = 0-1") +
+#    theme_bw()
+# 
+#  quartz()
+#  U_time_clip_wlou
+
+
+
+######## U vs sumlight  #######  
+
+# U_vs_light_wlou <- ggplot(data = daily_output_wlou.df, aes(x=sumlightReal, y=U)) +
+#   geom_point() + 
+#   #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   # xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +
+#   labs( x= "light (satellite)", 
+#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+#       ) + 
+#   scale_x_log10() + scale_y_log10() + 
+#   ggtitle("Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO") +
+#   #ylim = c(-0.2, 1) +
+#   theme_bw()
+
+U_vs_light_wlou <- plot_UvLight(data=daily_output_wlou.df, plot_title = "Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO")
+
+# quartz(width=6.5, height=6)
+U_vs_light_wlou
+
+
+```
+
+
+###### Compare U_total and U_auto
+
+```{r - wlou: percent autotrophic NO3 uptake}
+
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+daily_output_wlou.df <- daily_output_wlou.df %>%
+  mutate(U_het = N_e*K*z,      
+         U_tot = U_het + U, 
+         U_auto_perc = 100*U/U_tot)
+
+
+U_auto_avg <- mean(daily_output_wlou.df$U_auto_perc) #10.3% on average
+
+# Uauto_plot_wlou <- ggplot(data=daily_output_wlou.df, aes(x=d, y=U_auto_perc)) +
+#   geom_point() + 
+#   xlab("Index") + ylab("Percent autotrophic uptake") + 
+#   ggtitle("Percent of autotrophic uptake each day, West St. Louis Creek, CO") + 
+#   theme_bw()
+
+
+Uauto_perc_wlou <- plot_autoUperc(data=daily_output_wlou.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), West St. Louis Creek, CO")
+
+# quartz(width=7.5, height=6)
+Uauto_perc_wlou 
+
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_wlou)
+
+
+```
+
+###### Save updated model output datasets
+
+```{r wlou:save updated datasets}
+#| output: false
+#| message: false
+#| warning: false
+
+# path = here("N_uptake_NEON/data/model_output/wlou_output_daily")
+# write_csv(daily_output_wlou.df, file=path)
+# 
+# path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly")
+# write_csv(N_output_wlou.df, file=path.h)
+
+```
+
+### Assemble and save mean, median, 95% QI tibble for all sites
+
+Combine the site tibbles into one large tibble, then save it
+
+```{r - assemble and save mean/med/qi tibble}
+#| output: false
+#| message: false
+#| warning: false
+
+########## Bind then save daily parameters (K, U, N_e)  _________________________
+
+# daily_summary_all.df <- bind_rows()
+# path <- here()
+# saveRDS(daily_summary_all.df, path)
+
+########## Bind then save hourly parameters (N_pred)  ___________________________
+
+# hourly_summary_all.df <- bind_rows()
+# path2 <- here()
+# saveRDS(hourly_summary_all.df, path2)
+
+
+```
+
+### Create whole-dataset visualizations
+```{r whole-dataframe visualizations}
+
+########## Violin plots _______________________________________________
+
+##### K
+
+
+##### U
+
+
+##### N_e
+
+
+```

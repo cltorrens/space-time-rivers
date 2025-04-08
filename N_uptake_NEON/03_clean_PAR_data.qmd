@@ -1,0 +1,117 @@
+---
+title: "03_clean PAR data"
+author: "Christa Torrens"
+format: html
+editor: visual
+---
+
+## Intro
+
+This script's purpose is to clean and fill NEON Photosynthetically Active Radiation \[PAR\] data for the two Alaska sites, CARI and OKSR, because the NSRDB dataset does not cover those latitudes. It cleans both PAR (**DP1.00024.001**) and water surface PAR (**DP1.20042.001**) datasets, to enable comparison and selection between the two.
+
+First load the required packages
+```{r load packages}
+# library(scales) # scales map data to aesthetics
+library(tidyverse) # includes magrittr, as part of dplyr
+library(lubridate)
+library(tidybayes)
+library(GGally) # adds functions to ggplot()
+# library(shinystan)
+library(zoo)
+library(neonUtilities)
+library(ggpubr) # publication-ready graphs
+library(brms)
+library(here) # allows project-based file paths
+library(pracma) # for 1 type of light AUC calcs
+library(dygraphs) # creates interactive ts graphs
+
+```
+
+Then load the PAR/ WS-PAR Rdata
+
+```{r load data}
+
+# datasets
+load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_01m.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_30m.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_30m.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_05m.Rdata"))
+
+
+# data review flags, issue log, readme files
+load(here("N_uptake_NEON/data/neon_data_derived/par_flags.Rdata"))
+# no PAR issue log in original DL package
+load(here("N_uptake_NEON/data/neon_data_derived/par_readme.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_flags.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_issuelog.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_readme.Rdata"))
+
+
+```
+
+Visualize the data by year
+```{r visualize PAR and WS Par}
+
+par_sensor_30m <- par_sensor_30m %>% 
+  add_column(month=month(par_sensor_30m$endDateTime),
+             .after=par_sensor_30m$endDateTime)
+
+###### CARI plot
+
+yr = 2023
+
+CARIplot_PAR <- par_sensor_30m %>%
+  filter(siteID == "CARI", 
+         year(startDateTime) == yr) %>%
+  ggplot(aes(x=endDateTime, y=PARMean)) + 
+  geom_point() +
+  # facet_wrap(~month) + 
+  ggtitle("CARI PAR 2023") +
+  theme_bw()
+  
+quartz(width=6.5, height=6.5)
+CARIplot_PAR
+
+
+CARIplot_WSPAR <- par_wsurf_sensor_30m %>%
+  filter(siteID == "CARI", 
+         year(startDateTime) == yr) %>%
+  ggplot(aes(x=endDateTime, y=PARMean)) + 
+  geom_point() +
+  # facet_wrap(~month) + 
+  ggtitle("CARI Water Surface PAR 2023") +
+  theme_bw()
+  
+quartz(width=6.5, height=6.5)
+CARIplot_WSPAR
+
+
+###### OKSR plot
+OKSRplot_PAR <- par_sensor_30m %>%
+  filter(siteID == "OKSR", 
+         year(startDateTime) == yr) %>%
+  ggplot(aes(x=endDateTime, y=PARMean)) + 
+  geom_point() +
+  # facet_wrap(~month) + 
+  ggtitle("OKSR PAR 2023") +
+  theme_bw()
+  
+quartz(width=6.5, height=6.5)
+OKSRplot_PAR
+
+
+OKSRplot_WSPAR <- par_wsurf_sensor_30m %>%
+  filter(siteID == "OKSR", 
+         year(startDateTime) == yr) %>%
+  ggplot(aes(x=endDateTime, y=PARMean)) + 
+  geom_point() +
+  # facet_wrap(~month) + 
+  ggtitle("OKSR Water Surface PAR 2023") +
+  theme_bw()
+  
+quartz(width=6.5, height=6.5)
+OKSRplot_WSPAR
+
+
+```
+

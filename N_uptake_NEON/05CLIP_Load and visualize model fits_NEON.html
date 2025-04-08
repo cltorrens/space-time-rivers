@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Christa Torrens">
+
+<title>Load and visualize fits for NEON NO3 models</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/clipboard/clipboard.min.js"></script>
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/quarto.js"></script>
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/popper.min.js"></script>
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/anchor.min.js"></script>
+<link href="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="05CLIP_Load and visualize model fits_NEON_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="05CLIP_Load and visualize model fits_NEON_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="05CLIP_Load and visualize model fits_NEON_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="05CLIP_Load and visualize model fits_NEON_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Load and visualize fits for NEON NO3 models</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Christa Torrens </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="intro" class="level1">
+<h1>Intro</h1>
+<p>This document uses rstan::extract and tidybayes to extract and visualize model fit params for the NEON data/ autotrohic uptake project</p>
+<p>First created 2/25/2025 by Christa Torrens, with ongoing amendments</p>
+<section id="load-needed-libraries-and-model-fits" class="level3">
+<h3 class="anchored" data-anchor-id="load-needed-libraries-and-model-fits">Load needed libraries and model fits</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidybayes)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bayesplot)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstanarm)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plotly)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="plotting-functions" class="level3">
+<h3 class="anchored" data-anchor-id="plotting-functions">Plotting functions</h3>
+<p>This keeps all of the core plotting code in 1 place, and allows site-level customization (mostly dataframes and titles)</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">##### Model fit - Npred + Nobs over time</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>plot_Nmodelfit_ts <span class="ot">&lt;-</span> <span class="cf">function</span>(data, start_jday, end_jday, plot_title) {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(model_jday <span class="sc">&gt;=</span> start_jday <span class="sc">&amp;</span> model_jday <span class="sc">&lt;=</span> end_jday) <span class="sc">%&gt;%</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> mod_hours)) <span class="sc">+</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> N_conc)) <span class="sc">+</span> </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> N_pred), <span class="at">col =</span> <span class="st">'red'</span>) <span class="sc">+</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"Time (h)"</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> <span class="fu">expression</span>(<span class="st">"N"</span> <span class="sc">~</span> (mmol <span class="sc">~</span> m<span class="sc">^-</span><span class="dv">3</span>))</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>yr_jday) <span class="sc">+</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>()</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plot_Nmodelfit_tsCI <span class="ot">&lt;-</span> <span class="cf">function</span>(data, start_jday, end_jday, plot_title) {</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(model_jday <span class="sc">&gt;=</span> start_jday <span class="sc">&amp;</span> model_jday <span class="sc">&lt;=</span> end_jday) <span class="sc">%&gt;%</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> mod_hours)) <span class="sc">+</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin=</span>N_pred.lower, <span class="at">ymax=</span>N_pred.upper), <span class="at">alpha =</span> <span class="fl">0.7</span>, <span class="at">fill =</span> <span class="st">"slategray"</span>) <span class="sc">+</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> N_conc)) <span class="sc">+</span> </span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> N_pred), <span class="at">col =</span> <span class="st">'red'</span>) <span class="sc">+</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"Time (h)"</span>,</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> <span class="fu">expression</span>(<span class="st">"N"</span> <span class="sc">~</span> (mmol <span class="sc">~</span> m<span class="sc">^-</span><span class="dv">3</span>))</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>yr_jday) <span class="sc">+</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>()</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="do">##### Model fit - Npred v Nobs w. 1:1 line</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>plot_Npred_v_Nobs <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">x=</span>N_conc, <span class="at">y=</span>N_pred)) <span class="sc">+</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>( <span class="at">x=</span><span class="fu">expression</span>(<span class="st">"measured N"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">3</span>)), <span class="co"># OR (mu*mol~L^-1)</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        <span class="at">y=</span><span class="fu">expression</span>(<span class="st">"predicted N"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">3</span>))  <span class="co"># ~ = a space, * = no space</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">+</span> </span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">slope =</span> <span class="dv">1</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span> </span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="do">##### Equifinality checks</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="do">## K vs U</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>plot_KvU <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">y=</span>K, <span class="at">x=</span>U)) <span class="sc">+</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled K"</span><span class="sc">~</span>(d<span class="sc">^-</span><span class="dv">1</span>)),</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>       <span class="at">x=</span><span class="fu">expression</span>(<span class="st">"modeled U"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">2</span><span class="sc">~</span>d<span class="sc">^-</span><span class="dv">1</span>))</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> </span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span> </span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a><span class="do">## K vs N_e</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>plot_KvNe <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">y=</span>K, <span class="at">x=</span>N_e)) <span class="sc">+</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>   <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>   <span class="fu">labs</span>(<span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled K"</span><span class="sc">~</span>(d<span class="sc">^-</span><span class="dv">1</span>)),</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>        <span class="at">x=</span><span class="fu">expression</span>(<span class="st">"modeled N_e"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">3</span>)) </span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> </span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>   <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span> </span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>   <span class="co"># geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a><span class="do">## U vs N_e</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a><span class="co"># Includes CI bars because this relationship tends to look a bit linear - checking whether that holds even w ci values in place</span></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>plot_UvNe <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">y=</span>U, <span class="at">x=</span>N_e)) <span class="sc">+</span></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> U.lower, <span class="at">ymax =</span> U.upper), <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color=</span><span class="st">'grey70'</span>) <span class="sc">+</span> <span class="co"># CI bars</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled U"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">2</span><span class="sc">~</span>d<span class="sc">^-</span><span class="dv">1</span>)),</span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>        <span class="at">x=</span><span class="fu">expression</span>(<span class="st">"modeled N_e"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">3</span>)) </span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> </span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span> </span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a><span class="do">##### K over time</span></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>plot_K_ts <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">x=</span>d, <span class="at">y=</span>K)) <span class="sc">+</span></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> K.lower, <span class="at">ymax =</span> K.upper), <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color=</span><span class="st">'grey70'</span>) <span class="sc">+</span> <span class="co"># CI bars</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(y = sumlight.real, color = 'gold') +</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>( <span class="at">x=</span> <span class="st">"Index"</span>, </span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>        <span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled K"</span><span class="sc">~</span>(d<span class="sc">^-</span><span class="dv">1</span>)) <span class="co"># ~ = a space, * = no space</span></span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">+</span> </span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a><span class="do">##### U over time</span></span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>plot_U_ts <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">x=</span>d, <span class="at">y=</span>U)) <span class="sc">+</span></span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> U.lower, <span class="at">ymax =</span> U.upper), <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color=</span><span class="st">'grey70'</span>) <span class="sc">+</span> <span class="co"># CI bars</span></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_point(y = sumlight.real_wlou, color = 'gold') +</span></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>  <span class="co"># ADD IN HIGH AND LOW CIs</span></span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>( <span class="at">x=</span> <span class="st">"Index"</span>, </span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a>        <span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled U"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">2</span><span class="sc">~</span>d<span class="sc">^-</span><span class="dv">1</span>)) <span class="co"># ~ = a space, * = no space</span></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">+</span> </span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a><span class="do">##### U vs. real sumlight</span></span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>plot_UvLight <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">x=</span>sumlightReal, <span class="at">y=</span>U)) <span class="sc">+</span></span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>( <span class="at">x=</span><span class="fu">expression</span>(<span class="st">"measured daily light"</span><span class="sc">~</span>(w<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">2</span>)), </span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>        <span class="at">y=</span><span class="fu">expression</span>(<span class="st">"modeled U"</span><span class="sc">~</span>(mmol<span class="sc">~</span>m<span class="sc">^-</span><span class="dv">2</span><span class="sc">~</span>d<span class="sc">^-</span><span class="dv">1</span>)) <span class="co"># ~ = a space, * = no space</span></span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">+</span> </span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_log10</span>() <span class="sc">+</span> <span class="fu">scale_y_log10</span>() <span class="sc">+</span> </span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span></span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a><span class="do">##### U + daily (or hourly?) sumlight over time</span></span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a><span class="do">##### Autotrophic U vs total U</span></span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a>plot_autoUperc <span class="ot">&lt;-</span> <span class="cf">function</span>(data, plot_title) {</span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a>  plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>data, <span class="fu">aes</span>(<span class="at">x=</span>d, <span class="at">y=</span>U_auto_perc)) <span class="sc">+</span></span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Index"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Percent autotrophic uptake"</span>) <span class="sc">+</span> </span>
+<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(plot_title) <span class="sc">+</span> </span>
+<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="load-model-fits-and-data-by-site-stored-as-rds-files-then-extract-parameters" class="level3">
+<h3 class="anchored" data-anchor-id="load-model-fits-and-data-by-site-stored-as-rds-files-then-extract-parameters">Load model fits and data by site (stored as RDS files), then extract parameters</h3>
+<section id="bigc" class="level4">
+<h4 class="anchored" data-anchor-id="bigc">BIGC</h4>
+<p>Outputs and visualizations for Upper Big Creek, Fresno, CA</p>
+<section id="load-model-fits-and-data" class="level6">
+<h6 class="anchored" data-anchor-id="load-model-fits-and-data">Load model fits and data</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model fit ______________________________________________________</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>bigc.fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_fits/bigc.fit.rds"</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># if working from model run</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># bigc.fit &lt;- fit.bigc</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model data _____________________________________________________</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>bigc.modeldata <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_datalist/bigc.data.rds"</span>))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load full daily and hourly datasets _________________________________</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># these include datatime info, and the model data does not)</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># daily dataset</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/bigc_clean.csv"</span>)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>bigc.df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path) <span class="sc">%&gt;%</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"US/Pacific"</span>), </span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co"># hourly dataset</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>path_h <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv"</span>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>bigc.df.h <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path_h) <span class="sc">%&gt;%</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"US/Pacific"</span>), </span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="extract-model-parameters-and-real-data-values" class="level6">
+<h6 class="anchored" data-anchor-id="extract-model-parameters-and-real-data-values">Extract model parameters and real-data values</h6>
+<p>First, check the fit for sigmas and betas (“sigma”, “sigma_U”, “b0”, “b1”), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a BIGC tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Inference for Stan model: anon_model.
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+         mean se_mean   sd   2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.05    0.00 0.00   0.05  0.05  0.05  0.05  0.06  2811 1.00
+sigma_U  0.16    0.00 0.04   0.09  0.13  0.16  0.18  0.23   129 1.02
+b0      -9.15    0.03 0.74 -10.69 -9.62 -9.14 -8.67 -7.77   667 1.01
+b1       0.82    0.00 0.08   0.66  0.77  0.82  0.88  1.00   683 1.01
+
+Samples were drawn using NUTS(diag_e) at Tue Apr  1 09:45:41 2025.
+For each parameter, n_eff is a crude measure of effective sample size,
+and Rhat is the potential scale reduction factor on split chains (at 
+convergence, Rhat=1).</code></pre>
+</div>
+</div>
+</section>
+<section id="create-visualizations" class="level6">
+<h6 class="anchored" data-anchor-id="create-visualizations">Create visualizations</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## N Model fit to data __________________________________________________</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="do">######  N model fit over time - predicted N vs measured N  #######</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_bigc <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_ts</span>(<span class="at">data=</span>N_output_bigc.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: Upper Big Creek, CA"</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">### w. credible interval ribbon</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_bigc <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_tsCI</span>(<span class="at">data=</span>N_output_bigc.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: Upper Big Creek, CA"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="do">######  predicted N vs measured N + 1:1 line  #######</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>Npred_v_N_bigc <span class="ot">&lt;-</span> <span class="fu">plot_Npred_v_Nobs</span>(<span class="at">data=</span>N_output_bigc.df, <span class="at">plot_title=</span><span class="st">"Predicted N vs. measured N, Upper Big Creek, CA"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6, height=6)</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>Npred_v_N_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Equifinality checks _________________________________________________</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs U  #######  </span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>KvU_bigc <span class="ot">&lt;-</span> <span class="fu">plot_KvU</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Upper Big Creek, CA: modeled K vs modeled U"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>KvU_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs N_e  #######  </span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>KvNe_bigc <span class="ot">&lt;-</span> <span class="fu">plot_KvNe</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Upper Big Creek, CA: modeled K vs modeled equilibrium N"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>KvNe_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! U vs N_e  #######  </span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>UvNe_bigc <span class="ot">&lt;-</span> <span class="fu">plot_UvNe</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Upper Big Creek, CA: modeled U vs modeled equilibrium N"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>UvNe_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Other parameter visualizations _______________________________________</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="do">#######  K over time  #######  </span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>K_v_time_bigc <span class="ot">&lt;-</span> <span class="fu">plot_K_ts</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"modeled K over time, Upper Big Creek, CA"</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6.5, height=6)</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>K_v_time_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">##### U over time  #######  </span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>U_time_bigc <span class="ot">&lt;-</span> <span class="fu">plot_U_ts</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title=</span><span class="st">"Diel nitrate uptake (modeled), Upper Big Creek, CA"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6, height=6)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>U_time_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">###### U vs sumlight  #######  </span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>U_vs_light_bigc <span class="ot">&lt;-</span> <span class="fu">plot_UvLight</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"Scatterplot of NO3 uptake and daily light: Upper Big Creek, CA"</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6.5, height=6)</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>U_vs_light_bigc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20bigc-%20create%20visualizations-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="compare-u_total-and-u_auto" class="level6">
+<h6 class="anchored" data-anchor-id="compare-u_total-and-u_auto">Compare U_total and U_auto</h6>
+<p>What percentage of total uptake is the autotrophic uptake?</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># TOTAL UPTAKE = U + (Equilibrium nitrate * K)  </span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>daily_output_bigc.df <span class="ot">&lt;-</span> daily_output_bigc.df <span class="sc">%&gt;%</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">U_het =</span> N_e<span class="sc">*</span>K<span class="sc">*</span>z,      </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_tot =</span> U_het <span class="sc">+</span> U, </span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_auto_perc =</span> <span class="dv">100</span><span class="sc">*</span>U<span class="sc">/</span>U_tot)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>U_auto_avg <span class="ot">&lt;-</span> <span class="fu">mean</span>(daily_output_bigc.df<span class="sc">$</span>U_auto_perc) <span class="co">#11.7% on average</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>Uauto_perc_bigc <span class="ot">&lt;-</span> <span class="fu">plot_autoUperc</span>(<span class="at">data=</span>daily_output_bigc.df, <span class="at">plot_title =</span> <span class="st">"Daily  autotrophic uptake (as % of total uptake), Upper Big Creek, CA"</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="fu">quartz</span>(<span class="at">width=</span><span class="fl">7.5</span>, <span class="at">height=</span><span class="dv">6</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>Uauto_perc_bigc </span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="do">#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co"># ggplotly(Uauto_plot_bigc)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="save-updated-model-output-datasets" class="level6">
+<h6 class="anchored" data-anchor-id="save-updated-model-output-datasets">Save updated model output datasets</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># path = here("N_uptake_NEON/data/model_output/bigc_output_daily")</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(daily_output_bigc.df, file=path)</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly")</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(N_output_bigc.df, file=path.h)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="cari" class="level4">
+<h4 class="anchored" data-anchor-id="cari">CARI</h4>
+<p>Outputs and visualizations for Caribou Creek, Fairbanks North Star, AK</p>
+<section id="load-model-fits-and-data-1" class="level6">
+<h6 class="anchored" data-anchor-id="load-model-fits-and-data-1">Load model fits and data</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model fit ______________________________________________________</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cari.fit &lt;- readRDS(here("N_uptake_NEON/data/model_fits/cari.fit.rds"))</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># if working from model run</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># cari.fit &lt;- fit.cari</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model data _____________________________________________________</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># cari.modeldata &lt;- readRDS(here("N_uptake_NEON/data/model_datalist/cari.data.rds"))</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load full daily and hourly datasets __________________________________</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co"># these include datatime info, and the model data does not)</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"># daily dataset</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co"># path &lt;- here("N_uptake_NEON/data/neon_data_clean/cari_clean.csv")</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co"># cari.df &lt;- read_csv(path) %&gt;%</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), </span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co">#          model_datetime = local_datetime - hours(4))  </span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="co"># hourly dataset</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="co"># path_h &lt;- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="co"># cari.df.h &lt;- read_csv(path_h) %&gt;%</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), </span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a><span class="co">#          model_datetime = local_datetime - hours(4))  </span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a><span class="co">#   </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="extract-model-parameters-and-real-data-values-1" class="level6">
+<h6 class="anchored" data-anchor-id="extract-model-parameters-and-real-data-values-1">Extract model parameters and real-data values</h6>
+<p>First, check the fit for sigmas and betas (“sigma”, “sigma_U”, “b0”, “b1”), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a CARI tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data.</p>
+</section>
+<section id="create-visualizations---caribou-creek-ak" class="level6">
+<h6 class="anchored" data-anchor-id="create-visualizations---caribou-creek-ak">Create visualizations - Caribou Creek, AK</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## N Model fit to data _________________________________________________</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="do">######  N model fit over time - predicted N vs measured N  #######</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># N_Npred_ts_cari &lt;- plot_Nmodelfit_ts(data=N_output_cari.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Caribou Creek, AK")</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># N_Npred_ts_cari</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ######  predicted N vs measured N + 1:1 line  #######</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Npred_v_N_cari &lt;- plot_Npred_v_Nobs(data=N_output_cari.df, plot_title="Predicted N vs. measured N, Caribou Creek, AK")</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=6, height=6)</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Npred_v_N_cari</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="co"># ########## Equifinality checks ________________________________________________</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="co"># ####### Check equifinality!! K vs U  #######  </span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="co"># KvU_cari &lt;- plot_KvU(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled U")</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="co">#   </span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=7.5, height=6)</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co"># KvU_cari</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a><span class="co">#   </span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a><span class="co"># ####### Check equifinality!! K vs N_e  #######  </span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a><span class="co"># KvNe_cari &lt;- plot_KvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled equilibrium N")</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=7.5, height=6)</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="co"># KvNe_cari</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a><span class="co"># ####### Check equifinality!! U vs N_e  #######  </span></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a><span class="co"># UvNe_cari &lt;- plot_UvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled U vs modeled equilibrium N")</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a><span class="co">#  </span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=7.5, height=6)</span></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a><span class="co"># UvNe_cari</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a><span class="co"># ########## Other parameter visualizations ______________________________________</span></span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a><span class="co"># #######  K over time  #######  </span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a><span class="co"># K_v_time_cari &lt;- plot_K_ts(data=daily_output_cari.df, plot_title = "modeled K over time, Caribou Creek, AK")</span></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=6.5, height=6)</span></span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a><span class="co"># K_v_time_cari</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a><span class="co"># ##### U over time  #######  </span></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a><span class="co"># U_time_cari &lt;- plot_U_ts(data=daily_output_cari.df, plot_title="Diel nitrate uptake (modeled), Caribou Creek, AK")</span></span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a><span class="co"># #quartz(width=6, height=6)</span></span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a><span class="co"># U_time_cari</span></span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a><span class="co"># ###### U vs sumlight  #######  </span></span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a><span class="co"># U_vs_light_cari &lt;- plot_UvLight(data=daily_output_cari.df, plot_title = "Scatterplot of NO3 uptake and daily light: Caribou Creek, AK")</span></span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a><span class="co"># # quartz(width=6.5, height=6)</span></span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a><span class="co"># U_vs_light_cari</span></span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="compare-u_total-and-u_auto-1" class="level6">
+<h6 class="anchored" data-anchor-id="compare-u_total-and-u_auto-1">Compare U_total and U_auto</h6>
+<p>What percentage of total uptake is the autotrophic uptake?</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># TOTAL UPTAKE = U + (Equilibrium nitrate * K)  </span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># daily_output_cari.df &lt;- daily_output_cari.df %&gt;%</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(U_het = N_e*K*z,      </span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">#          U_tot = U_het + U, </span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#          U_auto_perc = 100*U/U_tot)</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># U_auto_avg &lt;- mean(daily_output_cari.df$U_auto_perc) #10.3% on average</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Uauto_perc_cari &lt;- plot_autoUperc(data=daily_output_cari.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), Caribou Creek, AK")</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># # quartz(width=7.5, height=6)</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Uauto_perc_cari </span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="do">#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co"># ggplotly(Uauto_plot_cari)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="save-updated-model-output-datasets-1" class="level6">
+<h6 class="anchored" data-anchor-id="save-updated-model-output-datasets-1">Save updated model output datasets</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># path = here("N_uptake_NEON/data/model_output/cari_output_daily")</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(daily_output_cari.df, file=path)</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly")</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(N_output_cari.df, file=path.h)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="cupe" class="level4">
+<h4 class="anchored" data-anchor-id="cupe">CUPE</h4>
+<p>Outputs and visualizations for Rio Cupeyes, San German Municipio, PR</p>
+<section id="load-model-fits-and-data-2" class="level6">
+<h6 class="anchored" data-anchor-id="load-model-fits-and-data-2">Load model fits and data</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model fit ______________________________________________________</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cupe.fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_fits/cupe.fit.rds"</span>))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># if working from model run</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># cupe.fit &lt;- fit.cupe</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model data _____________________________________________________</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>cupe.modeldata <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_datalist/cupe.data.rds"</span>))</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load full daily and hourly datasets __________________________________</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co"># these include datatime info, and the model data does not)</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co"># daily dataset</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/cupe_clean.csv"</span>)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>cupe.df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path) <span class="sc">%&gt;%</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"America/Puerto_Rico"</span>), </span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="co"># hourly dataset</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>path_h <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv"</span>)</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>cupe.df.h <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path_h) <span class="sc">%&gt;%</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"America/Puerto_Rico"</span>), </span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="extract-model-parameters-and-real-data-values-2" class="level6">
+<h6 class="anchored" data-anchor-id="extract-model-parameters-and-real-data-values-2">Extract model parameters and real-data values</h6>
+<p>First, check the fit for sigmas and betas (“sigma”, “sigma_U”, “b0”, “b1”), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a CUPE tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Inference for Stan model: anon_model.
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.15    0.00 0.00  0.14  0.15  0.15  0.15  0.15  5813    1
+sigma_U  0.24    0.00 0.01  0.22  0.24  0.24  0.25  0.26  2620    1
+b0      -5.25    0.01 0.44 -6.08 -5.56 -5.25 -4.96 -4.37  2832    1
+b1       0.56    0.00 0.05  0.46  0.53  0.56  0.60  0.66  2841    1
+
+Samples were drawn using NUTS(diag_e) at Tue Apr  1 15:52:19 2025.
+For each parameter, n_eff is a crude measure of effective sample size,
+and Rhat is the potential scale reduction factor on split chains (at 
+convergence, Rhat=1).</code></pre>
+</div>
+</div>
+</section>
+<section id="create-visualizations---rio-cupeyes-san-german-municipio-pr" class="level6">
+<h6 class="anchored" data-anchor-id="create-visualizations---rio-cupeyes-san-german-municipio-pr">Create visualizations - Rio Cupeyes, San German Municipio, PR</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## N Model fit to data __________________________________________________</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="do">######  N model fit over time - predicted N vs measured N  #######</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_cupe <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_ts</span>(<span class="at">data=</span>N_output_cupe.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: Rio Cupeyes, PR"</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="do">### w. credible interval ribbon</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_cupe <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_tsCI</span>(<span class="at">data=</span>N_output_cupe.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: Rio Cupeyes, PR"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="do">######  predicted N vs measured N + 1:1 line  #######</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>Npred_v_N_cupe <span class="ot">&lt;-</span> <span class="fu">plot_Npred_v_Nobs</span>(<span class="at">data=</span>N_output_cupe.df, <span class="at">plot_title=</span><span class="st">"Predicted N vs. measured N, Rio Cupeyes, PR"</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6, height=6)</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>Npred_v_N_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Equifinality checks _________________________________________________</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs U  #######  </span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>KvU_cupe <span class="ot">&lt;-</span> <span class="fu">plot_KvU</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Rio Cupeyes, PR: modeled K vs modeled U"</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>KvU_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs N_e  #######  </span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>KvNe_cupe <span class="ot">&lt;-</span> <span class="fu">plot_KvNe</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Rio Cupeyes, PR: modeled K vs modeled equilibrium N"</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>KvNe_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! U vs N_e  #######  </span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>UvNe_cupe <span class="ot">&lt;-</span> <span class="fu">plot_UvNe</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, Rio Cupeyes, PR: modeled U vs modeled equilibrium N"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>UvNe_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Other parameter visualizations ______________________________________</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="do">#######  K over time  #######  </span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>K_v_time_cupe <span class="ot">&lt;-</span> <span class="fu">plot_K_ts</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"modeled K over time, Rio Cupeyes, PR"</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6.5, height=6)</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>K_v_time_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="do">##### U over time  #######  </span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>U_time_cupe <span class="ot">&lt;-</span> <span class="fu">plot_U_ts</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title=</span><span class="st">"Diel nitrate uptake (modeled), Rio Cupeyes, PR"</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6, height=6)</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>U_time_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="do">###### U vs sumlight  #######  </span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>U_vs_light_cupe <span class="ot">&lt;-</span> <span class="fu">plot_UvLight</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"Scatterplot of NO3 uptake and daily light: Rio Cupeyes, PR"</span>)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6.5, height=6)</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>U_vs_light_cupe</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20create%20visualizations-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="compare-u_total-and-u_auto-2" class="level6">
+<h6 class="anchored" data-anchor-id="compare-u_total-and-u_auto-2">Compare U_total and U_auto</h6>
+<p>What percentage of total uptake is the autotrophic uptake?</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K * z</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="co"># TOTAL UPTAKE = U + (Equilibrium nitrate * K * z)  </span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>daily_output_cupe.df <span class="ot">&lt;-</span> daily_output_cupe.df <span class="sc">%&gt;%</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">U_het =</span> N_e<span class="sc">*</span>K<span class="sc">*</span>z,      </span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_tot =</span> U_het <span class="sc">+</span> U, </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_auto_perc =</span> <span class="dv">100</span><span class="sc">*</span>U<span class="sc">/</span>U_tot)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>U_auto_avg <span class="ot">&lt;-</span> <span class="fu">mean</span>(daily_output_cupe.df<span class="sc">$</span>U_auto_perc) <span class="co">#4.7% on average</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>Uauto_perc_cupe <span class="ot">&lt;-</span> <span class="fu">plot_autoUperc</span>(<span class="at">data=</span>daily_output_cupe.df, <span class="at">plot_title =</span> <span class="st">"Daily autotrophic uptake (as % of total uptake), Rio Cupeyes, PR"</span>)</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>Uauto_perc_cupe </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20cupe-%20percent%20autotrophic%20NO3%20uptake-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="do">#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ggplotly(Uauto_plot_cupe)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="save-updated-model-output-datasets-2" class="level6">
+<h6 class="anchored" data-anchor-id="save-updated-model-output-datasets-2">Save updated model output datasets</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># path = here("N_uptake_NEON/data/model_output/cupe_output_daily")</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(daily_output_cupe.df, file=path)</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly")</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(N_output_cupe.df, file=path.h)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="wlou" class="level4">
+<h4 class="anchored" data-anchor-id="wlou">WLOU</h4>
+<p>Ouptuts and visualizations for West St Louis Creek, Grand, CO</p>
+<section id="load-model-fits-and-data-3" class="level6">
+<h6 class="anchored" data-anchor-id="load-model-fits-and-data-3">Load model fits and data</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model fit ______________________________________________________</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>wlou.fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_fits/wlou.fit.rds"</span>))</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="co"># if working from model run</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="co"># wlou.fit &lt;- fit.wlou</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="do">########## Load model data _____________________________________________________</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a><span class="co"># data from model</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>wlou.modeldata <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/model_datalist/wlou.data.rds"</span>))</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a><span class="do">###### Load dataset (includes datatime info, which model data does not) _______</span></span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a><span class="co"># full dataset</span></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/wlou_clean.csv"</span>)</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>wlou.df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path) <span class="sc">%&gt;%</span></span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"US/Mountain"</span>), </span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a><span class="co"># hourly dataset</span></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a>path_h <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv"</span>)</span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>wlou.df.h <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(path_h) <span class="sc">%&gt;%</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">local_datetime =</span> <span class="fu">with_tz</span>(local_datetime, <span class="at">tzone=</span><span class="st">"US/Mountain"</span>), </span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a>         <span class="at">model_datetime =</span> local_datetime <span class="sc">-</span> <span class="fu">hours</span>(<span class="dv">4</span>))  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="extract-model-parameters-and-real-data-values-3" class="level6">
+<h6 class="anchored" data-anchor-id="extract-model-parameters-and-real-data-values-3">Extract model parameters and real-data values</h6>
+<p>First, check the fit for sigmas and betas (“sigma”, “sigma_U”, “b0”, “b1”), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a WLOU tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Inference for Stan model: anon_model.
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.05    0.00 0.00  0.05  0.05  0.05  0.05  0.05  5201    1
+sigma_U  0.41    0.00 0.03  0.35  0.39  0.41  0.43  0.47  2253    1
+b0      -2.64    0.01 0.57 -3.74 -3.03 -2.64 -2.25 -1.52  3282    1
+b1       0.11    0.00 0.07 -0.02  0.07  0.11  0.16  0.24  3283    1
+
+Samples were drawn using NUTS(diag_e) at Mon Mar 10 15:19:42 2025.
+For each parameter, n_eff is a crude measure of effective sample size,
+and Rhat is the potential scale reduction factor on split chains (at 
+convergence, Rhat=1).</code></pre>
+</div>
+</div>
+</section>
+<section id="create-visualizations---west-st.-louis-creek-co" class="level6">
+<h6 class="anchored" data-anchor-id="create-visualizations---west-st.-louis-creek-co">Create visualizations - West St.&nbsp;Louis Creek, CO</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## N Model fit to data ________________________________________________</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="do">######  N model fit over time  #######</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="co"># N_and_Npred_wlou &lt;- N_output_wlou.df %&gt;%</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   #group_by(year(model_datetime_wlou)) %&gt;%</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   filter(model_jday &gt;= 35 &amp; model_jday &lt;= 60) %&gt;%  # to see the little boxes better...</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggplot(aes(x=mod_hours)) +</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point(aes(y=N_conc)) + </span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_line(aes(y=N_conc_pred), col='red')+</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs(</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="co">#     x="Time (h)", y=expression("N"~(mmol~m^-3))</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   ) +</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("NEON: West St. Louis Creek N data + model predictions") +</span></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   facet_wrap(~yr_jday) +</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_wlou <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_ts</span>(<span class="at">data=</span>N_output_wlou.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: West St. Louis Creek, CO "</span>)</span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=6,height=6)</span></span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>N_Npred_ts_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="do">### w. credible interval ribbon</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_wlou <span class="ot">&lt;-</span> <span class="fu">plot_Nmodelfit_tsCI</span>(<span class="at">data=</span>N_output_wlou.df, <span class="at">start_jday =</span> <span class="dv">35</span>, <span class="at">end_jday =</span> <span class="dv">60</span>, <span class="at">plot_title =</span> <span class="st">"NEON N data + model predictions: West St. Louis Creek, CO"</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6,height=6)</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>N_Npred_tsCI_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="do">######  N-pred vs N  #######</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Npred_v_N_wlou &lt;- ggplot(data = N_output_wlou.df, aes(x=N_conc, y=N_conc_pred)) +</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs( x=expression("measured N"~(mu*mol~L^-1)), # fcn changed both to mmol~m^-3</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="co">#         y=expression("modeled N"~(mu*mol~L^-1))  # ~ = a space, * = no space</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="co">#       ) + </span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("Measured N vs predicted N, West St. Louis Creek, CO") +</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_abline(intercept = 0, slope = 1, color = "red") + </span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>Npred_v_N_wlou <span class="ot">&lt;-</span> <span class="fu">plot_Npred_v_Nobs</span>(<span class="at">data=</span>N_output_wlou.df, <span class="at">plot_title=</span><span class="st">"Predicted N vs. measured N, West St. Louis Creek, CO"</span>)</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=6, height=6)</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>Npred_v_N_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Equifinality checks ________________________________________________</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs U  #######  </span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="co"># KvU_wlou &lt;- ggplot(data=daily_output_wlou.df, aes(y=K_mod_avg_wlou, x=U_mod_avg_wlou)) +</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs(y=expression("modeled K"~(d^-1)),</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co">#        x=expression("modeled U"~(mmol~m^-2~d^-1))</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         ) + </span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U") + </span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="co">#   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>KvU_wlou <span class="ot">&lt;-</span> <span class="fu">plot_KvU</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U"</span>)</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=7.5, height=6)</span></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>KvU_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! K vs N_e  #######  </span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="co"># KvNe_wlou &lt;- ggplot(data=daily_output_wlou.df, aes(y=K, x=N_e)) +</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    geom_point() + </span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="co">#    labs(y=expression("modeled K"~(d^-1)),</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="co">#         x=expression("modeled N_e"~(mmol~m^-3)) </span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="co">#         ) + </span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="co">#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N") + </span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="co">#    # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>KvNe_wlou <span class="ot">&lt;-</span> <span class="fu">plot_KvNe</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, West St. Louis Creek, CO: modeled K vs modeled equilibrium N"</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=7.5, height=6)</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>KvNe_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="do">####### Check equifinality!! U vs N_e  #######  </span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="co"># UvNe_wlou &lt;- ggplot(data=daily_output_wlou.df, aes(y=U, x=N_e)) +</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    geom_point() + </span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="co">#    labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="co">#         x=expression("modeled N_e"~(mmol~m^-3)) </span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a><span class="co">#         ) + </span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="co">#    ggtitle("Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N") + </span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>UvNe_wlou <span class="ot">&lt;-</span> <span class="fu">plot_UvNe</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"Equifinality check, West St. Louis Creek, CO: modeled U vs modeled equilibrium N"</span>)</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=7.5, height=6)</span></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>UvNe_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Other parameter visualizations ______________________________________</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="do">######## K over time  #######  </span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="co"># K_v_time_wlou &lt;- ggplot(data = daily_output_wlou.df, aes(x=d, y=K)) +</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   # geom_point(y = sumlight.real, color = 'gold') +</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   # ADD IN HIGH AND LOW CIs</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   # xlab("Julian day") + ylab("modeled K (day -1)") + # daily change in N concentration</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs( x= "Index", </span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="co">#         y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="co">#       ) + </span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   #ylim(0,20) +</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("modeled K over time, West St. Louis Creek, CO") +</span></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>K_v_time_wlou <span class="ot">&lt;-</span> <span class="fu">plot_K_ts</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"modeled K over time, West St. Louis Creek, CO"</span>)</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=6.5, height=6)</span></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>K_v_time_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="do">##### to clip: no function yet</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="co"># K_time_clip_wlou &lt;- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=K_mod_avg_wlou)) +</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   # geom_point(y = sumlight.real, color = 'gold') +</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   # ADD IN HIGH AND LOW CIs</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   xlab("Julian day") + ylab("modeled K (day -1)") + # ??? UNITS?</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   ylim(0,10) +</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("modeled K over time, West St. Louis Creek, CO - ylim = 0,10") +</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz()</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a><span class="co"># K_time_clip_wlou</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a><span class="do">######## U over time  #######  </span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a><span class="co"># U_time_wlou &lt;- ggplot(data = daily_output_wlou.df, aes(x=d, y=U)) +</span></span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a><span class="co">#   # geom_point(y = sumlight.real_wlou, color = 'gold') +</span></span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a><span class="co">#   # ADD IN HIGH AND LOW CIs</span></span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a><span class="co">#   #xlab("Julian day") + ylab("modeled U (mmol/m2/day)") + </span></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs( x= "Index", </span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space</span></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a><span class="co">#       ) + </span></span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a><span class="co">#   #ylim(0,1) +</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a><span class="co">#   #ggtitle("modeled U over time, Big Creek 2019 pooled model w real light") +</span></span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("Diel nitrate uptake (modeled), West St. Louis Creek, CO") +</span></span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a>U_time_wlou <span class="ot">&lt;-</span> <span class="fu">plot_U_ts</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title=</span><span class="st">"Diel nitrate uptake (modeled), West St. Louis Creek, CO"</span>)</span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a><span class="co">#quartz(width=6, height=6)</span></span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a>U_time_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># U_time_clip_wlou &lt;- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=U_mod_avg_wlou)) +</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    geom_point() +</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="co">#    # geom_point(y = sumlight.real, color = 'gold') +</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="co">#    # ADD IN HIGH AND LOW CIs</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="co">#    xlab("Julian day") + ylab("modeled U (mmol/m2/day)") +</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="co">#    ylim(0,1) +</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="co">#    ggtitle("modeled U over time, West St. Louis Creek, CO - ylim = 0-1") +</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a><span class="co">#    theme_bw()</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="co">#  quartz()</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a><span class="co">#  U_time_clip_wlou</span></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a><span class="do">######## U vs sumlight  #######  </span></span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a><span class="co"># U_vs_light_wlou &lt;- ggplot(data = daily_output_wlou.df, aes(x=sumlightReal, y=U)) +</span></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a><span class="co">#   #xlab("true light (satellite)") + ylab("modeled U (mmol/m2/day)") +</span></span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a><span class="co">#   # xlab("light (satellite)") + ylab("modeled U (mmol/m2/day)") +</span></span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a><span class="co">#   labs( x= "light (satellite)", </span></span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a><span class="co">#         y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space</span></span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a><span class="co">#       ) + </span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a><span class="co">#   scale_x_log10() + scale_y_log10() + </span></span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO") +</span></span>
+<span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a><span class="co">#   #ylim = c(-0.2, 1) +</span></span>
+<span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-29"><a href="#cb44-29" aria-hidden="true" tabindex="-1"></a>U_vs_light_wlou <span class="ot">&lt;-</span> <span class="fu">plot_UvLight</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"Scatterplot of NO3 uptake and daily light: West St. Louis Creek, CO"</span>)</span>
+<span id="cb44-30"><a href="#cb44-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-31"><a href="#cb44-31" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=6.5, height=6)</span></span>
+<span id="cb44-32"><a href="#cb44-32" aria-hidden="true" tabindex="-1"></a>U_vs_light_wlou</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20create%20visualizations-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="compare-u_total-and-u_auto-3" class="level6">
+<h6 class="anchored" data-anchor-id="compare-u_total-and-u_auto-3">Compare U_total and U_auto</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="co"># TOTAL UPTAKE = U + (Equilibrium nitrate * K)  </span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>daily_output_wlou.df <span class="ot">&lt;-</span> daily_output_wlou.df <span class="sc">%&gt;%</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">U_het =</span> N_e<span class="sc">*</span>K<span class="sc">*</span>z,      </span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_tot =</span> U_het <span class="sc">+</span> U, </span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">U_auto_perc =</span> <span class="dv">100</span><span class="sc">*</span>U<span class="sc">/</span>U_tot)</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>U_auto_avg <span class="ot">&lt;-</span> <span class="fu">mean</span>(daily_output_wlou.df<span class="sc">$</span>U_auto_perc) <span class="co">#10.3% on average</span></span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Uauto_plot_wlou &lt;- ggplot(data=daily_output_wlou.df, aes(x=d, y=U_auto_perc)) +</span></span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a><span class="co">#   geom_point() + </span></span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   xlab("Index") + ylab("Percent autotrophic uptake") + </span></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   ggtitle("Percent of autotrophic uptake each day, West St. Louis Creek, CO") + </span></span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a><span class="co">#   theme_bw()</span></span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>Uauto_perc_wlou <span class="ot">&lt;-</span> <span class="fu">plot_autoUperc</span>(<span class="at">data=</span>daily_output_wlou.df, <span class="at">plot_title =</span> <span class="st">"Daily  autotrophic uptake (as % of total uptake), West St. Louis Creek, CO"</span>)</span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a><span class="co"># quartz(width=7.5, height=6)</span></span>
+<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>Uauto_perc_wlou </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05CLIP_Load-and-visualize-model-fits_NEON_files/figure-html/-%20wlou-%20percent%20autotrophic%20NO3%20uptake-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="do">#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ggplotly(Uauto_plot_wlou)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="save-updated-model-output-datasets-3" class="level6">
+<h6 class="anchored" data-anchor-id="save-updated-model-output-datasets-3">Save updated model output datasets</h6>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># path = here("N_uptake_NEON/data/model_output/wlou_output_daily")</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(daily_output_wlou.df, file=path)</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly")</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="co"># write_csv(N_output_wlou.df, file=path.h)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+</section>
+<section id="assemble-and-save-mean-median-95-qi-tibble-for-all-sites" class="level3">
+<h3 class="anchored" data-anchor-id="assemble-and-save-mean-median-95-qi-tibble-for-all-sites">Assemble and save mean, median, 95% QI tibble for all sites</h3>
+<p>Combine the site tibbles into one large tibble, then save it</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Bind then save daily parameters (K, U, N_e)  _________________________</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="co"># daily_summary_all.df &lt;- bind_rows()</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="co"># path &lt;- here()</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="co"># saveRDS(daily_summary_all.df, path)</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a><span class="do">########## Bind then save hourly parameters (N_pred)  ___________________________</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="co"># hourly_summary_all.df &lt;- bind_rows()</span></span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a><span class="co"># path2 &lt;- here()</span></span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a><span class="co"># saveRDS(hourly_summary_all.df, path2)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="create-whole-dataset-visualizations" class="level3">
+<h3 class="anchored" data-anchor-id="create-whole-dataset-visualizations">Create whole-dataset visualizations</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="do">########## Violin plots _______________________________________________</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="do">##### K</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="do">##### U</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a><span class="do">##### N_e</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

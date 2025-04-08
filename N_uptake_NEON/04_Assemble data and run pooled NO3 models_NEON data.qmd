@@ -94,7 +94,7 @@ bigc.plot <- bigc.df.h %>%
   labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Big Creek nitrate") +
   theme_bw()
 
-quartz()
+quartz(width = 10, height = 4.5)
 bigc.plot
 
 ```
@@ -130,13 +130,12 @@ plot(bigc.df.h$model_datetime, bigc.df.h$mod_light, type='l') #daily rises and f
 
 ######## Determine partial model days ___________________________________________
 
-head(bigc.df.h$model_jday) # 2021_32 is the first model day (complete)
-tail(bigc.df.h$model_jday) #2022_364 is the last model day (complete)
+head(bigc.df.h$yr_jday) # 2021_56 is the first model day (complete)
+tail(bigc.df.h$yr_jday) #2023_350 is the last model day (complete)
 
-bigc.df.h$yr_jday
-# how many hours are in the last model day?  Just 20. 
+# how many hours are in the first and last model day? full 24h 
 bigc.df.h %>%
-  filter(model_jday == 32) %>%
+  filter(yr_jday == '2023_350') %>%
   summarize(count = n())
 
 #lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
@@ -144,7 +143,7 @@ bigc.df.h %>%
 ######## Create ideal sumlight data from full dataset _____________________
 
 bigc.sumlightIdeal.df.h <- bigc.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs = sum(mod_light != 0), 
               sum_of_light = sum(mod_light),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -152,18 +151,18 @@ bigc.sumlightIdeal.df.h <- bigc.df.h %>%
               sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
 
 # no longer need to remove days from either dataframe, since grouping by model day. 
-View(bigc.sumlight.df.h)
+View(bigc.sumlightIdeal.df.h)
 
-summary(bigc.sumlight.df.h)
-head(bigc.sumlight.df.h)  # 2021-32
-tail(bigc.sumlight.df.h)  # 2022-364
+summary(bigc.sumlightIdeal.df.h)
+head(bigc.sumlightIdeal.df.h)  # 2021-56
+tail(bigc.sumlightIdeal.df.h)  # 2023-350
 # bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
 # Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
-which(bigc.sumlight.df.h$light.hrs == 0) #none!
-bigc.sumlight.df.h$model_day[which(bigc.sumlight.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+which(bigc.sumlightIdeal.df.h$light.hrs == 0) #none!
+bigc.sumlightIdeal.df.h$model_day[which(bigc.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
 
 # darkdays <- 227 # c(227)
 # 
@@ -181,7 +180,7 @@ bigc.sumlight.df.h$model_day[which(bigc.sumlight.df.h$light.hrs == 0)] #227 - ge
 
 ## Standardize terms for model
 light <- bigc.df.h$mod_light    
-sumlight.ideal <- bigc.sumlight.df.h$sumlight.trapz
+sumlight.ideal <- bigc.sumlightIdeal.df.h$sumlight.trapz
 
 
 ########  Real daily light (from NSRDB/ satellite) _____________________________
@@ -197,7 +196,7 @@ sumlight.ideal <- bigc.sumlight.df.h$sumlight.trapz
 # View(bigc19_sat_sumlight_clip) 
 
 bigc.sumlightReal.df.h <- bigc.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
               sum_of_light.Real = sum(GHI_wm2),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -213,7 +212,7 @@ sumlight.real <-  bigc.sumlightReal.df.h$sumlightReal.trapz
 
 set.seed(0220)
 
-nday <-  198 # 39
+nday <-  209 # 39
 
 N_init <- bigc.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
 concMA <- matrix(unlist(bigc.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -221,7 +220,7 @@ concMA <- matrix(unlist(bigc.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(bigc.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(bigc.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #depth in m based on Kelly Aho's dataset - constant for now
+z <- 0.2 #~mean depth in m based on Kelly Aho's dataset (rounded up from ~ 1.5) - constant for now
 zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
@@ -241,9 +240,11 @@ lightMA <- matrix(light, nrow=24)
 data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
 
 # Fit the model
-fit.bigc19 <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+fit.bigc <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
 
-print(fit.bigc19)
+# check the summary sigma and beta parameters
+summary(fit.bigc)
+print(fit.bigc, pars=c("sigma", "sigma_U", "b0", "b1"))
 
 ```
 
@@ -253,15 +254,15 @@ print(fit.bigc19)
 #| output: false
 #| message: false
 
-path <- here("N_uptake_NEON/data/model_fits/cari.fit.rds")
-saveRDS(fit.cari, path)
+path <- here("N_uptake_NEON/data/model_fits/bigc.fit.rds")
+saveRDS(fit.bigc, path)
 
-path2 <- here("N_uptake_NEON/data/model_datalist/cari.data.rds")
+path2 <- here("N_uptake_NEON/data/model_datalist/bigc.data.rds")
 saveRDS(data, path2)
 
 # To reload: 
-# fit.cari <- readRDS(path)
-data.cari <- readRDS(path2)
+# fit.bigc <- readRDS(path)
+# data.bigc <- readRDS(path2)
 
 ```
 
@@ -364,7 +365,7 @@ cari.df.h %>%
 ######## Create ideal sumlight data from full dataset _____________________
 
 cari.sumlightIdeal.df.h <- cari.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs = sum(mod_light != 0), 
               sum_of_light = sum(mod_light),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -372,18 +373,18 @@ cari.sumlightIdeal.df.h <- cari.df.h %>%
               sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
 
 # no longer need to remove days from either dataframe, since grouping by model day. 
-View(cari.sumlight.df.h)
+View(cari.sumlightIdeal.df.h)
 
-summary(cari.sumlight.df.h)
-head(cari.sumlight.df.h)  # 2021-32
-tail(cari.sumlight.df.h)  # 2022-364
+summary(cari.sumlightIdeal.df.h)
+head(cari.sumlightIdeal.df.h)  # 2021-32
+tail(cari.sumlightIdeal.df.h)  # 2022-364
 # bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
 # Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
-which(cari.sumlight.df.h$light.hrs == 0) #none!
-cari.sumlight.df.h$model_day[which(cari.sumlight.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+which(cari.sumlightIdeal.df.h$light.hrs == 0) #none!
+cari.sumlightIdeal.df.h$model_day[which(cari.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
 
 # darkdays <- 227 # c(227)
 # 
@@ -401,7 +402,7 @@ cari.sumlight.df.h$model_day[which(cari.sumlight.df.h$light.hrs == 0)] #227 - ge
 
 ## Standardize terms for model
 light <- cari.df.h$mod_light    #bigc.df.19h$light
-sumlight.ideal <- cari.sumlight.df.h$sumlight.trapz
+sumlight.ideal <- cari.sumlightIdeal.df.h$sumlight.trapz
 
 
 ########  Real daily light (from NSRDB/ satellite) _____________________________
@@ -417,7 +418,7 @@ sumlight.ideal <- cari.sumlight.df.h$sumlight.trapz
 # View(bigc19_sat_sumlight_clip) 
 
 cari.sumlightReal.df.h <- cari.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
               sum_of_light.Real = sum(GHI_wm2),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -433,7 +434,7 @@ sumlight.real <-  cari.sumlightReal.df.h$sumlightReal.trapz
 
 set.seed(0220)
 
-nday <-  198 # 39
+nday <-   # 39
 
 N_init <- cari.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
 concMA <- matrix(unlist(cari.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -441,7 +442,7 @@ concMA <- matrix(unlist(cari.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(cari.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(cari.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #depth in m based on Kelly Aho's dataset - constant for now
+z <- 0.33 #mean depth in m based on Kelly Aho's dataset - constant for now
 zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
@@ -462,10 +463,6 @@ fit.cari <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, 
 summary(fit.cari)
 print(fit.cari, pars=c("sigma", "sigma_U", "b0", "b1"))
 
-# save the model fit summary
-# p.bigc19 <- summary(fit.bigc19)
-# p.bigc19
-
 ```
 
 ##### Save the model fit and model data as Rdata
@@ -482,7 +479,7 @@ saveRDS(data, path2)
 
 # To reload: 
 # fit.cari <- readRDS(path)
-data.cari <- readRDS(path2)
+# data.cari <- readRDS(path2)
 
 ```
 
@@ -508,14 +505,14 @@ setwd(here())
 # full dataset
 path <- here("N_uptake_NEON/data/neon_data_clean/cupe_clean.csv")
 cupe.df <- read_csv(path) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+  mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
          model_datetime = local_datetime - hours(4))  
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv")
 cupe.df.h <- read_csv(path_h) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
+  mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
          model_datetime = local_datetime - hours(4))  
 
 
@@ -534,7 +531,7 @@ cupe.plot <- cupe.df.h %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
   #geom_line() + 
-  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "West St. Louis Creek nitrate") +
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Rio Cupeyes nitrate") +
   theme_bw()
 
 quartz(width = 10, height = 4.5)
@@ -552,8 +549,9 @@ cupe.plot
 #   ~ 5:30 in June - but the satellite light has data at 4a in FEBRUARY
 
 ########  CUPE Coordinates
-lat <- 39.890673
-lon <- -105.911297
+lat <- 18.110265
+lon <- -66.986411
+
 
 ########  Calculate solar time and light, add as columns ____________________
 
@@ -571,21 +569,21 @@ plot(cupe.df.h$model_datetime, cupe.df.h$mod_light, type='l') #daily rises and f
 
 ######## Determine partial model days ___________________________________________
 
-head(cupe.df.h$model_jday) # 2021_32 is the first model day (complete)
-tail(cupe.df.h$model_jday) #2022_364 is the last model day (complete)
+head(cupe.df.h$model_jday) # 2021_01 is the first model day (complete)
+tail(cupe.df.h$model_jday) #2023_365 is the last model day (complete)
 
-cupe.df.h$yr_jday
-# how many hours are in the last model day?  Just 20. 
-cupe.df.h %>%
-  filter(model_jday == 32) %>%
-  summarize(count = n())
+# cupe.df.h$yr_jday
+# # how many hours are in the last model day?  Just 20. 
+# cupe.df.h %>%
+#   filter(model_jday == 32) %>%
+#   summarize(count = n())
 
 #lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
 cupe.sumlightIdeal.df.h <- cupe.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs = sum(mod_light != 0), 
               sum_of_light = sum(mod_light),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -593,19 +591,23 @@ cupe.sumlightIdeal.df.h <- cupe.df.h %>%
               sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
 
 # no longer need to remove days from either dataframe, since grouping by model day. 
-View(cupe.sumlight.df.h)
+View(cupe.sumlightIdeal.df.h)
 
-summary(cupe.sumlight.df.h)
-head(cupe.sumlight.df.h)  # 2021-32
-tail(cupe.sumlight.df.h)  # 2022-364
-# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
-#   filter(model_day != 226) 
-#   
+summary(cupe.sumlightIdeal.df.h)
+head(cupe.sumlightIdeal.df.h)  # 2021-01
+tail(cupe.sumlightIdeal.df.h)  # 2023-365
+
 
 # Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
-which(cupe.sumlight.df.h$light.hrs == 0) #none!
-cupe.sumlight.df.h$model_day[which(cupe.sumlight.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+which(cupe.sumlightIdeal.df.h$light.hrs == 0) # none
 
+# cupe.sumlightIdeal.df.h$model_jday[which(cupe.sumlightIdeal.df.h$light.hrs == 0)] #365 - get the model_day for 0 light
+# cupe.sumlightIdeal.df.h$`year(model_datetime)`[which(cupe.sumlightIdeal.df.h$light.hrs == 0)] # and the year is 2022
+# 
+# # taking a look at the original df
+# check.entry <- cupe.df.h %>%
+#   dplyr::filter(year(model_datetime) == 2022, 
+#                 model_jday == 365)
 # darkdays <- 227 # c(227)
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
@@ -621,8 +623,8 @@ cupe.sumlight.df.h$model_day[which(cupe.sumlight.df.h$light.hrs == 0)] #227 - ge
 # plot(cupe.sumlight.df.h$yr_jday, cupe.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
 
 ## Standardize terms for model
-light <- cupe.df.h$mod_light    #bigc.df.19h$light
-sumlight.ideal <- cupe.sumlight.df.h$sumlight.trapz
+light <- cupe.df.h$mod_light    
+sumlight.ideal <- cupe.sumlightIdeal.df.h$sumlight.trapz
 
 
 ########  Real daily light (from NSRDB/ satellite) _____________________________
@@ -638,13 +640,14 @@ sumlight.ideal <- cupe.sumlight.df.h$sumlight.trapz
 # View(bigc19_sat_sumlight_clip) 
 
 cupe.sumlightReal.df.h <- cupe.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
               sum_of_light.Real = sum(GHI_wm2),
               # sumlight = sum(mod_light)/(light.hrs),
               # sumlight.h = sum(mod_light)/24, 
               sumlightReal.trapz = trapz(hours, GHI_wm2))
 
+# which(cupe.sumlightReal.df.h$light.hrs.Real == 0)
 
 # standardize for model
 sumlight.real <-  cupe.sumlightReal.df.h$sumlightReal.trapz
@@ -654,7 +657,7 @@ sumlight.real <-  cupe.sumlightReal.df.h$sumlightReal.trapz
 
 set.seed(0220)
 
-nday <-  198 # 39
+nday <-  500 
 
 N_init <- cupe.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
 concMA <- matrix(unlist(cupe.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -662,7 +665,7 @@ concMA <- matrix(unlist(cupe.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(cupe.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(cupe.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #depth in m based on Kelly Aho's dataset - constant for now
+z <- 0.15 #mean depth in m based on Kelly Aho's dataset - constant for now
 zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
@@ -680,12 +683,10 @@ data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.idea
 # Fit the model
 fit.cupe <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
 
+
+# check the summary sigma and beta parameters
 summary(fit.cupe)
 print(fit.cupe, pars=c("sigma", "sigma_U", "b0", "b1"))
-
-# save the model fit summary
-# p.bigc19 <- summary(fit.bigc19)
-# p.bigc19
 
 ```
 
@@ -704,7 +705,7 @@ saveRDS(data, path2)
 
 # To reload: 
 # fit.cupe <- readRDS(path)
-data.cupe <- readRDS(path2)
+# data.cupe <- readRDS(path2)
 
 ```
 
@@ -805,7 +806,7 @@ wlou.df.h %>%
 ######## Create ideal sumlight data from full dataset _____________________
 
 wlou.sumlightIdeal.df.h <- wlou.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs = sum(mod_light != 0), 
               sum_of_light = sum(mod_light),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -813,18 +814,18 @@ wlou.sumlightIdeal.df.h <- wlou.df.h %>%
               sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
 
 # no longer need to remove days from either dataframe, since grouping by model day. 
-View(wlou.sumlight.df.h)
+View(wlou.sumlightIdeal.df.h)
 
-summary(wlou.sumlight.df.h)
-head(wlou.sumlight.df.h)  # 2021-32
-tail(wlou.sumlight.df.h)  # 2022-364
+summary(wlou.sumlightIdeal.df.h)
+head(wlou.sumlightIdeal.df.h)  # 2021-32
+tail(wlou.sumlightIdeal.df.h)  # 2022-364
 # bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
 # Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
-which(wlou.sumlight.df.h$light.hrs == 0) #none!
-wlou.sumlight.df.h$model_day[which(wlou.sumlight.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+which(wlou.sumlightIdeal.df.h$light.hrs == 0) #none!
+wlou.sumlightIdeal.df.h$model_day[which(wlou.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
 
 # darkdays <- 227 # c(227)
 # 
@@ -842,7 +843,7 @@ wlou.sumlight.df.h$model_day[which(wlou.sumlight.df.h$light.hrs == 0)] #227 - ge
 
 ## Standardize terms for model
 light <- wlou.df.h$mod_light    #bigc.df.19h$light
-sumlight.ideal <- wlou.sumlight.df.h$sumlight.trapz
+sumlight.ideal <- wlou.sumlightIdeal.df.h$sumlight.trapz
 
 
 ########  Real daily light (from NSRDB/ satellite) _____________________________
@@ -858,7 +859,7 @@ sumlight.ideal <- wlou.sumlight.df.h$sumlight.trapz
 # View(bigc19_sat_sumlight_clip) 
 
 wlou.sumlightReal.df.h <- wlou.df.h %>%
-  group_by(year(model_datetime), model_jday) %>%  # with multiple years, need to group by the year-jday column
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
     summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
               sum_of_light.Real = sum(GHI_wm2),
               # sumlight = sum(mod_light)/(light.hrs),
@@ -882,7 +883,7 @@ concMA <- matrix(unlist(wlou.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(wlou.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(wlou.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #depth in m based on Kelly Aho's dataset - constant for now
+z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.4) - constant for now
 zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)

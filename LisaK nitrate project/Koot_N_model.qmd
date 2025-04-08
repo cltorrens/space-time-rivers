@@ -1,0 +1,177 @@
+---
+title: "Kootenai diel NO3 modeling"
+author: "Bob Hall"
+format: html
+editor: visual
+---
+
+## Modeling two station diel uptake
+
+
+
+## First:  set upstream based on a one station model
+Two station requires an upstream boundary condition.  we will set this upstream boundary as if the Kootenai river is infinitely long and via using a one-station model. This assumption is of course false, but how the upstream is set should not affect the subsequent two station approach
+
+The model:
+
+$$N_{u,t}=N_{u,\Delta t}+\frac{UL_t}{\bar z \sum L_t}+K(N_b-N_{u,\Delta t})\Delta t$$
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+time1d<-with_tz( seq(ymd_hms('2022-06-01 04:00:00', tz = "America/Denver"), ymd_hms('2022-06-02 03:30:00', tz = "America/Denver"), by='30 min'), tz= "UTC")
+
+solar.time1d<-streamMetabolizer::convert_UTC_to_solartime(time1d, longitude= -116.06)
+  
+light<-streamMetabolizer::calc_light(
+  solar.time=solar.time1d,
+  latitude=48.63,
+  longitude=-116.06,
+  max.PAR = 2326
+)
+
+Q<-500 #m/s
+z<- 3 #m
+N_b<- 280 #mg / m3
+GPP<- 6 #g O2 m-2 d-1
+U<- 1000*(GPP/32)*0.02*14  #mg N m-2 d-1  Assuming NO3 uptake os 2% of GPP.  Just guessing here
+deltat<- 30/1440
+tau<-200/1440  #travel time, in days
+K<- 1
+proc_err<-20
+
+
+Npred<-N_b-15
+
+for (i in 2:length (light) ){
+
+  Npred[i]= Npred[i-1] -(U*light[i]/(z* sum(light))) + K*(N_b-Npred[i-1] )*deltat +rnorm(1,0,proc_err)*deltat
+
+}
+
+plot(solar.time1d, Npred)
+
+
+
+
+
+
+```
+
+
+many days
+
+
+```{r}
+time30d<-with_tz( seq(ymd_hms('2022-07-01 04:00:00', tz = "America/Denver"), ymd_hms('2022-07-31 03:30:00', tz = "America/Denver"), by='30 min'), tz= "UTC")
+
+solar.time30d<-streamMetabolizer::convert_UTC_to_solartime(time30d, longitude= -116.06)
+  
+light30d<-streamMetabolizer::calc_light(
+  solar.time=solar.time30d,
+  latitude=48.63,
+  longitude=-116.06,
+  max.PAR = 2326
+)
+
+#make dataframe
+up_N<- data.frame(time=time30d, light=light30d)
+up_N$day<-rep(seq(1:30), each=48)
+daily_values<- up_N %>% group_by(day) %>%  summarize(sumlight=sum(light))
+daily_values$U<-rep(U, 30)+rnorm(30,0,2)
+
+for (i in 2:length (up_N$light) ){
+  
+  sumligheachday <- daily_values$sumlight[daily_values$day==up_N$day[[i]]]
+  Ueachday <- daily_values$U[daily_values$day==up_N$day[[i]]]
+
+  Npred[i]= Npred[i-1] -(Ueachday*up_N$light[i]/(z *sumligheachday )) + K*(N_b-Npred[i-1] )*deltat +rnorm(1,0,proc_err)*deltat
+
+}
+
+
+up_N$N<-Npred
+plot (up_N$time, Npred, type="l")
+
+
+
+
+
+
+
+
+
+
+```
+
+
+## Now for 2 station model
+
+This model is different and simpler than the one station:
+
+$$N_{d,t+\tau}=N_{u,t}+\frac{U\sum_{t}^{t+\tau} L_t}{\bar z \sum L_t}+ \frac{F\tau}{\bar z}$$
+$\tau$ is travel time between the sensors, $u,d$ are upstream and downstream, and $F$ is time invariant net NO3 flux in areal units.  This could be positive (if  nitrification $>$ uptake) or negative.  And uptake is some unknown combination of assimilatory and denitrification.  $U$ is assimilation by photoautotrophs.
+
+
+```{r}
+F=-60
+
+Ndown=rep(NA,6)
+
+for (i in 1:length (up_N$light) ){
+  
+sumligheachday <- daily_values$sumlight[daily_values$day==up_N$day[[i]]]
+Ueachday <- daily_values$U[daily_values$day==up_N$day[[i]]]
+
+Ndown[i+6] = up_N$N[i]  + -70* sum(up_N$light[i:i+6]) /(z *sumligheachday ) + F*tau/z +rnorm(1,0,0.1)
+}
+                          
+                          
+plot(up_N$time[1:150]+200*60, up_N$N[1:150])
+points (up_N$time[1:150], Ndown[1:150], pch=16)
+
+Ndowncorr<- Ndown[-(1:6)]
+
+N_diff<-Ndowncorr-up_N$N
+
+plot(N_diff[1:150])
+
+Ndata<-up_N
+Ndata$Ndown<-head(Ndown, -6)
+
+write.csv(Ndata, file="Ndata.csv")
+
+```
+
+
+
+# estimate, not done yet
+```{r}
+
+Nmle<-function(P) {
+  
+  for (i in 1:length (up_N$light) ){
+  
+sumligheachday <- daily_values$sumlight[daily_values$day==up_N$day[[i]]]
+#Ueachday <- daily_values$U[daily_values$day==up_N$day[[i]]]
+
+Ndownmod[i+6] = up_N$N[i]  - P[1]* sum(up_N$light[i:i+6]) /(z *sumligheachday ) + P[2]*tau/z
+}
+  
+}
+  
+```
+
+## Kurt's uptake
+
+
+```{r}
+kurt_est<- read.csv("/Users/bob.hall/Nfixation/Ndata_uptake_estimate.csv")
+kurt_est<- kurt_est[-c(1434:1440),]
+kurt_est$dtime<- with_tz(as_datetime(kurt_est$time), tz="America/Denver")
+
+plot(kurt_est$dtime[1:480], kurt_est$uptake_rate_U[1:480])
+
+```
