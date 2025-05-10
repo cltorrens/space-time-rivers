@@ -1,0 +1,3132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml packageId="edi.1735.2" system="https://pasta.edirepository.org"
+  xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0"
+  xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0 https://eml.ecoinformatics.org/eml-2.2.0/eml.xsd">
+   <access
+    authSystem="https://pasta.edirepository.org/authentication"
+    order="allowFirst" scope="document"
+      system="https://pasta.edirepository.org">
+      <allow>
+         <principal>uid=EDI,o=EDI,dc=edirepository,dc=org</principal>
+         <permission>all</permission>
+      </allow>
+      <allow>
+         <principal>uid=kaho,o=EDI,dc=edirepository,dc=org</principal>
+         <permission>all</permission>
+      </allow>
+      <allow>
+         <principal>public</principal>
+         <permission>read</permission>
+      </allow>
+   </access>
+   <dataset>
+      <alternateIdentifier
+        system="https://doi.org">doi:10.6073/pasta/18dcc1871ee71cf0b69f2ee4082839d0</alternateIdentifier><title>Gas exchange velocities (k600), gas exchange rates (K600), and hydraulic geometries for streams and rivers derived from the NEON Reaeration field and lab collection data product (DP1.20190.001)</title>
+      <creator>
+         <individualName>
+            <givenName>Kelly</givenName>
+            <givenName>S</givenName>
+            <surName>Aho</surName>
+         </individualName>
+         <organizationName>Michigan State University</organizationName>
+         <electronicMailAddress>kellyaho@msu.edu</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-1992-6378</userId>
+      </creator>
+      <creator>
+         <individualName>
+            <givenName>Kaelin</givenName>
+            <surName>Cawley</surName>
+         </individualName>
+         <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+         <electronicMailAddress>kcawley@battelleecology.org</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-0443-0070</userId>
+      </creator>
+      <creator>
+         <individualName>
+            <givenName>Robert</givenName>
+            <surName>Hensley</surName>
+         </individualName>
+         <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+         <electronicMailAddress>hensley@battelleecology.org</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0001-8542-087X</userId>
+      </creator>
+      <creator>
+         <individualName>
+            <givenName>Robert</givenName>
+            <givenName>O.</givenName>
+            <surName>Hall</surName>
+         </individualName>
+         <organizationName>Flathead Lake Biological Station, University of Montana</organizationName>
+         <electronicMailAddress>bob.hall@flbs.umt.edu</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-0763-5346</userId>
+      </creator>
+      <creator>
+         <individualName>
+            <givenName>Walter</givenName>
+            <surName>Dodds</surName>
+         </individualName>
+         <organizationName>Kansas State University</organizationName>
+         <electronicMailAddress>wkdodds@ksu.edu</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-6666-8930</userId>
+      </creator>
+      <creator>
+         <individualName>
+            <givenName>Keli</givenName>
+            <surName>Goodman</surName>
+         </individualName>
+         <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+         <electronicMailAddress>kgoodman@battelleecology.org</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">0000-0001-7121-2017</userId>
+      </creator>
+      <associatedParty>
+         <organizationName>National Ecological Observatory Network (NEON)</organizationName>
+         <userId
+      directory="https://ror.org/">https://ror.org/04j43p132</userId>
+         <role>Original data provider</role>
+      </associatedParty>
+      <pubDate>2024-10-04</pubDate>
+      <abstract>
+         <para>This dataset contains estimates of gas exchange velocity, gas exchange rate, and hydraulic parameters for streams calculated from tracer-gas experiments and conservative tracer injections collected by the National Ecological Observatory Network (NEON). All input data were collected by NEON and is available on the NEON data portal at https://data.neonscience.org. Specifically, the NEON Reaeration field and lab collection data product (DP1.20190.001) was used to calculate these estimates. Gas exchange was estimated in two ways: first, following an unpooled frequentist approach and second, following a partially pooled Bayesian approach.  In addition, a salt-correction was applied to gas exchange estimates for sites where it was possible and necessary.  All estimates of gas exchange are included in the file gasExchange_ds.csv.  A recommended selection of these estimates is included in the dataset (best_k600_mPerDay and best_K600_mPerDay).  The stanfit objects used for the partially pooled Bayesian approach are also included as site-specific model objects for gas exchange velocities and rates.  In addition, water velocity was calculated from conservative tracer injections, and mean water depth was calculated from these water velocity estimates and measurements of wetted width and water discharge.  All hydraulic parameters are included in the file hydraulics_ds.csv. All processing code is available in the reaRates R package.   </para>
+         <para>NEON is sponsored by the National Science Foundation (NSF) and operated under cooperative agreement by Battelle. This material is based in part upon work supported by NSF through the NEON Program.</para>
+      </abstract>
+      <keywordSet>
+         <keyword>gas exchange rate</keyword>
+         <keyword>water velocity</keyword>
+         <keyword>hydraulics</keyword>
+         <keyword>gas exchange velocity</keyword>
+      </keywordSet>
+      <keywordSet>
+         <keyword>gas flux</keyword>
+         <keyword>streams</keyword>
+         <keywordThesaurus>LTER Controlled Vocabulary</keywordThesaurus>
+      </keywordSet>
+      <intellectualRights>
+         <para>This information is released under the Creative Commons license - Attribution - CC BY (https://creativecommons.org/licenses/by/4.0/). The consumer of these data ("Data User" herein) is required to cite it appropriately in any publication that results from its use. The Data User should realize that these data may be actively used by others for ongoing research and that coordination may be necessary to prevent duplicate publication. The Data User is urged to contact the authors of these data if any questions about methodology or results occur. Where appropriate, the Data User is encouraged to consider collaboration or co-authorship with the authors. The Data User should realize that misinterpretation of data may occur if used out of context of the original study. While substantial efforts are made to ensure the accuracy of data and associated documentation, complete accuracy of data sets cannot be guaranteed. All data are made available "as is." The Data User should be aware, however, that data are updated periodically and it is the responsibility of the Data User to check for new versions of the data. The data authors and the repository where these data were obtained shall not be liable for damages resulting from any use or misinterpretation of the data. Thank you.</para>
+      </intellectualRights>
+      <distribution
+      id="10.6073/pasta/18dcc1871ee71cf0b69f2ee4082839d0" scope="system"
+          system="https://pasta.edirepository.org"><online><url
+        function="information">https://doi.org/10.6073/pasta/18dcc1871ee71cf0b69f2ee4082839d0</url></online></distribution><coverage>
+         <geographicCoverage>
+            <geographicDescription>Rio Cupeyes NEON | CUPE | https://www.neonscience.org/field-sites/CUPE</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-66.98676</westBoundingCoordinate>
+               <eastBoundingCoordinate>-66.98676</eastBoundingCoordinate>
+               <northBoundingCoordinate>18.11352</northBoundingCoordinate>
+               <southBoundingCoordinate>18.11352</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Rio Yahuecas NEON | GUIL | https://www.neonscience.org/field-sites/GUIL</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-66.79868</westBoundingCoordinate>
+               <eastBoundingCoordinate>-66.79868</eastBoundingCoordinate>
+               <northBoundingCoordinate>18.17406</northBoundingCoordinate>
+               <southBoundingCoordinate>18.17406</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Mayfield Creek NEON | MAYF | https://www.neonscience.org/field-sites/MAYF</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-87.407688</westBoundingCoordinate>
+               <eastBoundingCoordinate>-87.407688</eastBoundingCoordinate>
+               <northBoundingCoordinate>32.960365</northBoundingCoordinate>
+               <southBoundingCoordinate>32.960365</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Pringle Creek NEON | PRIN | https://www.neonscience.org/field-sites/PRIN</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-97.782312</westBoundingCoordinate>
+               <eastBoundingCoordinate>-97.782312</eastBoundingCoordinate>
+               <northBoundingCoordinate>33.378517</northBoundingCoordinate>
+               <southBoundingCoordinate>33.378517</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Sycamore Creek NEON | SYCA | https://www.neonscience.org/field-sites/SYCA</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-111.508091</westBoundingCoordinate>
+               <eastBoundingCoordinate>-111.508091</eastBoundingCoordinate>
+               <northBoundingCoordinate>33.750993</northBoundingCoordinate>
+               <southBoundingCoordinate>33.750993</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Blue River NEON | BLUE | https://www.neonscience.org/field-sites/BLUE</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-96.624201</westBoundingCoordinate>
+               <eastBoundingCoordinate>-96.624201</eastBoundingCoordinate>
+               <northBoundingCoordinate>34.444218</northBoundingCoordinate>
+               <southBoundingCoordinate>34.444218</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>LeConte Creek NEON | LECO | https://www.neonscience.org/field-sites/LECO</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-83.50379</westBoundingCoordinate>
+               <eastBoundingCoordinate>-83.50379</eastBoundingCoordinate>
+               <northBoundingCoordinate>35.690428</northBoundingCoordinate>
+               <southBoundingCoordinate>35.690428</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Walker Branch NEON | WALK | https://www.neonscience.org/field-sites/WALK</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-84.279251</westBoundingCoordinate>
+               <eastBoundingCoordinate>-84.279251</eastBoundingCoordinate>
+               <northBoundingCoordinate>35.957378</northBoundingCoordinate>
+               <southBoundingCoordinate>35.957378</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Teakettle Creek - Watershed 2 NEON | TECR | https://www.neonscience.org/field-sites/TECR</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-119.027363</westBoundingCoordinate>
+               <eastBoundingCoordinate>-119.027363</eastBoundingCoordinate>
+               <northBoundingCoordinate>36.955931</northBoundingCoordinate>
+               <southBoundingCoordinate>36.955931</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Upper Big Creek NEON | BIGC | https://www.neonscience.org/field-sites/BIGC</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-119.257549</westBoundingCoordinate>
+               <eastBoundingCoordinate>-119.257549</eastBoundingCoordinate>
+               <northBoundingCoordinate>37.059719</northBoundingCoordinate>
+               <southBoundingCoordinate>37.059719</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Posey Creek NEON | POSE | https://www.neonscience.org/field-sites/POSE</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-78.147258</westBoundingCoordinate>
+               <eastBoundingCoordinate>-78.147258</eastBoundingCoordinate>
+               <northBoundingCoordinate>38.89431</northBoundingCoordinate>
+               <southBoundingCoordinate>38.89431</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>McDiffett Creek NEON | MCDI | https://www.neonscience.org/field-sites/MCDI</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-96.443022</westBoundingCoordinate>
+               <eastBoundingCoordinate>-96.443022</eastBoundingCoordinate>
+               <northBoundingCoordinate>38.945861</northBoundingCoordinate>
+               <southBoundingCoordinate>38.945861</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Lewis Run NEON | LEWI | https://www.neonscience.org/field-sites/LEWI</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-77.983216</westBoundingCoordinate>
+               <eastBoundingCoordinate>-77.983216</eastBoundingCoordinate>
+               <northBoundingCoordinate>39.095637</northBoundingCoordinate>
+               <southBoundingCoordinate>39.095637</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Kings Creek NEON | KING | https://www.neonscience.org/field-sites/KING</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-96.603829</westBoundingCoordinate>
+               <eastBoundingCoordinate>-96.603829</eastBoundingCoordinate>
+               <northBoundingCoordinate>39.105061</northBoundingCoordinate>
+               <southBoundingCoordinate>39.105061</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Arikaree River NEON | ARIK | https://www.neonscience.org/field-sites/ARIK</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-102.447148</westBoundingCoordinate>
+               <eastBoundingCoordinate>-102.447148</eastBoundingCoordinate>
+               <northBoundingCoordinate>39.758206</northBoundingCoordinate>
+               <southBoundingCoordinate>39.758206</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>West St Louis Creek NEON | WLOU | https://www.neonscience.org/field-sites/WLOU</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-105.915395</westBoundingCoordinate>
+               <eastBoundingCoordinate>-105.915395</eastBoundingCoordinate>
+               <northBoundingCoordinate>39.891366</northBoundingCoordinate>
+               <southBoundingCoordinate>39.891366</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Como Creek NEON | COMO | https://www.neonscience.org/field-sites/COMO</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-105.544164</westBoundingCoordinate>
+               <eastBoundingCoordinate>-105.544164</eastBoundingCoordinate>
+               <northBoundingCoordinate>40.034962</northBoundingCoordinate>
+               <southBoundingCoordinate>40.034962</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Red Butte Creek NEON | REDB | https://www.neonscience.org/field-sites/REDB</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-111.797887</westBoundingCoordinate>
+               <eastBoundingCoordinate>-111.797887</eastBoundingCoordinate>
+               <northBoundingCoordinate>40.783934</northBoundingCoordinate>
+               <southBoundingCoordinate>40.783934</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Lower Hop Brook NEON | HOPB | https://www.neonscience.org/field-sites/HOPB</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-72.329526</westBoundingCoordinate>
+               <eastBoundingCoordinate>-72.329526</eastBoundingCoordinate>
+               <northBoundingCoordinate>42.471941</northBoundingCoordinate>
+               <southBoundingCoordinate>42.471941</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>McRae Creek NEON | MCRA | https://www.neonscience.org/field-sites/MCRA</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-122.165554</westBoundingCoordinate>
+               <eastBoundingCoordinate>-122.165554</eastBoundingCoordinate>
+               <northBoundingCoordinate>44.259598</northBoundingCoordinate>
+               <southBoundingCoordinate>44.259598</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Blacktail Deer Creek NEON | BLDE | https://www.neonscience.org/field-sites/BLDE</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-110.58715</westBoundingCoordinate>
+               <eastBoundingCoordinate>-110.58715</eastBoundingCoordinate>
+               <northBoundingCoordinate>44.95011</northBoundingCoordinate>
+               <southBoundingCoordinate>44.95011</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Martha Creek NEON | MART | https://www.neonscience.org/field-sites/MART</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-121.933788</westBoundingCoordinate>
+               <eastBoundingCoordinate>-121.933788</eastBoundingCoordinate>
+               <northBoundingCoordinate>45.790835</northBoundingCoordinate>
+               <southBoundingCoordinate>45.790835</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Caribou Creek NEON | CARI | https://www.neonscience.org/field-sites/CARI</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-147.503973</westBoundingCoordinate>
+               <eastBoundingCoordinate>-147.503973</eastBoundingCoordinate>
+               <northBoundingCoordinate>65.153224</northBoundingCoordinate>
+               <southBoundingCoordinate>65.153224</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <geographicCoverage>
+            <geographicDescription>Oksrukuyik Creek NEON | OKSR | https://www.neonscience.org/field-sites/OKSR</geographicDescription>
+            <boundingCoordinates>
+               <westBoundingCoordinate>-149.143018</westBoundingCoordinate>
+               <eastBoundingCoordinate>-149.143018</eastBoundingCoordinate>
+               <northBoundingCoordinate>68.669753</northBoundingCoordinate>
+               <southBoundingCoordinate>68.669753</southBoundingCoordinate>
+            </boundingCoordinates>
+         </geographicCoverage>
+         <temporalCoverage>
+            <rangeOfDates>
+               <beginDate>
+                  <calendarDate>2014</calendarDate>
+               </beginDate>
+               <endDate>
+                  <calendarDate>2023</calendarDate>
+               </endDate>
+            </rangeOfDates>
+         </temporalCoverage>
+      </coverage>
+      <maintenance>
+         <description>
+            <para>This dataset will be updated as more data become available on the National Ecological Observatory Network Data Portal </para>
+            <para>Oct 3, 2024 - added timestamp for each experiment in gasExchange_ds_v2.csv and hydraulics_v2.csv</para>
+         </description>
+         <maintenanceUpdateFrequency>notPlanned</maintenanceUpdateFrequency>
+      </maintenance>
+      <contact>
+         <individualName>
+            <givenName>Kelly</givenName>
+            <surName>Aho</surName>
+         </individualName>
+         <organizationName>Michigan State University</organizationName>
+         <electronicMailAddress>kellyaho@msu.edu</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-1992-6378</userId>
+      </contact>
+      <contact>
+         <individualName>
+            <givenName>Kaelin</givenName>
+            <surName>Cawley</surName>
+         </individualName>
+         <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+         <electronicMailAddress>kcawley@battelleecology.org</electronicMailAddress>
+         <userId
+        directory="https://orcid.org">https://orcid.org/0000-0002-0443-0070</userId>
+      </contact>
+      <publisher>
+         <organizationName>Environmental Data Initiative</organizationName>
+         <electronicMailAddress>info@edirepository.org</electronicMailAddress>
+         <onlineUrl>https://edirepository.org</onlineUrl>
+         <userId
+              directory="https://ror.org">0330j0z60</userId>
+      </publisher>
+      <pubPlace>Environmental Data Initiative</pubPlace>
+      <methods>
+         <methodStep>
+            <description>
+               <para>The methods used to estimate gas exchange and hydraulic parameters are documented in a companion manuscript that will be simultaneously submitted for review (Title: Gas exchange velocities (k_600 ), gas exchange rates (K_600 ), and hydraulic geometries for streams and rivers derived from the NEON Reaeration field and lab collection data product (DP1.20190.001) by Kelly S. Aho, Kaelin Cawley, Robert Hensley, Robert O. Hall, Jr., Walter Dodds, Keli Goodman). </para>
+               <para>In short, the data processing pipeline used to create this dataset leverages the reaRate R package (Cawley et al., 2024).  The package estimates gas exchange velocity (k_600) and gas exchange rate (K_600) from data available on the NEON data portal.  The data products used are the NEON Reaeration field and lab collection data product (DP1.20190.001) and the Discharge field collection data product (DP1.20048.001). Data processed is included in RELEASE-2023, plus nine additional experiments that were provisional but are now included in RELEASE-2024. The package works by fitting an exponential, first-order decay function (C_x= C_0 e^(-K_d x), where C_0 and C_x are tracer-gas concentrations at the top of the study reach and at a downstream point x, respectively, and K_d is the average distance traveled by an SF6 molecule before it is emitted to the atmosphere) to the observed longitudinal decline in published SF6 concentrations and solving for K_d.  For sites where lateral inflows (e.g., groundwater inputs, overland flow, tributaries) appear to dilute SF6 concentrations, the ratio of SF6 to NaCl or NaBr is used to calculate a salt-corrected K_d value. The reaRate package uses the peaks of NaCl breakthrough curves (i.e., either from continuous injection or slug injections) to estimate the travel time between the upstream and downstream stations and then calculates v as the distance between stations divided by the travel time.  Finally, k_SF6 and K_SF6 are calculated from K_d, v, and z  (k_SF6 = z  ν K_D) and then normalized to k_600 and K_600 (k_600=k_SF6 (600/Sc_SF6 )^(-0.5)). The reaRates package includes two approaches to estimate k_600 and K_600: an un-pooled frequentist approach and a partially pooled Bayesian approach, both of which are describe in more detail in the companion data paper.  Implementation of the package and all processing described below were conducted in R 4.2.3 (R Core Team, 2023). More information about the package, including details about the individual functions and a processing pipeline, is available in the companion data descriptor. </para>
+               <para>Cawley, Kaelin, Kelly Aho, and Robert Hall. (2024). NEONScience/NEON-reaeration: v0.0.2 (v0.0.2). Zenodo. https://doi.org/10.5281/zenodo.12786089</para>
+               <para>R Core Team: R: A language and environment for statistical computing, 2023.</para>
+            </description>
+            <dataSource>
+               <title>Reaeration field and lab collection (DP1.20190.001) RELEASE 2023</title>
+               <creator>
+                  <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+                  <onlineUrl>https://www.neonscience.org/data</onlineUrl>
+                  <userId
+              directory="https://ror.org/">https://ror.org/04j43p132</userId>
+               </creator>
+               <distribution>
+                  <online>
+                     <onlineDescription>Data product</onlineDescription>
+                     <url>https://doi.org/10.48443/bk29-6c91</url>
+                  </online>
+               </distribution>
+               <contact>
+                  <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+                  <userId
+              directory="https://ror.org/">https://ror.org/04j43p132</userId>
+               </contact>
+            </dataSource>
+            <dataSource>
+               <title>Discharge field collection (DP1.20048.001) RELEASE 2023</title>
+               <creator>
+                  <organizationName>National Ecological Observatory Network</organizationName>
+                  <userId
+              directory="https://ror.org/">https://ror.org/04j43p132</userId>
+               </creator>
+               <distribution>
+                  <online>
+                     <onlineDescription>Data product</onlineDescription>
+                     <url>https://doi.org/10.48443/tys0-ze83</url>
+                  </online>
+               </distribution>
+               <contact>
+                  <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+                  <userId
+          directory="https://ror.org/">https://ror.org/04j43p132</userId>
+               </contact>
+            </dataSource>
+            <dataSource>
+               <title>Discharge field collection (DP1.20048.001) RELEASE-2024</title>
+               <creator>
+                  <organizationName>National Ecological Observatory Network</organizationName>
+               </creator>
+               <distribution>
+                  <online>
+                     <onlineDescription>Data product</onlineDescription>
+                     <url>https://doi.org/10.48443/3746-1981</url>
+                  </online>
+               </distribution>
+               <contact>
+                  <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+               </contact>
+            </dataSource>
+            <dataSource>
+               <title>Reaeration field and lab collection (DP1.20190.001) RELEASE-2024</title>
+               <creator>
+                  <organizationName>National Ecological Observatory Network</organizationName>
+               </creator>
+               <distribution>
+                  <online>
+                     <onlineDescription>Data product</onlineDescription>
+                     <url>https://doi.org/10.48443/4z25-4b94</url>
+                  </online>
+               </distribution>
+               <contact>
+                  <organizationName>National Ecological Observatory Network, Battelle</organizationName>
+               </contact>
+            </dataSource>
+         </methodStep>
+      </methods>
+      <project>
+         <title>Estimating gas exchange in NEON streams</title>
+         <personnel>
+            <individualName>
+               <givenName>Kelly</givenName>
+               <surName>Aho</surName>
+            </individualName>
+            <electronicMailAddress>kellyaho@msu.edu</electronicMailAddress>
+            <userId
+      directory="https://orcid.org">https://orcid.org/0000-0002-1992-6378</userId>
+            <role>Project leader</role>
+         </personnel>
+      </project>
+      <dataTable
+      id="d27edbd18c3bdf9ce1d013c6626ba26c" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>sites</entityName>
+         <entityDescription>metadata for sites</entityDescription>
+         <physical>
+            <objectName>sites.csv</objectName>
+            <size
+          unit="byte">2330</size>
+            <authentication
+              method="MD5">fa6d30fff31ecfdabc71111878f1ff38</authentication>
+            <dataFormat>
+               <textFormat>
+                  <numHeaderLines>1</numHeaderLines>
+                  <recordDelimiter>\r\n</recordDelimiter>
+                  <attributeOrientation>column</attributeOrientation>
+                  <simpleDelimited>
+                     <fieldDelimiter>,</fieldDelimiter>
+                     <quoteCharacter>"</quoteCharacter>
+                  </simpleDelimited>
+               </textFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+            function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/d27edbd18c3bdf9ce1d013c6626ba26c</url>
+               </online>
+            </distribution>
+         </physical>
+         <attributeList>
+            <attribute>
+               <attributeName>site</attributeName>
+               <attributeLabel>site</attributeLabel>
+               <attributeDefinition>site name, ID, URL for more information</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>latitude</attributeName>
+               <attributeLabel>latitude</attributeLabel>
+               <attributeDefinition>latitude of site</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>degree</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>longitude</attributeName>
+               <attributeLabel>longitude</attributeLabel>
+               <attributeDefinition>ongitude of site</attributeDefinition>
+               <storageType
+      typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>degree</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+         </attributeList>
+         <caseSensitive>no</caseSensitive>
+         <numberOfRecords>24</numberOfRecords>
+      </dataTable>
+      <dataTable
+      id="3fcdad91bf607dd42714f65bdf633fbf" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>formatted_inputs</entityName>
+         <entityDescription>This file contains the input values used in data processing.</entityDescription>
+         <physical>
+            <objectName>formatted_inputs.csv</objectName>
+            <size
+          unit="byte">1250967</size>
+            <authentication
+              method="MD5">86cb8778cc04c478186ce8eaac98688b</authentication>
+            <dataFormat>
+               <textFormat>
+                  <numHeaderLines>1</numHeaderLines>
+                  <recordDelimiter>\r\n</recordDelimiter>
+                  <attributeOrientation>column</attributeOrientation>
+                  <simpleDelimited>
+                     <fieldDelimiter>,</fieldDelimiter>
+                     <quoteCharacter>"</quoteCharacter>
+                  </simpleDelimited>
+               </textFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+            function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/3fcdad91bf607dd42714f65bdf633fbf</url>
+               </online>
+            </distribution>
+         </physical>
+         <attributeList>
+            <attribute>
+               <attributeName>siteID</attributeName>
+               <attributeLabel>siteID</attributeLabel>
+               <attributeDefinition>NEON site ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>namedLocation</attributeName>
+               <attributeLabel>namedLocation</attributeLabel>
+               <attributeDefinition>NEON station ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>collectDate</attributeName>
+               <attributeLabel>collectDate</attributeLabel>
+               <attributeDefinition>Date and time of field collection.</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>collectDateTrim</attributeName>
+               <attributeLabel>collectDateTrim</attributeLabel>
+               <attributeDefinition>Date and time of field collection trimmed by def.format.reaeration() function in reaRates R package.</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>Missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>stationToInjectionDistance</attributeName>
+               <attributeDefinition>Distance from injection point to sampling station</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>injectionType</attributeName>
+               <attributeLabel>injectionType</attributeLabel>
+               <attributeDefinition>Injection type for experiment</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+            enforced="yes">
+                           <codeDefinition>
+                              <code>model</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - CRI</code>
+                              <definition>Conservative tracer (i.e., NaCl) constant-rate injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - slug</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaBr</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaCl</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>slugTracerMass</attributeName>
+               <attributeLabel>slugTracerMass</attributeLabel>
+               <attributeDefinition>Mass of injected conservative tracer</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>gram</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>slugPourTime</attributeName>
+               <attributeDefinition>Date and time of slug injection of conservative salt</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>dripStartTime</attributeName>
+               <attributeLabel>dripStartTime</attributeLabel>
+               <attributeDefinition>Date and time of simultaneous inert gas and conservative tracer constant-rate injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>plateauCollectTime</attributeName>
+               <attributeLabel>plateauCollectTime</attributeLabel>
+               <attributeDefinition>UNIX timestamp when plateau sample was collected</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>number</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>backgroundSaltConc</attributeName>
+               <attributeLabel>backgroundSaltConc</attributeLabel>
+               <attributeDefinition>Background concentration of conservative tracer before injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanBackgroundCond</attributeName>
+               <attributeLabel>meanBackgroundCond</attributeLabel>
+               <attributeDefinition>Background conductivity before injection from conductivity sensor</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>microsiemens</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing data</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>backgroundSensorCond</attributeName>
+               <attributeLabel>backgroundSensorCond</attributeLabel>
+               <attributeDefinition>Conductivity time series</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>microsiemens</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>plateauSaltConc</attributeName>
+               <attributeLabel>plateauSaltConc</attributeLabel>
+               <attributeDefinition>Replicate conservative tracer concentrations during injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanPlatSaltConc</attributeName>
+               <attributeLabel>meanPlatSaltConc</attributeLabel>
+               <attributeDefinition>Mean conservative tracer concentration during injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>sdPlatSaltConc</attributeName>
+               <attributeLabel>sdPlatSaltConc</attributeLabel>
+               <attributeDefinition>Standard deviation of the replicate conservative tracer concentrations</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>plateauSaltConcClean</attributeName>
+               <attributeLabel>plateauSaltConcClean</attributeLabel>
+               <attributeDefinition>Replicate conservative tracer concentrations during injection with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanPlatSaltConcClean</attributeName>
+               <attributeLabel>meanPlatSaltConcClean</attributeLabel>
+               <attributeDefinition>Mean conservative tracer concentrations during injection minus background concentrations with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>sdPlatSaltConcClean</attributeName>
+               <attributeLabel>sdPlatSaltConcClean</attributeLabel>
+               <attributeDefinition>Standard deviation of the replicate conservative tracer concentrations with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>plateauSaltConcCleanCorr</attributeName>
+               <attributeLabel>plateauSaltConcCleanCorr</attributeLabel>
+               <attributeDefinition>Replicate conservative tracer concentrations during injection minus background concentration</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanPlatSaltConcCleanCorr</attributeName>
+               <attributeLabel>meanPlatSaltConcCleanCorr</attributeLabel>
+               <attributeDefinition>Mean of replicate conservative tracer concentrations during injection minus background concentration</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>sdPlatSaltConcCleanCorr</attributeName>
+               <attributeLabel>sdPlatSaltConcCleanCorr</attributeLabel>
+               <attributeDefinition>Standard deviation of replicate conservative tracer concentrations during injection minus background concentration</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppm</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>platSensorCond</attributeName>
+               <attributeLabel>platSensorCond</attributeLabel>
+               <attributeDefinition>Conductivity during injection from conductivity sensors</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>microsiemens</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing data</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>plateauGasConc</attributeName>
+               <attributeLabel>plateauGasConc</attributeLabel>
+               <attributeDefinition>Replicate SF6 concentrations during injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanPlatGasConc</attributeName>
+               <attributeLabel>meanPlatGasConc</attributeLabel>
+               <attributeDefinition>Mean SF6 concentration during injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>sdPlatGasConc</attributeName>
+               <attributeLabel>sdPlatGasConc</attributeLabel>
+               <attributeDefinition>Standard deviation of replicate SF6 concentrations during injection</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>plateauGasConcClean</attributeName>
+               <attributeLabel>plateauGasConcClean</attributeLabel>
+               <attributeDefinition>Replicate SF6 concentrations during injection with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanPlatGasConcClean</attributeName>
+               <attributeLabel>meanPlatGasConcClean</attributeLabel>
+               <attributeDefinition>Mean of the replicate SF6 concentrations during injection with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>sdPlatGasConcClean</attributeName>
+               <attributeLabel>sdPlatGasConcClean</attributeLabel>
+               <attributeDefinition>Standard deviation of replicate SF6 concentrations during injection with outliers removed</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>ppmv</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>unmixedStationFlag</attributeName>
+               <attributeLabel>unmixedStationFlag</attributeLabel>
+               <attributeDefinition>Indicator that the station is unmixed</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+            enforced="yes">
+                           <codeDefinition>
+                              <code>unmixedGasStation</code>
+                              <definition>Replicate SF6 concentrations indicate that the station is unmixed</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>unmixedSaltStation</code>
+                              <definition>Replicate conservative tracer concentrations indicate that the station is unmixed</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>unmixedSaltStation|unmixedGasStation</code>
+                              <definition>Replicate SF6 concentrations and conservative tracer concentrations indicate that the station is unmixed</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>wettedWidth</attributeName>
+               <attributeLabel>wettedWidth</attributeLabel>
+               <attributeDefinition>Average of 30 wetted width measurements along the study reach</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>waterTemp</attributeName>
+               <attributeLabel>waterTemp</attributeLabel>
+               <attributeDefinition>Water temperature during the experiment</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>celsius</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>hoboSampleID</attributeName>
+               <attributeLabel>hoboSampleID</attributeLabel>
+               <attributeDefinition>Conductivity sensor ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>fieldDischarge_lps</attributeName>
+               <attributeLabel>fieldDischarge_lps</attributeLabel>
+               <attributeDefinition>Stream discharge</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>literPerSecond</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>stage</attributeName>
+               <attributeLabel>stage</attributeLabel>
+               <attributeDefinition>Water height</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>eventID</attributeName>
+               <attributeLabel>eventID</attributeLabel>
+               <attributeDefinition>Experiment ID</attributeDefinition>
+               <storageType
+      typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+         </attributeList>
+         <caseSensitive>no</caseSensitive>
+         <numberOfRecords>2837</numberOfRecords>
+      </dataTable>
+      <dataTable
+      id="665007d5a8a93b9f03c7b9e3cb56aeb3" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>issueLog</entityName>
+         <entityDescription>List of missing data and changes made to input data.</entityDescription>
+         <physical>
+            <objectName>issueLog.csv</objectName>
+            <size
+          unit="byte">17721</size>
+            <authentication
+              method="MD5">1300a5076e414cc163343cfb526eab22</authentication>
+            <dataFormat>
+               <textFormat>
+                  <numHeaderLines>1</numHeaderLines>
+                  <recordDelimiter>\r\n</recordDelimiter>
+                  <attributeOrientation>column</attributeOrientation>
+                  <simpleDelimited>
+                     <fieldDelimiter>,</fieldDelimiter>
+                     <quoteCharacter>"</quoteCharacter>
+                  </simpleDelimited>
+               </textFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+            function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/665007d5a8a93b9f03c7b9e3cb56aeb3</url>
+               </online>
+            </distribution>
+         </physical>
+         <attributeList>
+            <attribute>
+               <attributeName>experiment</attributeName>
+               <attributeLabel>experiment</attributeLabel>
+               <attributeDefinition>Experiment ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>type</attributeName>
+               <attributeLabel>type</attributeLabel>
+               <attributeDefinition>Type of experiment</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+            enforced="yes">
+                           <codeDefinition>
+                              <code>model</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - CRI</code>
+                              <definition>Conservative tracer (i.e., NaCl) constant-rate injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - slug</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaBr</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaCl</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>non-fixable issues</attributeName>
+               <attributeLabel>non-fixable issues</attributeLabel>
+               <attributeDefinition>Reasons that gas exchange or travel time could not be estimated</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>fixeable issues</attributeName>
+               <attributeLabel>fixeable issues</attributeLabel>
+               <attributeDefinition>Reasons to manually change input file</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+            enforced="yes">
+                           <codeDefinition>
+                              <code>stations reversed</code>
+                              <definition>Stations 1-4 were reversed</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>two discharges</code>
+                              <definition>Experiment had two discharges listed</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>fix</attributeName>
+               <attributeLabel>fix</attributeLabel>
+               <attributeDefinition>Manual change to an experiment</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+      enforced="yes">
+                           <codeDefinition>
+                              <code>fixed</code>
+                              <definition>Fixed order of stations</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>took average</code>
+                              <definition>Took average of two discharges</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+         </attributeList>
+         <caseSensitive>no</caseSensitive>
+         <numberOfRecords>367</numberOfRecords>
+      </dataTable>
+      <dataTable
+      id="ae352c0f851c77c69422775ddf1c82c6" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>gasExchange_ds_v2</entityName>
+         <entityDescription>Output gas exchange estimates, including recommended estimates</entityDescription>
+         <physical>
+            <objectName>gasExchange_ds_v2.csv</objectName>
+            <size
+          unit="byte">71118</size>
+            <authentication
+              method="MD5">93dfe4396ee75a1b19d5bc960066dc14</authentication>
+            <dataFormat>
+               <textFormat>
+                  <numHeaderLines>1</numHeaderLines>
+                  <recordDelimiter>\r\n</recordDelimiter>
+                  <attributeOrientation>column</attributeOrientation>
+                  <simpleDelimited>
+                     <fieldDelimiter>,</fieldDelimiter>
+                     <quoteCharacter>"</quoteCharacter>
+                  </simpleDelimited>
+               </textFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+            function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/ae352c0f851c77c69422775ddf1c82c6</url>
+               </online>
+            </distribution>
+         </physical>
+         <attributeList>
+            <attribute>
+               <attributeName>siteID</attributeName>
+               <attributeLabel>eventID</attributeLabel>
+               <attributeDefinition>NEON site ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>eventID</attributeName>
+               <attributeLabel>siteID</attributeLabel>
+               <attributeDefinition>Experiment ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>collectDate_UTC</attributeName>
+               <attributeLabel>collectDate_UTC</attributeLabel>
+               <attributeDefinition>experiment date and timestamp</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>peakMaxVelocity_mPerSec</attributeName>
+               <attributeLabel>peakMaxVelocity_mPerSec</attributeLabel>
+               <attributeDefinition>Water velocity calculated from conductivity time series</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerSecond</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>wettedWidth_m</attributeName>
+               <attributeLabel>wettedWidth_m</attributeLabel>
+               <attributeDefinition>Mean wetted width</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanDepth_m</attributeName>
+               <attributeLabel>meanDepth_m</attributeLabel>
+               <attributeDefinition>Mean water depth calculated from discharge, water velocity, and wetted width</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanQ_lps</attributeName>
+               <attributeLabel>meanQ_lps</attributeLabel>
+               <attributeDefinition>Stream discharge</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>literPerSecond</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>meanTemp_c</attributeName>
+               <attributeLabel>meanTemp_c</attributeLabel>
+               <attributeDefinition>Water temperature</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>celsius</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>k600.normClean_mPerDay</attributeName>
+               <attributeLabel>k600.normClean_mPerDay</attributeLabel>
+               <attributeDefinition>Gas exchange velocity estimated from frequentist unpooled approach</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>K600.normClean_perDay</attributeName>
+               <attributeLabel>K600.normClean_perDay</attributeLabel>
+               <attributeDefinition>Gas exchange rate estimated from frequentist unpooled approach</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>k600.normCorr_mPerDay</attributeName>
+               <attributeLabel>k600.normCorr_mPerDay</attributeLabel>
+               <attributeDefinition>Gas exchange velocity estimated from frequentist unpooled approach using salt-corrected SF6 concentrations</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>K600.normCorr_perDay</attributeName>
+               <attributeLabel>K600.normCorr_perDay</attributeLabel>
+               <attributeDefinition>Gas exchange rate estimated from frequentist unpooled approach using salt-corrected SF6 concentration</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>k600.stanClean_mPerDay</attributeName>
+               <attributeLabel>k600.stanClean_mPerDay</attributeLabel>
+               <attributeDefinition>Gas exchange velocity estimated from partially pooled Bayesian approach</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>K600.stanClean_perDay</attributeName>
+               <attributeLabel>K600.stanClean_perDay</attributeLabel>
+               <attributeDefinition>Gas exchange rate estimated from partially pooled Bayesian approach</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>k600.stanSaltCorr_mPerDay</attributeName>
+               <attributeLabel>k600.stanSaltCorr_mPerDay</attributeLabel>
+               <attributeDefinition>Gas exchange velocity estimated from partially pooled Bayesian approach using salt-corrected SF6 concentration data</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>K600.stanSaltCorr_perDay</attributeName>
+               <attributeLabel>K600.stanSaltCorr_perDay</attributeLabel>
+               <attributeDefinition>Gas exchange rate estimated from partially pooled Bayesian approach using salt-corrected SF6 concentration data</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>best_k600_mPerDay</attributeName>
+               <attributeLabel>best_k600_mPerDay</attributeLabel>
+               <attributeDefinition>Recommended estimate of gas exchange velocity</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>best_K600_perDay</attributeName>
+               <attributeLabel>best_K600_perDay</attributeLabel>
+               <attributeDefinition>Recommended estimate of gas exchange rate</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>best_unpooled_k600_mPerDay</attributeName>
+               <attributeLabel>best_unpooled_k600_mPerDay</attributeLabel>
+               <attributeDefinition>best unpooled frequentist estimate of gas exchange velocity</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerDay</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>best_unpooled_K600_perDay</attributeName>
+               <attributeLabel>best_unpooled_K600_perDay</attributeLabel>
+               <attributeDefinition>best unpooled frequentist estimate of gas exchange rate</attributeDefinition>
+               <storageType
+      typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <customUnit>perDay</customUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing</codeExplanation>
+               </missingValueCode>
+            </attribute>
+         </attributeList>
+         <caseSensitive>no</caseSensitive>
+         <numberOfRecords>339</numberOfRecords>
+      </dataTable>
+      <dataTable
+      id="6aaed45909f2681c8b6cf4ad4b096245" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>hydrualics_v2</entityName>
+         <entityDescription>Output hydraulic parameters (e.g., water velocity, wetted width, mean depth, discharge)</entityDescription>
+         <physical>
+            <objectName>hydrualics_v2.csv</objectName>
+            <size
+          unit="byte">61501</size>
+            <authentication
+              method="MD5">81007df1c01e8ae6683cf5970782e59c</authentication>
+            <dataFormat>
+               <textFormat>
+                  <numHeaderLines>1</numHeaderLines>
+                  <recordDelimiter>\r\n</recordDelimiter>
+                  <attributeOrientation>column</attributeOrientation>
+                  <simpleDelimited>
+                     <fieldDelimiter>,</fieldDelimiter>
+                     <quoteCharacter>"</quoteCharacter>
+                  </simpleDelimited>
+               </textFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+            function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/6aaed45909f2681c8b6cf4ad4b096245</url>
+               </online>
+            </distribution>
+         </physical>
+         <attributeList>
+            <attribute>
+               <attributeName>siteID</attributeName>
+               <attributeLabel>siteID</attributeLabel>
+               <attributeDefinition>NEON site ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>eventID</attributeName>
+               <attributeLabel>eventID</attributeLabel>
+               <attributeDefinition>Experiment ID</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <textDomain>
+                           <definition>text</definition>
+                        </textDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>collectDate</attributeName>
+               <attributeLabel>collectDate</attributeLabel>
+               <attributeDefinition>experiment date and timestamp</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">dateTime</storageType>
+               <measurementScale>
+                  <dateTime>
+                     <formatString>YYYY-MM-DD hh:mm</formatString>
+                     <dateTimeDomain/>
+                  </dateTime>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>type</attributeName>
+               <attributeLabel>type</attributeLabel>
+               <attributeDefinition>Type of experiment</attributeDefinition>
+               <storageType
+                  typeSystem="XML Schema Datatypes">string</storageType>
+               <measurementScale>
+                  <nominal>
+                     <nonNumericDomain>
+                        <enumeratedDomain
+            enforced="yes">
+                           <codeDefinition>
+                              <code>model</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - CRI</code>
+                              <definition>Conservative tracer (i.e., NaCl) constant-rate injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>model - slug</code>
+                              <definition>Conservative tracer (i.e., NaCl) slug injection.</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaBr</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection</definition>
+                           </codeDefinition>
+                           <codeDefinition>
+                              <code>NaCl</code>
+                              <definition>Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection</definition>
+                           </codeDefinition>
+                        </enumeratedDomain>
+                     </nonNumericDomain>
+                  </nominal>
+               </measurementScale>
+            </attribute>
+            <attribute>
+               <attributeName>peakMaxVelocity_mPerSec</attributeName>
+               <attributeLabel>peakMaxVelocity_mPerSec</attributeLabel>
+               <attributeDefinition>Water velocity calculated from conductivity time series</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meterPerSecond</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>meanDepth_m</attributeName>
+               <attributeLabel>meanDepth_m</attributeLabel>
+               <attributeDefinition>Mean water depth calculated from discharge, water velocity, and wetted width</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>Missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>meanQ_lps</attributeName>
+               <attributeLabel>meanQ_lps</attributeLabel>
+               <attributeDefinition>Stream discharge</attributeDefinition>
+               <storageType
+            typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>literPerSecond</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>Missing value</codeExplanation>
+               </missingValueCode>
+            </attribute>
+            <attribute>
+               <attributeName>meanWettedWidth_m</attributeName>
+               <attributeLabel>meanWettedWidth_m</attributeLabel>
+               <attributeDefinition>mean wetted width</attributeDefinition>
+               <storageType
+      typeSystem="XML Schema Datatypes">float</storageType>
+               <measurementScale>
+                  <ratio>
+                     <unit>
+                        <standardUnit>meter</standardUnit>
+                     </unit>
+                     <numericDomain>
+                        <numberType>real</numberType>
+                     </numericDomain>
+                  </ratio>
+               </measurementScale>
+               <missingValueCode>
+                  <code>NA</code>
+                  <codeExplanation>missing data</codeExplanation>
+               </missingValueCode>
+            </attribute>
+         </attributeList>
+         <caseSensitive>no</caseSensitive>
+         <numberOfRecords>793</numberOfRecords>
+      </dataTable>
+      <otherEntity
+      id="fa442c9dd80acfbadffd766bc88dd6c7" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>KING_big_K600_v2</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for KING</entityDescription>
+         <physical>
+            <objectName>KING_big_K600_v2.rds</objectName>
+            <size
+          unit="byte">24513036</size>
+            <authentication
+              method="MD5">58d1d8eb6adbe9b99414388a9b0fafe9</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/fa442c9dd80acfbadffd766bc88dd6c7</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="34a6b72cb55833894c3e2e048652c12e" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>KING_little_k600_v3</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for KING</entityDescription>
+         <physical>
+            <objectName>KING_little_k600_v3.rds</objectName>
+            <size
+          unit="byte">23612161</size>
+            <authentication
+              method="MD5">b292f97655ed153890a4fceec1ba9b61</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/34a6b72cb55833894c3e2e048652c12e</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="ce912071d671e54b283999686fae10bd" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>PRIN_big_K600_v2</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for PRIN</entityDescription>
+         <physical>
+            <objectName>PRIN_big_K600_v2.rds</objectName>
+            <size
+          unit="byte">109976155</size>
+            <authentication
+              method="MD5">257d8d67d8fcba5ed7c2cbc6700eaa56</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/ce912071d671e54b283999686fae10bd</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="9500aacee0dea6787bbc27987fe1633d" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>PRIN_little_k600_v2</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for PRIN</entityDescription>
+         <physical>
+            <objectName>PRIN_little_k600_v2.rds</objectName>
+            <size
+          unit="byte">107517483</size>
+            <authentication
+              method="MD5">ecca6e34464b51af94d60da5263c5c6b</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/9500aacee0dea6787bbc27987fe1633d</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="54726b8a91825dc19b115ea6726c8a6f" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>CUPE_big_K600_corr_v2</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for CUPE</entityDescription>
+         <physical>
+            <objectName>CUPE_big_K600_corr_v2.rds</objectName>
+            <size
+          unit="byte">29659887</size>
+            <authentication
+              method="MD5">eceda05c180ebbe9854adbaa71bf2a0f</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/54726b8a91825dc19b115ea6726c8a6f</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit</entityType>
+      </otherEntity>
+      <otherEntity
+      id="090618706027d47f64b4cd21f4d68447" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>CUPE_little_k600_corr_v2</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for CUPE</entityDescription>
+         <physical>
+            <objectName>CUPE_little_k600_corr_v2.rds</objectName>
+            <size
+          unit="byte">29735469</size>
+            <authentication
+              method="MD5">76b640f325e02f817b7b454d249ffc57</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/090618706027d47f64b4cd21f4d68447</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="9b5727f1b3ae72c10f5d11a61da51bc5" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>TECR_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for TECR</entityDescription>
+         <physical>
+            <objectName>TECR_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">18103799</size>
+            <authentication
+              method="MD5">f99d4c71ff3a042253e04d987b132710</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/9b5727f1b3ae72c10f5d11a61da51bc5</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="6f209769d13cb0525447b07ade79cf83" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>TECR_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for TECR</entityDescription>
+         <physical>
+            <objectName>TECR_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">18116086</size>
+            <authentication
+              method="MD5">f6a19004f715af46427d4b5949200ca2</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/6f209769d13cb0525447b07ade79cf83</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="a6e8b49d861da0b7ed060e3fc0fceb9a" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>SYCA_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for SYCA</entityDescription>
+         <physical>
+            <objectName>SYCA_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">14041257</size>
+            <authentication
+              method="MD5">ed9e71149953b6f5634242069a6e053d</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/a6e8b49d861da0b7ed060e3fc0fceb9a</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="70c2f39f360bf7834780dfb90a85c161" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>SYCA_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for SYCA</entityDescription>
+         <physical>
+            <objectName>SYCA_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">14079641</size>
+            <authentication
+              method="MD5">1cad55c5cc7ddc4b16220def417c3cf3</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/70c2f39f360bf7834780dfb90a85c161</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="d1a8f1ccdecbac09a71af41670c78369" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MCRA_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for MCRA</entityDescription>
+         <physical>
+            <objectName>MCRA_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">19175673</size>
+            <authentication
+              method="MD5">26c4724acd981e5513ddb00d3493942e</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/d1a8f1ccdecbac09a71af41670c78369</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="cc475d5cb2e666c668b7012d641d04a7" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MCRA_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for MCRA</entityDescription>
+         <physical>
+            <objectName>MCRA_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">19193982</size>
+            <authentication
+              method="MD5">2bbc5c9d29aacf56d51079ce7ef9a522</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/cc475d5cb2e666c668b7012d641d04a7</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="40ace3eb8c0cbd34af6088524f711129" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MCDI_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for MCDI</entityDescription>
+         <physical>
+            <objectName>MCDI_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">10297181</size>
+            <authentication
+              method="MD5">e3697009bd44a1a65d1da7715362e4c8</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/40ace3eb8c0cbd34af6088524f711129</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="b2fec92dc14873be7e847ef9d79c6f7f" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MCDI_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for MCDI</entityDescription>
+         <physical>
+            <objectName>MCDI_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">8753340</size>
+            <authentication
+              method="MD5">1a9061f46770d61371bef7d8baa211d9</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/b2fec92dc14873be7e847ef9d79c6f7f</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="863dc7b6d81f7175079a2abe224b8e32" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MAYF_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for MAYF</entityDescription>
+         <physical>
+            <objectName>MAYF_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">9739604</size>
+            <authentication
+              method="MD5">d4203056ed20fc3d5e5052ec6cd7e69e</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/863dc7b6d81f7175079a2abe224b8e32</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="9b7ab4e8426fd8bc3b0900b16e7024f2" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MAYF_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for MAYF</entityDescription>
+         <physical>
+            <objectName>MAYF_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">9759442</size>
+            <authentication
+              method="MD5">82bba1d7eeee79ea8fd60ad300b53f41</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/9b7ab4e8426fd8bc3b0900b16e7024f2</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="b43aa9256d87a7633fac36f3297f8723" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MART_big_K600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for MART</entityDescription>
+         <physical>
+            <objectName>MART_big_K600_corr_v1.rds</objectName>
+            <size
+          unit="byte">9682197</size>
+            <authentication
+              method="MD5">114823a37110a552728ccda184a2cf33</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/b43aa9256d87a7633fac36f3297f8723</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="e773069e5b576195f21f19afff54f4de" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>MART_little_k600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for MART</entityDescription>
+         <physical>
+            <objectName>MART_little_k600_corr_v1.rds</objectName>
+            <size
+          unit="byte">9710917</size>
+            <authentication
+              method="MD5">3e1e8235320387c8366b66674c270073</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/e773069e5b576195f21f19afff54f4de</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="ae98288ac2ef06da757773ac016c8baa" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>HOPB_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for HOPB</entityDescription>
+         <physical>
+            <objectName>HOPB_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">22047643</size>
+            <authentication
+              method="MD5">01d36a0e37e8b8396e58c1daea9bb6db</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/ae98288ac2ef06da757773ac016c8baa</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="bda2ef9ea455be52c3a82be46c033ea2" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>HOPB_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for HOPB</entityDescription>
+         <physical>
+            <objectName>HOPB_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">22086835</size>
+            <authentication
+              method="MD5">0ba91f5349b2ccd02065f1d6e05fe19d</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/bda2ef9ea455be52c3a82be46c033ea2</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="17e564540c79f9889bce58c8c9cb6ca3" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>WLOU_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for WLOU</entityDescription>
+         <physical>
+            <objectName>WLOU_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">31355306</size>
+            <authentication
+              method="MD5">6e41a7c92d7328131bd7bd4b4b3fab9b</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/17e564540c79f9889bce58c8c9cb6ca3</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="f9102c99d51c0631add5c8c70cee195f" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>WLOU_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for WLOU</entityDescription>
+         <physical>
+            <objectName>WLOU_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">31354023</size>
+            <authentication
+              method="MD5">a5ce4c8a8058ec4802fbb6f393bc5149</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/f9102c99d51c0631add5c8c70cee195f</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="0e67e67cf4736da92caa7b098633255d" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>WALK_big_K600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for WALK</entityDescription>
+         <physical>
+            <objectName>WALK_big_K600_corr_v1.rds</objectName>
+            <size
+          unit="byte">11741973</size>
+            <authentication
+              method="MD5">e918a19fe491996c3fb0efd5700226b6</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/0e67e67cf4736da92caa7b098633255d</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="136f7d40d8735a86c8aa69b677df2a2e" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>WALK_little_k600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for WALK</entityDescription>
+         <physical>
+            <objectName>WALK_little_k600_corr_v1.rds</objectName>
+            <size
+          unit="byte">11788944</size>
+            <authentication
+              method="MD5">b71da253d9f8632c6da35521abe99414</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/136f7d40d8735a86c8aa69b677df2a2e</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="976792778fd663ddbf3c77f88af9a7aa" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>REDB_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for REDB</entityDescription>
+         <physical>
+            <objectName>REDB_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">28458242</size>
+            <authentication
+              method="MD5">a531b2c67922fd2f1049dcef7f942879</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/976792778fd663ddbf3c77f88af9a7aa</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="62337a6a85411b327f7ca38f10689648" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>REDB_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for REDB</entityDescription>
+         <physical>
+            <objectName>REDB_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">28506196</size>
+            <authentication
+              method="MD5">94e4f13401f8f835792c66ea647c1580</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/62337a6a85411b327f7ca38f10689648</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="ba71913a7996f95398168df859ab3533" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>POSE_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for POSE</entityDescription>
+         <physical>
+            <objectName>POSE_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">32617517</size>
+            <authentication
+              method="MD5">70bd65a4e7d54f2fc9db362945105d52</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/ba71913a7996f95398168df859ab3533</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="e8a25c959848fdef2707e0d98cb0eba1" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>POSE_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for POSE</entityDescription>
+         <physical>
+            <objectName>POSE_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">32751356</size>
+            <authentication
+              method="MD5">5ba53c6009f4783144fe9bb96126765a</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/e8a25c959848fdef2707e0d98cb0eba1</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="7f8ea522871085ef5ccb33e2ec82fad3" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>OKSR_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for OKSR</entityDescription>
+         <physical>
+            <objectName>OKSR_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">24636250</size>
+            <authentication
+              method="MD5">98b5d656607070744c3ca0590001e535</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/7f8ea522871085ef5ccb33e2ec82fad3</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="3aadc34839d5f47bdd69a631f1c5d659" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>OKSR_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for OKSR</entityDescription>
+         <physical>
+            <objectName>OKSR_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">24648759</size>
+            <authentication
+              method="MD5">e226912f41ebeccc0ac0d9a6e4c1fe78</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/3aadc34839d5f47bdd69a631f1c5d659</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="795b7201fd220f443e5af6e21e16f50a" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>LEWI_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for LEWI</entityDescription>
+         <physical>
+            <objectName>LEWI_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">24574482</size>
+            <authentication
+              method="MD5">5661721c7d03e01b1b9d7d2ac3bdc41b</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/795b7201fd220f443e5af6e21e16f50a</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="35da36e6049db8aab486f1ebba252bda" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>LEWI_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for LEWI</entityDescription>
+         <physical>
+            <objectName>LEWI_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">24614498</size>
+            <authentication
+              method="MD5">1fea389cf051922b51038c115ef8e602</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/35da36e6049db8aab486f1ebba252bda</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="ebca547e0d4af1c4b9ef5d161abe9062" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>LECO_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for LECO</entityDescription>
+         <physical>
+            <objectName>LECO_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">12821700</size>
+            <authentication
+              method="MD5">c3d248a41ef0d70da810ff5faec8fbb3</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/ebca547e0d4af1c4b9ef5d161abe9062</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="e4b6145f0933412d7344f187770aac0a" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>LECO_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for LECO</entityDescription>
+         <physical>
+            <objectName>LECO_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">12794891</size>
+            <authentication
+              method="MD5">821f537c0b8a5ef72fe6f3ba9b27ea76</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/e4b6145f0933412d7344f187770aac0a</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="9f381532da1f52ca1fd84cc6dcd8f2ce" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>GUIL_big_K600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for GUIL</entityDescription>
+         <physical>
+            <objectName>GUIL_big_K600_corr_v1.rds</objectName>
+            <size
+          unit="byte">18044069</size>
+            <authentication
+              method="MD5">60be9503014c11f56a0b12f48aeef933</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/9f381532da1f52ca1fd84cc6dcd8f2ce</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="d85e6c07cd79d567e082f2be140925e0" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>GUIL_little_k600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for GUIL</entityDescription>
+         <physical>
+            <objectName>GUIL_little_k600_corr_v1.rds</objectName>
+            <size
+          unit="byte">18048180</size>
+            <authentication
+              method="MD5">15ed22c6f4f79f9452c052a340264dbf</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/d85e6c07cd79d567e082f2be140925e0</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="4b5314cb871b09be37809d93e2188ca3" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>CARI_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for CARI</entityDescription>
+         <physical>
+            <objectName>CARI_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">19190126</size>
+            <authentication
+              method="MD5">a5d294650fc534afcb82b6e942293963</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/4b5314cb871b09be37809d93e2188ca3</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="389594f93b36cf635000fdec8ef1578e" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>CARI_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for CARI</entityDescription>
+         <physical>
+            <objectName>CARI_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">19178191</size>
+            <authentication
+              method="MD5">33d11290b0c46bfdaaf3764cceaba21e</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/389594f93b36cf635000fdec8ef1578e</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="48ebd324bbdaf02ce1e1ad29626d4a30" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>BLDE_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for BLDE</entityDescription>
+         <physical>
+            <objectName>BLDE_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">13773850</size>
+            <authentication
+              method="MD5">f6e5a47728c6837e9a26baa549aa28ef</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/48ebd324bbdaf02ce1e1ad29626d4a30</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="1d83330588b4130608e30ebc68a1d91f" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>BLDE_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for BLDE</entityDescription>
+         <physical>
+            <objectName>BLDE_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">13777814</size>
+            <authentication
+              method="MD5">8b81ed77d969805886db78c9adb0a0f3</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/1d83330588b4130608e30ebc68a1d91f</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="deff398c9fbde302d6e7a7e6f25bd03f" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>BIGC_big_K600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for BIGC</entityDescription>
+         <physical>
+            <objectName>BIGC_big_K600_v1.rds</objectName>
+            <size
+          unit="byte">25350938</size>
+            <authentication
+              method="MD5">2be161e158794aa51113898b2fd6267c</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/deff398c9fbde302d6e7a7e6f25bd03f</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="457e73e225618a9b9d81c679e66bae07" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>BIGC_little_k600_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for BIGC</entityDescription>
+         <physical>
+            <objectName>BIGC_little_k600_v1.rds</objectName>
+            <size
+          unit="byte">25389333</size>
+            <authentication
+              method="MD5">e9fd5b126754bf4c0f8d79757bd80a59</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/457e73e225618a9b9d81c679e66bae07</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="fa5ca62e4a6e2b9405f9b0afa79982c8" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>COMO_big_K600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange rate for COMO</entityDescription>
+         <physical>
+            <objectName>COMO_big_K600_corr_v1.rds</objectName>
+            <size
+          unit="byte">20079257</size>
+            <authentication
+              method="MD5">9a36adae01568d3c9fa662201f1391b6</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+      function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/fa5ca62e4a6e2b9405f9b0afa79982c8</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+      <otherEntity
+      id="0917a66ed424f23870ac42829d394a07" scope="document"
+          system="https://pasta.edirepository.org">
+         <entityName>COMO_little_k600_corr_v1</entityName>
+         <entityDescription>Stanfit object for estimating gas exchange velocity for COMO</entityDescription>
+         <physical>
+            <objectName>COMO_little_k600_corr_v1.rds</objectName>
+            <size
+          unit="byte">20121244</size>
+            <authentication
+              method="MD5">bb14b256d32b789527f0fda63f92ee14</authentication>
+            <dataFormat>
+               <externallyDefinedFormat>
+                  <formatName>.rds</formatName>
+               </externallyDefinedFormat>
+            </dataFormat>
+            <distribution>
+               <online>
+                  <url
+          function="download">https://pasta.lternet.edu/package/data/eml/edi/1735/2/0917a66ed424f23870ac42829d394a07</url>
+               </online>
+            </distribution>
+         </physical>
+         <entityType>stanfit object</entityType>
+      </otherEntity>
+   </dataset>
+   <additionalMetadata>
+      <metadata>
+         <stmml:unitList>
+            <stmml:unit
+          id="ppm"
+          name="ppm">
+               <stmml:description>parts per million</stmml:description>
+            </stmml:unit>
+            <stmml:unit
+          id="microsiemens"
+          name="microsiemens">
+               <stmml:description/>
+            </stmml:unit>
+            <stmml:unit
+          id="ppmv"
+          name="ppmv">
+               <stmml:description>parts per million by volume</stmml:description>
+            </stmml:unit>
+            <stmml:unit
+          id="perDay"
+        name="perDay">
+               <stmml:description/>
+            </stmml:unit>
+         </stmml:unitList>
+      </metadata>
+   </additionalMetadata>
+   <additionalMetadata>
+      <metadata>
+         <emlEditor
+        app="ezEML" release="2024.09.18"/>
+      </metadata>
+   </additionalMetadata>
+</eml:eml>

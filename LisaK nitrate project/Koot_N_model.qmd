@@ -7,15 +7,13 @@ editor: visual
 
 ## Modeling two station diel uptake
 
+## First: set upstream based on a one station model
 
-
-## First:  set upstream based on a one station model
-Two station requires an upstream boundary condition.  we will set this upstream boundary as if the Kootenai river is infinitely long and via using a one-station model. This assumption is of course false, but how the upstream is set should not affect the subsequent two station approach
+Two station requires an upstream boundary condition. we will set this upstream boundary as if the Kootenai river is infinitely long and via using a one-station model. This assumption is of course false, but how the upstream is set should not affect the subsequent two station approach
 
 The model:
 
 $$N_{u,t}=N_{u,\Delta t}+\frac{UL_t}{\bar z \sum L_t}+K(N_b-N_{u,\Delta t})\Delta t$$
-
 
 ```{r}
 library(tidyverse)
@@ -60,9 +58,7 @@ plot(solar.time1d, Npred)
 
 ```
 
-
 many days
-
 
 ```{r}
 time30d<-with_tz( seq(ymd_hms('2022-07-01 04:00:00', tz = "America/Denver"), ymd_hms('2022-07-31 03:30:00', tz = "America/Denver"), by='30 min'), tz= "UTC")
@@ -106,14 +102,11 @@ plot (up_N$time, Npred, type="l")
 
 ```
 
-
 ## Now for 2 station model
 
 This model is different and simpler than the one station:
 
-$$N_{d,t+\tau}=N_{u,t}+\frac{U\sum_{t}^{t+\tau} L_t}{\bar z \sum L_t}+ \frac{F\tau}{\bar z}$$
-$\tau$ is travel time between the sensors, $u,d$ are upstream and downstream, and $F$ is time invariant net NO3 flux in areal units.  This could be positive (if  nitrification $>$ uptake) or negative.  And uptake is some unknown combination of assimilatory and denitrification.  $U$ is assimilation by photoautotrophs.
-
+$$N_{d,t+\tau}=N_{u,t}+\frac{U\sum_{t}^{t+\tau} L_t}{\bar z \sum L_t}+ \frac{F\tau}{\bar z}$$ $\tau$ is travel time between the sensors, $u,d$ are upstream and downstream, and $F$ is time invariant net NO3 flux in areal units. This could be positive (if nitrification $>$ uptake) or negative. And uptake is some unknown combination of assimilatory and denitrification. $U$ is assimilation by photoautotrophs.
 
 ```{r}
 F=-60
@@ -145,9 +138,8 @@ write.csv(Ndata, file="Ndata.csv")
 
 ```
 
-
-
 # estimate, not done yet
+
 ```{r}
 
 Nmle<-function(P) {
@@ -165,7 +157,6 @@ Ndownmod[i+6] = up_N$N[i]  - P[1]* sum(up_N$light[i:i+6]) /(z *sumligheachday ) 
 ```
 
 ## Kurt's uptake
-
 
 ```{r}
 kurt_est<- read.csv("/Users/bob.hall/Nfixation/Ndata_uptake_estimate.csv")

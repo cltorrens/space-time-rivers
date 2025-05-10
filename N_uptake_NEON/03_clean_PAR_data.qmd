@@ -9,10 +9,16 @@ editor: visual
 
 This script's purpose is to clean and fill NEON Photosynthetically Active Radiation \[PAR\] data for the two Alaska sites, CARI and OKSR, because the NSRDB dataset does not cover those latitudes. It cleans both PAR (**DP1.00024.001**) and water surface PAR (**DP1.20042.001**) datasets, to enable comparison and selection between the two.
 
-First load the required packages
+NB: Per Bobby Hensley, 'PAR at water surface' sensors are focused on providing data to mesh with water quality/ turbidity sensors and not on actual PAR reaching the water surface over a study reach. For canopied sites, use tower PAR to assess sunlight parallel to the way the satellite data would. For the AK sites, especially OKSR (tundra/ no canopy), either sensor (tower or water surface) should work/ be more or less the same.
+
+NB: I'm using 'endDateTime' values to match with NO3 values, since this = cumulative light up to the enddatetime, which is what will influence the photosynthesis thus nitrate values. (I think the NSRDB satellite light is just instantaneous readings at the hour...)
+
+### Load the required packages
+
 ```{r load packages}
 # library(scales) # scales map data to aesthetics
 library(tidyverse) # includes magrittr, as part of dplyr
+library(hms) # 'pretty time of day' - no longer loads w tidyverse?
 library(lubridate)
 library(tidybayes)
 library(GGally) # adds functions to ggplot()
@@ -24,10 +30,12 @@ library(brms)
 library(here) # allows project-based file paths
 library(pracma) # for 1 type of light AUC calcs
 library(dygraphs) # creates interactive ts graphs
+library(knitr) # to show full flag and issue logs with kable
+library(DT) # interactive table for flag and issue logs
 
 ```
 
-Then load the PAR/ WS-PAR Rdata
+### Load the PAR/ WS-PAR Rdata
 
 ```{r load data}
 
@@ -49,24 +57,25 @@ load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_readme.Rdata"))
 
 ```
 
-Visualize the data by year
+### Visualize the data by site and year
+
 ```{r visualize PAR and WS Par}
 
 par_sensor_30m <- par_sensor_30m %>% 
-  add_column(month=month(par_sensor_30m$endDateTime),
-             .after=par_sensor_30m$endDateTime)
+  add_column(month=month(par_sensor_30m$endDateTime),.after=par_sensor_30m$endDateTime)
 
 ###### CARI plot
 
-yr = 2023
+yr = 2021
+plottitle = "CARI PAR 2021"
 
 CARIplot_PAR <- par_sensor_30m %>%
   filter(siteID == "CARI", 
-         year(startDateTime) == yr) %>%
+         year(startDateTime) == yr)%>%
   ggplot(aes(x=endDateTime, y=PARMean)) + 
   geom_point() +
   # facet_wrap(~month) + 
-  ggtitle("CARI PAR 2023") +
+  ggtitle(plottitle) +
   theme_bw()
   
 quartz(width=6.5, height=6.5)
@@ -85,15 +94,17 @@ CARIplot_WSPAR <- par_wsurf_sensor_30m %>%
 quartz(width=6.5, height=6.5)
 CARIplot_WSPAR
 
+##### OKSR plot
 
-###### OKSR plot
+yr = 2021
+
 OKSRplot_PAR <- par_sensor_30m %>%
   filter(siteID == "OKSR", 
          year(startDateTime) == yr) %>%
   ggplot(aes(x=endDateTime, y=PARMean)) + 
   geom_point() +
   # facet_wrap(~month) + 
-  ggtitle("OKSR PAR 2023") +
+  ggtitle("OKSR PAR 2021") +
   theme_bw()
   
 quartz(width=6.5, height=6.5)
@@ -106,12 +117,188 @@ OKSRplot_WSPAR <- par_wsurf_sensor_30m %>%
   ggplot(aes(x=endDateTime, y=PARMean)) + 
   geom_point() +
   # facet_wrap(~month) + 
-  ggtitle("OKSR Water Surface PAR 2023") +
+  ggtitle("OKSR Water Surface PAR 2021") +
   theme_bw()
   
 quartz(width=6.5, height=6.5)
 OKSRplot_WSPAR
 
 
+###### 1:1 plot for par and wspar
+
+all_par_30m <- par_sensor_30m %>%
+  dplyr::select(siteID, startDateTime, endDateTime, PARMean, PARMinimum, PARMaximum) 
+
+all_wspar_30m <- par_wsurf_sensor_30m %>%
+  dplyr::select(siteID, startDateTime, endDateTime, PARMean, PARMinimum, PARMaximum) %>%
+  rename(wsPARMean = PARMean, wsPARMinimum = PARMinimum, wsPARMaximum = PARMaximum)
+
+combo_par_30m <- all_wspar_30m %>%
+  inner_join(all_par_30m)
+
+one2one <- combo_par_30m %>%
+  ggplot(aes(x=PARMean, y=wsPARMean, color=year(endDateTime))) +
+  geom_point() + 
+  geom_abline(slope=1, intercept=0, color="darkred", linetype=2) + 
+  facet_wrap(~siteID) +
+  theme_bw()
+
+quartz(6.5, 6.5)
+one2one
+
+
 ```
 
+### Check flags and issue logs
+
+```{r check_flags_issue_logs}
+
+# Issue logs - only available for ws par
+
+WSPARissues <- par_wsurf_issuelog %>%
+  filter(
+    grepl(paste(unique(par_wsurf_sensor_30m$siteID), collapse = "|"), locationAffected, ignore.case = TRUE) |
+    grepl("all", locationAffected, ignore.case = TRUE)
+  )
+
+# view(WSPARissues) truncates cell text. INSTEAD, use DT::datatable()
+
+datatable(WSPARissues, options = list(pageLength = 20, autoWidth = TRUE))
+
+
+# Flags by site and sensor
+
+datatable(par_wsurf_flags, options = list(pageLength = 20, autoWidth = TRUE))
+# 3 total for CARI and OKSR: positive nighttime PAR, out of range data offset
+
+datatable(par_flags, options = list(pageLength = 20, autoWidth = TRUE))
+# 1 for CARI: positive nighttime PAR (water ingress likely): 2022-08-15T06:30:00Z to 2022-08-23T13:00:00Z
+
+```
+
+### ID NAs in PAR data by site
+
+#### Caribou Creek, Fairbanks North Star, AK
+
+nitrate sensor lat-long: 65.153076 -147.502004; elevation (m): 225.41\
+PAR tower sensor lat-long: 65.15323 -147.5034; elevation (m): 229.05
+
+```{r ID NAs CARI}
+
+CARI_PAR <- par_sensor_30m %>%
+  filter(siteID == "CARI") %>%
+  mutate(local_datetime = with_tz(endDateTime, tzone="US/Alaska"),
+         Jday = yday(local_datetime), 
+         model_datetime = local_datetime - hours(2), # midsummer days start 2:45, end 1a the next day
+         model_jday = yday(model_datetime), 
+         Time = as_hms(local_datetime))
+
+which(is.na(CARI_PAR$PARMean))
+
+NAdatetime <- CARI_PAR$local_datetime[which(is.na(CARI_PAR$PARMean))]
+NAdays <- unique(as_date(NAdatetime))
+
+# 40 NA days: "2021-04-29" "2021-04-30" "2021-05-01" "2021-05-02" "2021-05-03" "2021-05-04" "2021-06-03" "2021-07-08" "2021-12-19" "2021-12-20" "2022-04-26" "2022-06-20" "2022-07-25" "2022-07-26" "2022-09-01" "2022-09-15" "2022-11-08" "2022-11-09" "2022-11-11" "2022-11-12" "2022-11-13" "2022-12-02" "2022-12-04" "2022-12-05" "2022-12-07" "2022-12-08" "2022-12-09" "2022-12-10" "2022-12-11" "2022-12-14" "2022-12-23" "2023-01-16" "2023-05-05" "2023-06-05" "2023-06-06" "2023-06-16" "2023-07-14" "2023-07-25" "2023-09-12" "2024-04-29"
+
+nadaysc("2021-04-29", "2021-04-30", "2021-05-01", "2021-05-02", "2021-05-03", "2021-05-04", "2021-06-03", "2021-07-08", "2021-12-19", "2021-12-20", "2022-04-26", "2022-06-20", "2022-07-25", "2022-07-26", "2022-09-01", "2022-09-15", "2022-11-08", "2022-11-09", "2022-11-11", "2022-11-12", "2022-11-13", "2022-12-02", "2022-12-04", "2022-12-05", "2022-12-07", "2022-12-08", "2022-12-09", "2022-12-10", "2022-12-11", "2022-12-14", "2022-12-23", "2023-01-16", "2023-05-05", "2023-06-05", "2023-06-06", "2023-06-16", "2023-07-14", "2023-07-25", "2023-09-12", "2024-04-29")
+
+NAday.df <- as_tibble(NAdays) %>%
+  add_column(Year = year(NAdays), 
+             na_jday = yday(NAdays))
+
+datatable(NAday.df)
+
+## Avoid these when selecting CARI days... ALSO 2022 Jdays 227-235
+
+yr = 2021
+mo = 1
+plottitle = "CARI PAR Jan 2021"
+
+CARI_dayplot <- CARI_PAR %>%
+  filter(month(endDateTime) == mo,
+         year(startDateTime) == yr)%>%
+  
+  ggplot(aes(x=Time, y=PARMean)) + 
+  geom_point() +
+  facet_wrap(~Jday) + 
+  ggtitle(plottitle) +
+  theme_bw()
+  
+quartz(width=6.5, height=6.5)
+CARI_dayplot
+```
+
+#### Save CARI PAR data
+```{ r save CARI PAR}
+
+path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/CARI_neonlight30m_all.csv")
+
+write_csv(CARI_PAR, path)
+
+```
+
+
+**Avoid these dates when selecting days for CARI (single days may be OK on inspection)**
+
+-   2021: Apr 29- May 3; June 3; July 8; Dec 19-20
+
+-   2022: Apr 26, June 20, July 25-26, Sept 1, Sept 15, Nov 8-9 and 11-13, Dec 2, 4-5, 7-11, 14 and 23
+
+-   2023: Jan 16, May 5, June 5-6, June 16, July 14, July 25, Sept 12
+
+-   2024: Apr 29
+
+Also: note this flag for CARI, Aug 15-23, 2022:\
+positive nighttime PAR (water ingress likely): 2022-08-15T06:30:00Z to 2022-08-23T13:00:00Z  (2022 Jdays 227-235)
+
+#### Oksrukuyik Creek, North Slope, AK
+
+nitrate sensor lat-long: 68.669769 -149.142847; elevation (m): 767.19\
+PAR sensor tower lat-long: 68.66995 -149.1424; elevation (m): 768.58
+
+```{r ID NAs OKSR}
+
+OKSR_PAR <- par_sensor_30m %>%
+  filter(siteID == "OKSR") %>%
+  mutate(local_datetime = with_tz(endDateTime, tzone="US/Alaska"),
+         Jday = yday(local_datetime), 
+         model_datetime = local_datetime - hours(2),   # Not sure what to do here, since there are days w/o dark... 
+         model_jday = yday(model_datetime), 
+         Time = as_hms(local_datetime))
+
+which(is.na(OKSR_PAR$PARMean))
+
+NAdatetime <- OKSR_PAR$local_datetime[which(is.na(OKSR_PAR$PARMean))]
+NAdays <- unique(as_date(NAdatetime))
+
+# 136 NA days: 
+#"2021-04-23" "2021-04-24" "2021-05-18" "2021-05-25" "2021-06-07" "2021-06-08" "2021-06-16" "2021-07-02" "2021-07-03" "2021-07-04" "2021-07-05" "2021-07-06" "2021-07-07" "2021-07-08" "2021-07-09" "2021-07-10" "2021-07-11" "2021-07-27" "2021-07-28" "2021-07-29" "2021-07-30" "2021-07-31" "2021-08-01" "2021-08-02" "2021-08-03" "2021-08-04" "2021-08-09" "2021-08-26" "2021-08-27" "2021-08-29" "2021-08-30" "2021-08-31" "2021-09-01" "2021-09-14" "2021-09-20" 
+#"2022-03-24" "2022-03-25" "2022-04-09" "2022-04-10" "2022-04-11" "2022-04-12" "2022-04-13" "2022-04-14" "2022-04-15" "2022-04-16" "2022-04-17" "2022-04-18" "2022-04-19" "2022-04-20" "2022-05-18" "2022-05-19" "2022-05-20" "2022-06-21" "2022-06-25" "2022-07-08" "2022-07-09" "2022-07-10" "2022-07-11" "2022-07-12" "2022-07-13" "2022-07-14" "2022-07-15" "2022-07-16" "2022-07-17" "2022-07-18" "2022-07-19" "2022-07-20" "2022-07-21" "2022-07-22" "2022-07-23" "2022-07-24" "2022-07-25" "2022-07-26" "2022-07-27" "2022-07-28" "2022-07-29" "2022-07-30" "2022-07-31" "2022-08-01" "2022-08-02" "2022-08-03" "2022-08-04" "2022-08-05" "2022-08-06" "2022-10-25" "2022-10-26" "2022-10-27" 
+# "2023-04-10" "2023-04-11" "2023-04-12" "2023-04-13" "2023-04-14" "2023-04-15" "2023-04-16" "2023-04-17" "2023-04-18" "2023-04-19" "2023-04-20" "2023-04-21" "2023-04-22" "2023-04-23" "2023-04-24" "2023-04-25" "2023-04-26" "2023-04-27" "2023-04-28" "2023-04-29" "2023-04-30" "2023-05-01" "2023-05-02" "2023-05-30" "2023-06-03" "2023-06-07" "2023-06-22" "2023-07-31" "2023-08-01" "2023-08-24" "2023-10-14" "2023-10-15" "2023-10-16" "2023-10-17" "2023-10-18" "2023-10-19" "2023-10-20" "2023-10-21" "2023-10-22" "2023-10-23" "2023-10-24" "2023-10-25" "2023-10-26" "2023-10-27" "2023-10-28" "2023-10-29" "2023-10-30" 
+#"2024-05-29" "2024-06-04"
+
+## Avoid these when selecting OKSR days... 
+
+```
+
+#### Save OKSR data
+```{ r save OKSR PAR}
+
+path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/OKSR_neonlight30m_all.csv")
+
+write_csv(OKSR_PAR, path)
+
+```
+
+
+**Avoid these dates when selecting days for OKSR (single days may be OK on inspection)**
+
+-   2021: Apr 3-4; May 18, 25; June 7-8, 16; July 2-11; July 27-31; Aug 1-4, 9, 26-27, Aug 29-31; Sept 1, 14, 20
+
+-   2022: Mar 24-25; Apr 9-20; May 18-20; June 21, 25; July 8-31; August 1-6; Oct 25-27
+
+-   2023: Apr 10-30; May 1-2, 30; June 3, 7, 22; July 31-Aug 1; Aug 1, 24; Oct 14-30
+
+-   2024: Apr 29, June 4
+
+No PAR flags reported.

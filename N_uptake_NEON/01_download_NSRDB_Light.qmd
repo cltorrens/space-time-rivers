@@ -34,6 +34,8 @@ library(tidyverse) # includes dplyr*, forcats, ggplot2*, lubridate*, purrr, read
 library(httr) # helps w. the NSRDB light download
 library(here)
 
+setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_lightdata_raw/30m"))
 ```
 
 ```{r - download NSRDB data}
@@ -43,10 +45,8 @@ library(here)
 ## The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command; oops, nope, only goes to 2022
 
 #years <- 2021:2023
-site <- "BLDE"
+site <- "WALK"
 
-setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
-# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
 for (i in 2021:2023) {
 # API request parameters, except for longitude and latitude
@@ -84,8 +84,8 @@ mailing_list = 'false'
 # lon <- -119.25538
 
 # BLDE
-lat <- 44.953606
-lon <- -110.589396
+# lat <- 44.953606
+# lon <- -110.589396
 
 # #CARI: NOT AVAILABLE ON THIS PLATFORM
 # lat <- 65.15307
@@ -93,39 +93,43 @@ lon <- -110.589396
 
 # COMO
 # lat <- 40.034934
-# long <- -105.544417
+# lon <- -105.544417
 
 # CUPE
 # lat <- 18.110265
 # lon <- -66.986411
 
-# #KING
+# KING
 # lat <- 39.10460
 # lon <- -96.60264
 
 # LECO
 # lat <- 35.692205	
-# long <- -83.504421
+# lon <- -83.504421
 
 # MART
-# lat <- 45.792321	
-# long <- -121.929418
+# lat <- 45.792321
+# lon <- -121.929418
 
 # POSE
 # lat <- 38.895193
-# long <- -78.147862
+# lon <- -78.147862
 
 # PRIN
 # lat <- 33.37836
-# long <- -97.78134
+# lon <- -97.78134
+
+# SYCA
+# lat <- 33.751675
+# lon <- -111.508603
 
 # TECR
 # lat <- 36.955228	
-# long <- -119.023553	
+# lon <- -119.023553	
 
 # WALK
-# lat <- 35.95722
-# lon <- -84.27921
+lat <- 35.95722
+lon <- -84.27921
 
 # WLOU
 # lat <- 39.890673
@@ -186,23 +190,25 @@ Note that on L48, wd is set to: here("N_uptake_NEON/data/NSRDB_light_data_raw/5m
 ```{r - BIGC file bind}
 
 # change the wd if needed:
-setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
 # setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
-filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
 site="BIGC"
 
 bigc.satlight <- bind_nsrdb(path=filepath, site=site)
 
-# wlou.satlight  <- list.files(path=filepath, pattern=site) %>%
+######## the bind_nsrdb() function does this now ###################################
+# bigc.satlight  <- list.files(path=filepath, pattern=site) %>%
 #   lapply(read_csv, skip = 2) %>%
 #   bind_rows() %>%
 #   select(1:7) %>%
 #   rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>%
 #   mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
 #   select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+########################################################################
 
-write_csv(bigc.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/BIGC_satlight_all.csv"))
+write_csv(bigc.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/BIGC_satlight_all.csv"))
 
 ```
 
@@ -211,37 +217,31 @@ write_csv(bigc.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/BIGC_satl
 ```{r - BLDE file bind}
 
 # change the wd if needed
-setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
 # setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
-filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
 site="BLDE"
 
 blde.satlight <- bind_nsrdb(path=filepath, site=site)
 
-# wlou.satlight  <- list.files(path=filepath, pattern=site) %>%
-#   lapply(read_csv, skip = 2) %>%
-#   bind_rows() %>%
-#   select(1:7) %>%
-#   rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>%
-#   mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
-#   select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
-
-write_csv(blde.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/BLDE_satlight_all.csv"))
+write_csv(blde.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/BLDE_satlight_all.csv"))
 
 ```
 
 ##### CARI - NA
+Used NEON PAR data for CARI light
+
 
 ##### CUPE
 
 ```{r - CUPE file bind}
 
 # change the wd if needed
-setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
 # setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
-filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
 site="CUPE"
 
 cupe.satlight <- bind_nsrdb(path=filepath, site=site)
@@ -249,40 +249,156 @@ cupe.satlight <- bind_nsrdb(path=filepath, site=site)
 # check file
 summary(cupe.satlight)
 
-# wlou.satlight  <- list.files(path=filepath, pattern=site) %>%
-#   lapply(read_csv, skip = 2) %>%
-#   bind_rows() %>%
-#   select(1:7) %>%
-#   rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>%
-#   mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
-#   select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
-
-write_csv(cupe.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/CUPE_satlight_all.csv"))
+write_csv(cupe.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/CUPE_satlight_all.csv"))
 
 ```
+
+
+##### KING
+
+```{r - KING file bind}
+
+# change the wd if needed
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="KING"
+
+king.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(king.satlight)
+
+write_csv(king.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/KING_satlight_all.csv"))
+
+```
+
+
+##### MART
+
+```{r - MART file bind}
+
+# change the wd if needed
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="MART"
+
+mart.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(mart.satlight)
+
+write_csv(mart.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/MART_satlight_all.csv"))
+
+```
+
+
+##### OKSR - NA
+Used NEON PAR data for OKSR light
+
+
+##### POSE
+
+```{r - POSE file bind}
+
+# change the wd if needed
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="POSE"
+
+pose.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(pose.satlight)
+
+write_csv(pose.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/POSE_satlight_all.csv"))
+
+```
+
+
+##### PRIN
+
+```{r - PRIN file bind}
+
+# change the wd if needed
+setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="PRIN"
+
+prin.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(prin.satlight)
+
+write_csv(prin.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/PRIN_satlight_all.csv"))
+
+```
+
+
+##### SYCA
+
+```{r - SYCA file bind}
+
+# change the wd if needed
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="SYCA"
+
+syca.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(syca.satlight)
+
+write_csv(syca.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/SYCA_satlight_all.csv"))
+
+```
+
+
+##### WALK
+
+```{r - WALK file bind}
+
+# change the wd if needed
+# setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
+# setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
+
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
+site="WALK"
+
+walk.satlight <- bind_nsrdb(path=filepath, site=site)
+
+# check file
+summary(walk.satlight)
+
+write_csv(walk.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/WALK_satlight_all.csv"))
+
+```
+
+
 
 ##### WLOU
 
 ```{r - WLOU file bind}
 
 # change the wd if needed
-setwd(here("N_uptake_NEON/data/NSRDB_light_data_raw/5m"))
+setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
 # setwd(here("/N_uptake_NEON/data/NSRDB_light_data_raw/30m"))
 
-filepath=here("N_uptake_NEON/data/NSRDB_light_data_raw/5m")
+filepath=here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m")
 site="WLOU"
 
 wlou.satlight <- bind_nsrdb(path=filepath, site=site)
 
-# wlou.satlight  <- list.files(path=filepath, pattern=site) %>%
-#   lapply(read_csv, skip = 2) %>%
-#   bind_rows() %>%
-#   select(1:7) %>%
-#   rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>%
-#   mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
-#   select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
-
-write_csv(wlou.satlight,file=here("N_uptake_NEON/data/NSRDB_data_clean/WLOU_satlight_all.csv"))
+write_csv(wlou.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/WLOU_satlight_all.csv"))
 
 ```
 

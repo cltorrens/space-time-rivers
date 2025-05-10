@@ -111,7 +111,7 @@ bigc.plot
 #   ~ 5:30 in June - but the satellite light has data at 4a in FEBRUARY
 
 ########  BIGC Coordinates
-lat <- 37.05767
+lat <- 37.05767  
 lon <- -119.25538
 
 ########  Calculate solar time and light, add as columns ____________________
@@ -285,18 +285,20 @@ setwd(here())
 
 # Need to re-specify the tz for local_datetime *and* re-derive model_datetime: per code in '03_select NEON data...':  the model_datetime column already exists but values changed to the UTC time - 4h... weird but there it is. 
 
-# full dataset
-path <- here("N_uptake_NEON/data/neon_data_clean/cari_clean.csv")
-cari.df <- read_csv(path) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
-         model_datetime = local_datetime - hours(4))  
+# # full dataset - given the 30-min NEON PAR data, only saved the hourly combined dataframe
+# path <- here("N_uptake_NEON/data/neon_data_clean/cari_clean.csv")
+# cari.df <- read_csv(path) %>%
+#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
+#          model_datetime = local_datetime - hours(2))  
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
 cari.df.h <- read_csv(path_h) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
-         model_datetime = local_datetime - hours(4))  
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
+         model_datetime.x = local_datetime - hours(2)) %>%
+  rename(model_datetime = model_datetime.x) %>%
+  select(-model_datetime.y)
 
 
 ```
@@ -314,7 +316,7 @@ cari.plot <- cari.df.h %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
   geom_point() + 
   #geom_line() + 
-  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "West St. Louis Creek nitrate") +
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Caribou Creek nitrate") +
   theme_bw()
 
 quartz(width = 10, height = 4.5)
@@ -332,8 +334,8 @@ cari.plot
 #   ~ 5:30 in June - but the satellite light has data at 4a in FEBRUARY
 
 ########  CARI Coordinates
-lat <- 39.890673
-lon <- -105.911297
+lat <- 65.153076
+lon <- -147.502004
 
 ########  Calculate solar time and light, add as columns ____________________
 
@@ -354,7 +356,7 @@ plot(cari.df.h$model_datetime, cari.df.h$mod_light, type='l') #daily rises and f
 head(cari.df.h$model_jday) # 2021_32 is the first model day (complete)
 tail(cari.df.h$model_jday) #2022_364 is the last model day (complete)
 
-cari.df.h$yr_jday
+
 # how many hours are in the last model day?  Just 20. 
 cari.df.h %>%
   filter(model_jday == 32) %>%
@@ -384,7 +386,7 @@ tail(cari.sumlightIdeal.df.h)  # 2022-364
 
 # Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
 which(cari.sumlightIdeal.df.h$light.hrs == 0) #none!
-cari.sumlightIdeal.df.h$model_day[which(cari.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+cari.sumlightIdeal.df.h$model_jday[which(cari.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
 
 # darkdays <- 227 # c(227)
 # 
@@ -404,6 +406,8 @@ cari.sumlightIdeal.df.h$model_day[which(cari.sumlightIdeal.df.h$light.hrs == 0)]
 light <- cari.df.h$mod_light    #bigc.df.19h$light
 sumlight.ideal <- cari.sumlightIdeal.df.h$sumlight.trapz
 
+which(is.na(cari.df.h$mod_light))
+which(is.na(cari.sumlightIdeal.df.h$sumlight.trapz))
 
 ########  Real daily light (from NSRDB/ satellite) _____________________________
 
@@ -419,28 +423,40 @@ sumlight.ideal <- cari.sumlightIdeal.df.h$sumlight.trapz
 
 cari.sumlightReal.df.h <- cari.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
-    summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
-              sum_of_light.Real = sum(GHI_wm2),
+    summarize(light.hrs.Real = sum(PARMean.h != 0), 
+              sum_of_light.Real = sum(PARMean.h),
               # sumlight = sum(mod_light)/(light.hrs),
               # sumlight.h = sum(mod_light)/24, 
-              sumlightReal.trapz = trapz(hours, GHI_wm2))
+              sumlightReal.trapz = trapz(hours, PARMean.h))
 
 
 # standardize for model
-sumlight.real <-  cari.sumlightReal.df.h$sumlightReal.trapz
+sumlight.real <-  cari.sumlightReal.df.h$sum_of_light.Real
+which(is.na(cari.sumlightReal.df.h$sum_of_light.Real)) # none
+which(cari.sumlightReal.df.h$sum_of_light.Real <= 0) # none
 
+which(cari.sumlightReal.df.h$sumlightReal.trapz < 0) #17 <0
+
+
+
+cari.sumlightReal.df.h %>%
+  filter(Year == 2023) %>%
+  ggplot(aes(x=model_jday, y=sumlightReal.trapz)) + 
+  geom_point() + 
+  geom_line(linetype = 2) + 
+  theme_bw()
 
 ########  Other elements for the data list  ___________________________________
 
 set.seed(0220)
 
-nday <-   # 39
+nday <- 275  # 39
 
-N_init <- cari.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
+N_init <- cari.df.h$surfWaterNitrateMean[1] # 33.6 umol l-1
 concMA <- matrix(unlist(cari.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
 
-Ne_meanprior <- mean(cari.df.h$surfWaterNitrateMean) # 3.027
-Ne_sdprior <- sd(cari.df.h$surfWaterNitrateMean)     # 1.340
+Ne_meanprior <- mean(cari.df.h$surfWaterNitrateMean) # 28.293
+Ne_sdprior <- sd(cari.df.h$surfWaterNitrateMean)     # 4.416
 
 z <- 0.33 #mean depth in m based on Kelly Aho's dataset - constant for now
 zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
@@ -455,13 +471,35 @@ lightMA <- matrix(light, nrow=24)
 ```{r - CARI list data and call to stan}
 
 # data list for STAN
-data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal, sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
 
 # Fit the model
-fit.cari <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+fit.cari <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 3000, chains = 4, control = list(max_treedepth = 15))
+# run for more iterations?
 
 summary(fit.cari)
 print(fit.cari, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+##### TROUBLESHOOTING
+
+```{r troubleshooting model fit}
+#| echo: false
+#| output: false
+#| message: false
+
+# Initially the CARI model struggled; I found a couple of errors and it still struggled; finally I noticed the mistake in lat-long and therefore modeled light. 
+
+# Which Rhats were NAs?
+summary <- summary(fit.cari)$summary
+na_rhat_params <- rownames(summary)[is.na(summary[,"Rhat"])]
+na_rhat_params
+
+
+# OK, that's weird: all of the NA-Rhats are from the 1st conc_pred on several days, but per the model, conc_pred[1,d] = concMA[1,d]; 
+
+
 
 ```
 
@@ -706,6 +744,438 @@ saveRDS(data, path2)
 # To reload: 
 # fit.cupe <- readRDS(path)
 # data.cupe <- readRDS(path2)
+
+```
+
+### PRIN - Pringle Creek, Wise County, TX
+
+##### Load data files
+
+```{r - load PRIN data}
+#| output: false
+#| message: false
+
+###### NB: the local_datetime (and all other posix/datetime columns) reverts to UTC when saved and reloaded; need to re-apply the tz change here. Local_datetime values do not change. 
+
+###### ALSO need to re-create the model_datetime column: on reload, the values DO  change to = UTC-4h instead of local_datetime-4h. 
+
+# making sure the wd is set correctly
+setwd(here())
+
+####################### NO3 + real light data ##################
+
+# full dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/prin_clean.csv")
+prin.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
+prin.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+```
+
+##### Visualize NO3 data if needed
+
+```{r - PRIN - visualize data, plot, clip as needed}
+#low <- 175
+#high <- 186
+#cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
+  
+prin.plot <- prin.df.h %>%
+  #filter(model_day >= low & model_day <= high) %>%
+  #filter(model_day != cliplist) %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  #geom_line() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "Pringle Creek nitrate") +
+  theme_bw()
+
+quartz(width = 10, height = 4.5)
+prin.plot
+
+```
+
+##### Assemble data for the model
+
+```{r - PRIN - assemble data}
+
+###############  Modeled (ideal) light from streamMetabolizer  ##################
+
+############ Check sunrise/sunset times here: https://gml.noaa.gov/grad/solcalc/
+#   ~ 5:30 in June - but the satellite light has data at 4a in FEBRUARY
+
+########  PRIN Coordinates
+lat <- 33.37836
+lon <- -97.78134
+
+########  Calculate solar time and light, add as columns ____________________
+
+# streamMetabolizer modeled sunlight units = photon flux density (µmol photons m⁻² s⁻¹)
+
+prin.df.h <- prin.df.h %>%
+  #filter(model_day >= low & model_day <= high) %>%
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=lon),
+         mod_light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=lat,longitude=lon), 
+         hours = hour(local_datetime))
+
+######## Visualize light data ___________________________________________________
+
+plot(prin.df.h$model_datetime, prin.df.h$mod_light, type='l') #daily rises and falls
+
+######## Determine partial model days ___________________________________________
+
+head(prin.df.h$model_jday) # 2021_32 is the first model day (complete)
+tail(prin.df.h$model_jday) #2022_364 is the last model day (complete)
+
+prin.df.h$yr_jday
+# how many hours are in the last model day?  Just 20. 
+prin.df.h %>%
+  filter(model_jday == 32) %>%
+  summarize(count = n())
+
+#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+
+######## Create ideal sumlight data from full dataset _____________________
+
+prin.sumlightIdeal.df.h <- prin.df.h %>%
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
+    summarize(light.hrs = sum(mod_light != 0), 
+              sum_of_light = sum(mod_light),
+              # sumlight = sum(mod_light)/(light.hrs),
+              # sumlight.h = sum(mod_light)/24, 
+              sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
+
+# no longer need to remove days from either dataframe, since grouping by model day. 
+View(prin.sumlightIdeal.df.h)
+
+summary(prin.sumlightIdeal.df.h)
+head(prin.sumlightIdeal.df.h)  # 2021-32
+tail(prin.sumlightIdeal.df.h)  # 2022-364
+# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+#   filter(model_day != 226) 
+#   
+
+# Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
+which(prin.sumlightIdeal.df.h$light.hrs == 0) #none!
+prin.sumlightIdeal.df.h$model_day[which(prin.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+
+# darkdays <- 227 # c(227)
+# 
+# sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
+# 
+# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+
+# tail(bigc.df.19h$model_day)
+
+# get the updated range of model days
+
+  
+# How does it look?  => work on that...
+# plot(prin.sumlight.df.h$yr_jday, prin.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
+
+## Standardize terms for model
+light <- prin.df.h$mod_light    #bigc.df.19h$light
+sumlight.ideal <- prin.sumlightIdeal.df.h$sumlight.trapz
+
+
+########  Real daily light (from NSRDB/ satellite) _____________________________
+
+## these data are included in the prin.df and prin.df.h datasets; clip if/as  needed to match the steps above
+
+# First remove model days to match sumlight.h ####### NOT NEEDED ##########
+# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+#   filter(model_day >= low_cut & model_day <= high_cut) 
+# %>%
+#   filter()  # trim further, if needed, to match model dataset. 
+
+# View(bigc19_sat_sumlight_clip) 
+
+prin.sumlightReal.df.h <- prin.df.h %>%
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
+    summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
+              sum_of_light.Real = sum(GHI_wm2),
+              # sumlight = sum(mod_light)/(light.hrs),
+              # sumlight.h = sum(mod_light)/24, 
+              sumlightReal.trapz = trapz(hours, GHI_wm2))
+
+
+# standardize for model
+sumlight.real <-  prin.sumlightReal.df.h$sumlightReal.trapz
+
+
+########  Other elements for the data list  ___________________________________
+
+set.seed(0220)
+
+nday <-  140 
+
+N_init <- prin.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
+concMA <- matrix(unlist(prin.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+Ne_meanprior <- mean(prin.df.h$surfWaterNitrateMean) # 15.446
+Ne_sdprior <- sd(prin.df.h$surfWaterNitrateMean)     # 6.410
+
+z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.5) - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+
+lightMA <- matrix(light, nrow=24)
+
+
+```
+
+##### List data and call to stan
+
+```{r - PRIN list data and call to stan}
+
+# data list for STAN
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
+
+# Fit the model
+fit.prin <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+
+# check the summary sigma and beta parameters
+summary(fit.prin)
+print(fit.prin, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+##### Save the model fit and model data as Rdata
+
+```{r - save PRIN model fit and data}
+#| output: false
+#| message: false
+
+path <- here("N_uptake_NEON/data/model_fits/prin.fit.rds")
+saveRDS(fit.prin, path)
+
+path2 <- here("N_uptake_NEON/data/model_datalist/prin.data.rds")
+saveRDS(data, path2)
+
+# To reload: 
+# fit.prin <- readRDS(path)
+# data.prin <- readRDS(path2)
+
+```
+
+### SYCA - Sycamore Creek, Maricopa, AZ
+
+##### Load data files
+
+```{r - load SYCA data}
+#| output: false
+#| message: false
+
+###### NB: the local_datetime (and all other posix/datetime columns) reverts to UTC when saved and reloaded; need to re-apply the tz change here. Local_datetime values do not change. 
+
+###### ALSO need to re-create the model_datetime column: on reload, the values DO  change to = UTC-4h instead of local_datetime-4h. 
+
+# making sure the wd is set correctly
+setwd(here())
+
+####################### NO3 + real light data ##################
+
+# full dataset
+path <- here("N_uptake_NEON/data/neon_data_clean/syca_clean.csv")
+syca.df <- read_csv(path) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Arizona"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/syca_hourly_clean.csv")
+syca.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Arizona"), 
+         model_datetime = local_datetime - hours(4))  
+
+
+```
+
+##### Visualize NO3 data if needed
+
+```{r - SYCA - visualize data, plot, clip as needed}
+#low <- 175
+#high <- 186
+#cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
+  
+syca.plot <- syca.df.h %>%
+  #filter(model_day >= low & model_day <= high) %>%
+  #filter(model_day != cliplist) %>%
+  ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
+  geom_point() + 
+  #geom_line() + 
+  labs(x="Date", y=expression("NO"[3]~"(umol/L)"), title= "West St. Louis Creek nitrate") +
+  theme_bw()
+
+quartz(width = 10, height = 4.5)
+syca.plot
+
+```
+
+##### Assemble data for the model
+
+```{r - SYCA - assemble data}
+
+###############  Modeled (ideal) light from streamMetabolizer  ##################
+
+############ Check sunrise/sunset times here: https://gml.noaa.gov/grad/solcalc/
+#   ~ 5:30 in June - but the satellite light has data at 4a in FEBRUARY
+
+########  SYCA Coordinates
+lat <- 33.751675
+lon <- -111.508603
+
+########  Calculate solar time and light, add as columns ____________________
+
+# streamMetabolizer modeled sunlight units = photon flux density (µmol photons m⁻² s⁻¹)
+
+syca.df.h <- syca.df.h %>%
+  #filter(model_day >= low & model_day <= high) %>%
+  mutate(solar_time = streamMetabolizer::calc_solar_time(local.time=local_datetime, longitude=lon),
+         mod_light = streamMetabolizer::calc_light(solar.time=solar_time, latitude=lat,longitude=lon), 
+         hours = hour(local_datetime))
+
+######## Visualize light data ___________________________________________________
+
+plot(syca.df.h$model_datetime, syca.df.h$mod_light, type='l') #daily rises and falls
+
+######## Determine partial model days ___________________________________________
+
+head(syca.df.h$model_jday) # 2021_32 is the first model day (complete)
+tail(syca.df.h$model_jday) #2022_364 is the last model day (complete)
+
+syca.df.h$yr_jday
+# how many hours are in the last model day?  Just 20. 
+syca.df.h %>%
+  filter(model_jday == 32) %>%
+  summarize(count = n())
+
+#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+
+######## Create ideal sumlight data from full dataset _____________________
+
+syca.sumlightIdeal.df.h <- syca.df.h %>%
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
+    summarize(light.hrs = sum(mod_light != 0), 
+              sum_of_light = sum(mod_light),
+              # sumlight = sum(mod_light)/(light.hrs),
+              # sumlight.h = sum(mod_light)/24, 
+              sumlight.trapz = trapz(hours, mod_light)) #same as sum_of_light
+
+# no longer need to remove days from either dataframe, since grouping by model day. 
+View(syca.sumlightIdeal.df.h)
+
+summary(syca.sumlightIdeal.df.h)
+head(syca.sumlightIdeal.df.h)  # 2021-32
+tail(syca.sumlightIdeal.df.h)  # 2022-364
+# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+#   filter(model_day != 226) 
+#   
+
+# Check for days w. 0 hours of light (usually at end) and add to 'darkdays'; use this to remove same days from the real light data. 
+which(syca.sumlightIdeal.df.h$light.hrs == 0) #none!
+syca.sumlightIdeal.df.h$model_day[which(syca.sumlightIdeal.df.h$light.hrs == 0)] #227 - get the model_day for 0 light
+
+# darkdays <- 227 # c(227)
+# 
+# sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
+# 
+# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+
+# tail(bigc.df.19h$model_day)
+
+# get the updated range of model days
+
+  
+# How does it look?  => work on that...
+# plot(syca.sumlight.df.h$yr_jday, syca.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
+
+## Standardize terms for model
+light <- syca.df.h$mod_light    #bigc.df.19h$light
+sumlight.ideal <- syca.sumlightIdeal.df.h$sumlight.trapz
+
+
+########  Real daily light (from NSRDB/ satellite) _____________________________
+
+## these data are included in the syca.df and syca.df.h datasets; clip if/as  needed to match the steps above
+
+# First remove model days to match sumlight.h ####### NOT NEEDED ##########
+# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+#   filter(model_day >= low_cut & model_day <= high_cut) 
+# %>%
+#   filter()  # trim further, if needed, to match model dataset. 
+
+# View(bigc19_sat_sumlight_clip) 
+
+syca.sumlightReal.df.h <- syca.df.h %>%
+  group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
+    summarize(light.hrs.Real = sum(GHI_wm2 != 0), 
+              sum_of_light.Real = sum(GHI_wm2),
+              # sumlight = sum(mod_light)/(light.hrs),
+              # sumlight.h = sum(mod_light)/24, 
+              sumlightReal.trapz = trapz(hours, GHI_wm2))
+
+
+# standardize for model
+sumlight.real <-  syca.sumlightReal.df.h$sumlightReal.trapz
+
+
+########  Other elements for the data list  ___________________________________
+
+set.seed(0220)
+
+nday <-  198 # 39
+
+N_init <- syca.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
+concMA <- matrix(unlist(syca.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
+
+Ne_meanprior <- mean(syca.df.h$surfWaterNitrateMean) # 3.027
+Ne_sdprior <- sd(syca.df.h$surfWaterNitrateMean)     # 1.340
+
+z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.4) - constant for now
+zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+
+lightMA <- matrix(light, nrow=24)
+
+
+```
+
+##### List data and call to stan
+
+```{r - SYCA list data and call to stan}
+
+# data list for STAN
+data <- list(T=24,D=nday,deltat=1/24,lightMA=lightMA,sumlightIdeal=sumlight.ideal,sumlightReal=sumlight.real,zMA=zMA,concMA=concMA, Ne_meanprior=Ne_meanprior, Ne_sdprior=Ne_sdprior)
+
+# Fit the model
+fit.syca <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, chains = 4, control = list(max_treedepth = 15))
+
+# check the summary sigma and beta parameters
+summary(fit.syca)
+print(fit.syca, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+##### Save the model fit and model data as Rdata
+
+```{r - save SYCA model fit and data}
+#| output: false
+#| message: false
+
+path <- here("N_uptake_NEON/data/model_fits/syca.fit.rds")
+saveRDS(fit.syca, path)
+
+path2 <- here("N_uptake_NEON/data/model_datalist/syca.data.rds")
+saveRDS(data, path2)
+
+# To reload: 
+# fit.syca <- readRDS(path)
+# data.syca <- readRDS(path2)
 
 ```
 

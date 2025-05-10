@@ -26,3 +26,6 @@ N_uptake_NEON/data/Archive_data/no3_derived_data/CARI-KING-BIGC-WALK_deriveddata
 N_uptake_NEON/data/Archive_data/no3_raw_data/CARI-BIGC-KING-WALK_rawdata/par_wsurf_data.Rdata
 N_uptake_NEON/data/Archive_data/no3_raw_data/CARI-BIGC-KING-WALK_rawdata/precip_data.Rdata
 N_uptake_NEON/data/Archive_data/no3_raw_data/CARI-BIGC-KING-WALK_rawdata/q_data.Rdata
+N_uptake_NEON/data/GPP_Marzolf_published.zip
+N_uptake_NEON/data/z_K600_Aho_EDI/PRIN_big_K600_v2.rds
+N_uptake_NEON/data/z_K600_Aho_EDI/PRIN_little_k600_v2.rds

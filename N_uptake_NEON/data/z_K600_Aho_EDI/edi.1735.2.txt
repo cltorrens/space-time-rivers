@@ -1,0 +1,2743 @@
+
+   
+      
+         uid=EDI,o=EDI,dc=edirepository,dc=org
+         all
+      
+      
+         uid=kaho,o=EDI,dc=edirepository,dc=org
+         all
+      
+      
+         public
+         read
+      
+   
+   
+      doi:10.6073/pasta/18dcc1871ee71cf0b69f2ee4082839d0Gas exchange velocities (k600), gas exchange rates (K600), and hydraulic geometries for streams and rivers derived from the NEON Reaeration field and lab collection data product (DP1.20190.001)
+      
+         Kelly Aho
+         Michigan State University
+         kellyaho@msu.edu
+         https://orcid.org/0000-0002-1992-6378
+      
+      
+         Kaelin Cawley
+         National Ecological Observatory Network, Battelle
+         kcawley@battelleecology.org
+         https://orcid.org/0000-0002-0443-0070
+      
+      
+         Robert Hensley
+         National Ecological Observatory Network, Battelle
+         hensley@battelleecology.org
+         https://orcid.org/0000-0001-8542-087X
+      
+      
+         Robert Hall
+         Flathead Lake Biological Station, University of Montana
+         bob.hall@flbs.umt.edu
+         https://orcid.org/0000-0002-0763-5346
+      
+      
+         Walter Dodds
+         Kansas State University
+         wkdodds@ksu.edu
+         https://orcid.org/0000-0002-6666-8930
+      
+      
+         Keli Goodman
+         National Ecological Observatory Network, Battelle
+         kgoodman@battelleecology.org
+         0000-0001-7121-2017
+      
+      
+         National Ecological Observatory Network (NEON)
+         https://ror.org/04j43p132
+         Original data provider
+      
+      2024-10-04
+      
+         This dataset contains estimates of gas exchange velocity, gas exchange rate, and hydraulic parameters for streams calculated from tracer-gas experiments and conservative tracer injections collected by the National Ecological Observatory Network (NEON). All input data were collected by NEON and is available on the NEON data portal at https://data.neonscience.org. Specifically, the NEON Reaeration field and lab collection data product (DP1.20190.001) was used to calculate these estimates. Gas exchange was estimated in two ways: first, following an unpooled frequentist approach and second, following a partially pooled Bayesian approach.  In addition, a salt-correction was applied to gas exchange estimates for sites where it was possible and necessary.  All estimates of gas exchange are included in the file gasExchange_ds.csv.  A recommended selection of these estimates is included in the dataset (best_k600_mPerDay and best_K600_mPerDay).  The stanfit objects used for the partially pooled Bayesian approach are also included as site-specific model objects for gas exchange velocities and rates.  In addition, water velocity was calculated from conservative tracer injections, and mean water depth was calculated from these water velocity estimates and measurements of wetted width and water discharge.  All hydraulic parameters are included in the file hydraulics_ds.csv. All processing code is available in the reaRates R package.   
+         NEON is sponsored by the National Science Foundation (NSF) and operated under cooperative agreement by Battelle. This material is based in part upon work supported by NSF through the NEON Program.
+      
+      
+         gas exchange rate
+         water velocity
+         hydraulics
+         gas exchange velocity
+      
+      
+         gas flux
+         streams
+         LTER Controlled Vocabulary
+      
+      
+         This information is released under the Creative Commons license - Attribution - CC BY (https://creativecommons.org/licenses/by/4.0/). The consumer of these data ("Data User" herein) is required to cite it appropriately in any publication that results from its use. The Data User should realize that these data may be actively used by others for ongoing research and that coordination may be necessary to prevent duplicate publication. The Data User is urged to contact the authors of these data if any questions about methodology or results occur. Where appropriate, the Data User is encouraged to consider collaboration or co-authorship with the authors. The Data User should realize that misinterpretation of data may occur if used out of context of the original study. While substantial efforts are made to ensure the accuracy of data and associated documentation, complete accuracy of data sets cannot be guaranteed. All data are made available "as is." The Data User should be aware, however, that data are updated periodically and it is the responsibility of the Data User to check for new versions of the data. The data authors and the repository where these data were obtained shall not be liable for damages resulting from any use or misinterpretation of the data. Thank you.
+      
+      https://doi.org/10.6073/pasta/18dcc1871ee71cf0b69f2ee4082839d0
+         
+            Rio Cupeyes NEON | CUPE | https://www.neonscience.org/field-sites/CUPE
+            
+               -66.98676
+               -66.98676
+               18.11352
+               18.11352
+            
+         
+         
+            Rio Yahuecas NEON | GUIL | https://www.neonscience.org/field-sites/GUIL
+            
+               -66.79868
+               -66.79868
+               18.17406
+               18.17406
+            
+         
+         
+            Mayfield Creek NEON | MAYF | https://www.neonscience.org/field-sites/MAYF
+            
+               -87.407688
+               -87.407688
+               32.960365
+               32.960365
+            
+         
+         
+            Pringle Creek NEON | PRIN | https://www.neonscience.org/field-sites/PRIN
+            
+               -97.782312
+               -97.782312
+               33.378517
+               33.378517
+            
+         
+         
+            Sycamore Creek NEON | SYCA | https://www.neonscience.org/field-sites/SYCA
+            
+               -111.508091
+               -111.508091
+               33.750993
+               33.750993
+            
+         
+         
+            Blue River NEON | BLUE | https://www.neonscience.org/field-sites/BLUE
+            
+               -96.624201
+               -96.624201
+               34.444218
+               34.444218
+            
+         
+         
+            LeConte Creek NEON | LECO | https://www.neonscience.org/field-sites/LECO
+            
+               -83.50379
+               -83.50379
+               35.690428
+               35.690428
+            
+         
+         
+            Walker Branch NEON | WALK | https://www.neonscience.org/field-sites/WALK
+            
+               -84.279251
+               -84.279251
+               35.957378
+               35.957378
+            
+         
+         
+            Teakettle Creek - Watershed 2 NEON | TECR | https://www.neonscience.org/field-sites/TECR
+            
+               -119.027363
+               -119.027363
+               36.955931
+               36.955931
+            
+         
+         
+            Upper Big Creek NEON | BIGC | https://www.neonscience.org/field-sites/BIGC
+            
+               -119.257549
+               -119.257549
+               37.059719
+               37.059719
+            
+         
+         
+            Posey Creek NEON | POSE | https://www.neonscience.org/field-sites/POSE
+            
+               -78.147258
+               -78.147258
+               38.89431
+               38.89431
+            
+         
+         
+            McDiffett Creek NEON | MCDI | https://www.neonscience.org/field-sites/MCDI
+            
+               -96.443022
+               -96.443022
+               38.945861
+               38.945861
+            
+         
+         
+            Lewis Run NEON | LEWI | https://www.neonscience.org/field-sites/LEWI
+            
+               -77.983216
+               -77.983216
+               39.095637
+               39.095637
+            
+         
+         
+            Kings Creek NEON | KING | https://www.neonscience.org/field-sites/KING
+            
+               -96.603829
+               -96.603829
+               39.105061
+               39.105061
+            
+         
+         
+            Arikaree River NEON | ARIK | https://www.neonscience.org/field-sites/ARIK
+            
+               -102.447148
+               -102.447148
+               39.758206
+               39.758206
+            
+         
+         
+            West St Louis Creek NEON | WLOU | https://www.neonscience.org/field-sites/WLOU
+            
+               -105.915395
+               -105.915395
+               39.891366
+               39.891366
+            
+         
+         
+            Como Creek NEON | COMO | https://www.neonscience.org/field-sites/COMO
+            
+               -105.544164
+               -105.544164
+               40.034962
+               40.034962
+            
+         
+         
+            Red Butte Creek NEON | REDB | https://www.neonscience.org/field-sites/REDB
+            
+               -111.797887
+               -111.797887
+               40.783934
+               40.783934
+            
+         
+         
+            Lower Hop Brook NEON | HOPB | https://www.neonscience.org/field-sites/HOPB
+            
+               -72.329526
+               -72.329526
+               42.471941
+               42.471941
+            
+         
+         
+            McRae Creek NEON | MCRA | https://www.neonscience.org/field-sites/MCRA
+            
+               -122.165554
+               -122.165554
+               44.259598
+               44.259598
+            
+         
+         
+            Blacktail Deer Creek NEON | BLDE | https://www.neonscience.org/field-sites/BLDE
+            
+               -110.58715
+               -110.58715
+               44.95011
+               44.95011
+            
+         
+         
+            Martha Creek NEON | MART | https://www.neonscience.org/field-sites/MART
+            
+               -121.933788
+               -121.933788
+               45.790835
+               45.790835
+            
+         
+         
+            Caribou Creek NEON | CARI | https://www.neonscience.org/field-sites/CARI
+            
+               -147.503973
+               -147.503973
+               65.153224
+               65.153224
+            
+         
+         
+            Oksrukuyik Creek NEON | OKSR | https://www.neonscience.org/field-sites/OKSR
+            
+               -149.143018
+               -149.143018
+               68.669753
+               68.669753
+            
+         
+         
+            
+               
+                  2014
+               
+               
+                  2023
+               
+            
+         
+      
+      
+         
+            This dataset will be updated as more data become available on the National Ecological Observatory Network Data Portal 
+            Oct 3, 2024 - added timestamp for each experiment in gasExchange_ds_v2.csv and hydraulics_v2.csv
+         
+         notPlanned
+      
+      
+         Kelly Aho
+         Michigan State University
+         kellyaho@msu.edu
+         https://orcid.org/0000-0002-1992-6378
+      
+      
+         Kaelin Cawley
+         National Ecological Observatory Network, Battelle
+         kcawley@battelleecology.org
+         https://orcid.org/0000-0002-0443-0070
+      
+      
+         Environmental Data Initiative
+         info@edirepository.org
+         https://edirepository.org
+         0330j0z60
+      
+      Environmental Data Initiative
+      
+         
+            
+               The methods used to estimate gas exchange and hydraulic parameters are documented in a companion manuscript that will be simultaneously submitted for review (Title: Gas exchange velocities (k_600 ), gas exchange rates (K_600 ), and hydraulic geometries for streams and rivers derived from the NEON Reaeration field and lab collection data product (DP1.20190.001) by Kelly S. Aho, Kaelin Cawley, Robert Hensley, Robert O. Hall, Jr., Walter Dodds, Keli Goodman). 
+               In short, the data processing pipeline used to create this dataset leverages the reaRate R package (Cawley et al., 2024).  The package estimates gas exchange velocity (k_600) and gas exchange rate (K_600) from data available on the NEON data portal.  The data products used are the NEON Reaeration field and lab collection data product (DP1.20190.001) and the Discharge field collection data product (DP1.20048.001). Data processed is included in RELEASE-2023, plus nine additional experiments that were provisional but are now included in RELEASE-2024. The package works by fitting an exponential, first-order decay function (C_x= C_0 e^(-K_d x), where C_0 and C_x are tracer-gas concentrations at the top of the study reach and at a downstream point x, respectively, and K_d is the average distance traveled by an SF6 molecule before it is emitted to the atmosphere) to the observed longitudinal decline in published SF6 concentrations and solving for K_d.  For sites where lateral inflows (e.g., groundwater inputs, overland flow, tributaries) appear to dilute SF6 concentrations, the ratio of SF6 to NaCl or NaBr is used to calculate a salt-corrected K_d value. The reaRate package uses the peaks of NaCl breakthrough curves (i.e., either from continuous injection or slug injections) to estimate the travel time between the upstream and downstream stations and then calculates v as the distance between stations divided by the travel time.  Finally, k_SF6 and K_SF6 are calculated from K_d, v, and z  (k_SF6 = z  ν K_D) and then normalized to k_600 and K_600 (k_600=k_SF6 (600/Sc_SF6 )^(-0.5)). The reaRates package includes two approaches to estimate k_600 and K_600: an un-pooled frequentist approach and a partially pooled Bayesian approach, both of which are describe in more detail in the companion data paper.  Implementation of the package and all processing described below were conducted in R 4.2.3 (R Core Team, 2023). More information about the package, including details about the individual functions and a processing pipeline, is available in the companion data descriptor. 
+               Cawley, Kaelin, Kelly Aho, and Robert Hall. (2024). NEONScience/NEON-reaeration: v0.0.2 (v0.0.2). Zenodo. https://doi.org/10.5281/zenodo.12786089
+               R Core Team: R: A language and environment for statistical computing, 2023.
+            
+            
+               Reaeration field and lab collection (DP1.20190.001) RELEASE 2023
+               
+                  National Ecological Observatory Network, Battelle
+                  https://www.neonscience.org/data
+                  https://ror.org/04j43p132
+               
+               
+                  
+                     Data product
+                     https://doi.org/10.48443/bk29-6c91
+                  
+               
+               
+                  National Ecological Observatory Network, Battelle
+                  https://ror.org/04j43p132
+               
+            
+            
+               Discharge field collection (DP1.20048.001) RELEASE 2023
+               
+                  National Ecological Observatory Network
+                  https://ror.org/04j43p132
+               
+               
+                  
+                     Data product
+                     https://doi.org/10.48443/tys0-ze83
+                  
+               
+               
+                  National Ecological Observatory Network, Battelle
+                  https://ror.org/04j43p132
+               
+            
+            
+               Discharge field collection (DP1.20048.001) RELEASE-2024
+               
+                  National Ecological Observatory Network
+               
+               
+                  
+                     Data product
+                     https://doi.org/10.48443/3746-1981
+                  
+               
+               
+                  National Ecological Observatory Network, Battelle
+               
+            
+            
+               Reaeration field and lab collection (DP1.20190.001) RELEASE-2024
+               
+                  National Ecological Observatory Network
+               
+               
+                  
+                     Data product
+                     https://doi.org/10.48443/4z25-4b94
+                  
+               
+               
+                  National Ecological Observatory Network, Battelle
+               
+            
+         
+      
+      
+         Estimating gas exchange in NEON streams
+         
+            Kelly Aho
+            kellyaho@msu.edu
+            https://orcid.org/0000-0002-1992-6378
+            Project leader
+         
+      
+      
+         sites
+         metadata for sites
+         
+            sites.csv
+            2330
+            fa6d30fff31ecfdabc71111878f1ff38
+            
+               
+                  1
+                  \r\n
+                  column
+                  
+                     ,
+                     "
+                  
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/d27edbd18c3bdf9ce1d013c6626ba26c
+               
+            
+         
+         
+            
+               site
+               site
+               site name, ID, URL for more information
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               latitude
+               latitude
+               latitude of site
+               float
+               
+                  
+                     
+                        degree
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               longitude
+               longitude
+               ongitude of site
+               float
+               
+                  
+                     
+                        degree
+                     
+                     
+                        real
+                     
+                  
+               
+            
+         
+         no
+         24
+      
+      
+         formatted_inputs
+         This file contains the input values used in data processing.
+         
+            formatted_inputs.csv
+            1250967
+            86cb8778cc04c478186ce8eaac98688b
+            
+               
+                  1
+                  \r\n
+                  column
+                  
+                     ,
+                     "
+                  
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/3fcdad91bf607dd42714f65bdf633fbf
+               
+            
+         
+         
+            
+               siteID
+               siteID
+               NEON site ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               namedLocation
+               namedLocation
+               NEON station ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               collectDate
+               collectDate
+               Date and time of field collection.
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+               
+                  NA
+                  missing value
+               
+            
+            
+               collectDateTrim
+               collectDateTrim
+               Date and time of field collection trimmed by def.format.reaeration() function in reaRates R package.
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+               
+                  NA
+                  Missing value
+               
+            
+            
+               stationToInjectionDistance
+               Distance from injection point to sampling station
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               injectionType
+               injectionType
+               Injection type for experiment
+               string
+               
+                  
+                     
+                        
+                           
+                              model
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              model - CRI
+                              Conservative tracer (i.e., NaCl) constant-rate injection.
+                           
+                           
+                              model - slug
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              NaBr
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection
+                           
+                           
+                              NaCl
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection
+                           
+                        
+                     
+                  
+               
+            
+            
+               slugTracerMass
+               slugTracerMass
+               Mass of injected conservative tracer
+               float
+               
+                  
+                     
+                        gram
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing value
+               
+            
+            
+               slugPourTime
+               Date and time of slug injection of conservative salt
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+            
+            
+               dripStartTime
+               dripStartTime
+               Date and time of simultaneous inert gas and conservative tracer constant-rate injection
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+            
+            
+               plateauCollectTime
+               plateauCollectTime
+               UNIX timestamp when plateau sample was collected
+               float
+               
+                  
+                     
+                        number
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               backgroundSaltConc
+               backgroundSaltConc
+               Background concentration of conservative tracer before injection
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanBackgroundCond
+               meanBackgroundCond
+               Background conductivity before injection from conductivity sensor
+               float
+               
+                  
+                     
+                        microsiemens
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing data
+               
+            
+            
+               backgroundSensorCond
+               backgroundSensorCond
+               Conductivity time series
+               float
+               
+                  
+                     
+                        microsiemens
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               plateauSaltConc
+               plateauSaltConc
+               Replicate conservative tracer concentrations during injection
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanPlatSaltConc
+               meanPlatSaltConc
+               Mean conservative tracer concentration during injection
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               sdPlatSaltConc
+               sdPlatSaltConc
+               Standard deviation of the replicate conservative tracer concentrations
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               plateauSaltConcClean
+               plateauSaltConcClean
+               Replicate conservative tracer concentrations during injection with outliers removed
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanPlatSaltConcClean
+               meanPlatSaltConcClean
+               Mean conservative tracer concentrations during injection minus background concentrations with outliers removed
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               sdPlatSaltConcClean
+               sdPlatSaltConcClean
+               Standard deviation of the replicate conservative tracer concentrations with outliers removed
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               plateauSaltConcCleanCorr
+               plateauSaltConcCleanCorr
+               Replicate conservative tracer concentrations during injection minus background concentration
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanPlatSaltConcCleanCorr
+               meanPlatSaltConcCleanCorr
+               Mean of replicate conservative tracer concentrations during injection minus background concentration
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               sdPlatSaltConcCleanCorr
+               sdPlatSaltConcCleanCorr
+               Standard deviation of replicate conservative tracer concentrations during injection minus background concentration
+               float
+               
+                  
+                     
+                        ppm
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               platSensorCond
+               platSensorCond
+               Conductivity during injection from conductivity sensors
+               float
+               
+                  
+                     
+                        microsiemens
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing data
+               
+            
+            
+               plateauGasConc
+               plateauGasConc
+               Replicate SF6 concentrations during injection
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanPlatGasConc
+               meanPlatGasConc
+               Mean SF6 concentration during injection
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               sdPlatGasConc
+               sdPlatGasConc
+               Standard deviation of replicate SF6 concentrations during injection
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               plateauGasConcClean
+               plateauGasConcClean
+               Replicate SF6 concentrations during injection with outliers removed
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanPlatGasConcClean
+               meanPlatGasConcClean
+               Mean of the replicate SF6 concentrations during injection with outliers removed
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               sdPlatGasConcClean
+               sdPlatGasConcClean
+               Standard deviation of replicate SF6 concentrations during injection with outliers removed
+               float
+               
+                  
+                     
+                        ppmv
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               unmixedStationFlag
+               unmixedStationFlag
+               Indicator that the station is unmixed
+               string
+               
+                  
+                     
+                        
+                           
+                              unmixedGasStation
+                              Replicate SF6 concentrations indicate that the station is unmixed
+                           
+                           
+                              unmixedSaltStation
+                              Replicate conservative tracer concentrations indicate that the station is unmixed
+                           
+                           
+                              unmixedSaltStation|unmixedGasStation
+                              Replicate SF6 concentrations and conservative tracer concentrations indicate that the station is unmixed
+                           
+                        
+                     
+                  
+               
+            
+            
+               wettedWidth
+               wettedWidth
+               Average of 30 wetted width measurements along the study reach
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               waterTemp
+               waterTemp
+               Water temperature during the experiment
+               float
+               
+                  
+                     
+                        celsius
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               hoboSampleID
+               hoboSampleID
+               Conductivity sensor ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               fieldDischarge_lps
+               fieldDischarge_lps
+               Stream discharge
+               float
+               
+                  
+                     
+                        literPerSecond
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               stage
+               stage
+               Water height
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               eventID
+               eventID
+               Experiment ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+         
+         no
+         2837
+      
+      
+         issueLog
+         List of missing data and changes made to input data.
+         
+            issueLog.csv
+            17721
+            1300a5076e414cc163343cfb526eab22
+            
+               
+                  1
+                  \r\n
+                  column
+                  
+                     ,
+                     "
+                  
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/665007d5a8a93b9f03c7b9e3cb56aeb3
+               
+            
+         
+         
+            
+               experiment
+               experiment
+               Experiment ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               type
+               type
+               Type of experiment
+               string
+               
+                  
+                     
+                        
+                           
+                              model
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              model - CRI
+                              Conservative tracer (i.e., NaCl) constant-rate injection.
+                           
+                           
+                              model - slug
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              NaBr
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection
+                           
+                           
+                              NaCl
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection
+                           
+                        
+                     
+                  
+               
+            
+            
+               non-fixable issues
+               non-fixable issues
+               Reasons that gas exchange or travel time could not be estimated
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               fixeable issues
+               fixeable issues
+               Reasons to manually change input file
+               string
+               
+                  
+                     
+                        
+                           
+                              stations reversed
+                              Stations 1-4 were reversed
+                           
+                           
+                              two discharges
+                              Experiment had two discharges listed
+                           
+                        
+                     
+                  
+               
+            
+            
+               fix
+               fix
+               Manual change to an experiment
+               string
+               
+                  
+                     
+                        
+                           
+                              fixed
+                              Fixed order of stations
+                           
+                           
+                              took average
+                              Took average of two discharges
+                           
+                        
+                     
+                  
+               
+            
+         
+         no
+         367
+      
+      
+         gasExchange_ds_v2
+         Output gas exchange estimates, including recommended estimates
+         
+            gasExchange_ds_v2.csv
+            71118
+            93dfe4396ee75a1b19d5bc960066dc14
+            
+               
+                  1
+                  \r\n
+                  column
+                  
+                     ,
+                     "
+                  
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/ae352c0f851c77c69422775ddf1c82c6
+               
+            
+         
+         
+            
+               siteID
+               eventID
+               NEON site ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               eventID
+               siteID
+               Experiment ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               collectDate_UTC
+               collectDate_UTC
+               experiment date and timestamp
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+            
+            
+               peakMaxVelocity_mPerSec
+               peakMaxVelocity_mPerSec
+               Water velocity calculated from conductivity time series
+               float
+               
+                  
+                     
+                        meterPerSecond
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               wettedWidth_m
+               wettedWidth_m
+               Mean wetted width
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanDepth_m
+               meanDepth_m
+               Mean water depth calculated from discharge, water velocity, and wetted width
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanQ_lps
+               meanQ_lps
+               Stream discharge
+               float
+               
+                  
+                     
+                        literPerSecond
+                     
+                     
+                        real
+                     
+                  
+               
+            
+            
+               meanTemp_c
+               meanTemp_c
+               Water temperature
+               float
+               
+                  
+                     
+                        celsius
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               k600.normClean_mPerDay
+               k600.normClean_mPerDay
+               Gas exchange velocity estimated from frequentist unpooled approach
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               K600.normClean_perDay
+               K600.normClean_perDay
+               Gas exchange rate estimated from frequentist unpooled approach
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               k600.normCorr_mPerDay
+               k600.normCorr_mPerDay
+               Gas exchange velocity estimated from frequentist unpooled approach using salt-corrected SF6 concentrations
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               K600.normCorr_perDay
+               K600.normCorr_perDay
+               Gas exchange rate estimated from frequentist unpooled approach using salt-corrected SF6 concentration
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               k600.stanClean_mPerDay
+               k600.stanClean_mPerDay
+               Gas exchange velocity estimated from partially pooled Bayesian approach
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               K600.stanClean_perDay
+               K600.stanClean_perDay
+               Gas exchange rate estimated from partially pooled Bayesian approach
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               k600.stanSaltCorr_mPerDay
+               k600.stanSaltCorr_mPerDay
+               Gas exchange velocity estimated from partially pooled Bayesian approach using salt-corrected SF6 concentration data
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               K600.stanSaltCorr_perDay
+               K600.stanSaltCorr_perDay
+               Gas exchange rate estimated from partially pooled Bayesian approach using salt-corrected SF6 concentration data
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               best_k600_mPerDay
+               best_k600_mPerDay
+               Recommended estimate of gas exchange velocity
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               best_K600_perDay
+               best_K600_perDay
+               Recommended estimate of gas exchange rate
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               best_unpooled_k600_mPerDay
+               best_unpooled_k600_mPerDay
+               best unpooled frequentist estimate of gas exchange velocity
+               float
+               
+                  
+                     
+                        meterPerDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+            
+               best_unpooled_K600_perDay
+               best_unpooled_K600_perDay
+               best unpooled frequentist estimate of gas exchange rate
+               float
+               
+                  
+                     
+                        perDay
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing
+               
+            
+         
+         no
+         339
+      
+      
+         hydrualics_v2
+         Output hydraulic parameters (e.g., water velocity, wetted width, mean depth, discharge)
+         
+            hydrualics_v2.csv
+            61501
+            81007df1c01e8ae6683cf5970782e59c
+            
+               
+                  1
+                  \r\n
+                  column
+                  
+                     ,
+                     "
+                  
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/6aaed45909f2681c8b6cf4ad4b096245
+               
+            
+         
+         
+            
+               siteID
+               siteID
+               NEON site ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               eventID
+               eventID
+               Experiment ID
+               string
+               
+                  
+                     
+                        
+                           text
+                        
+                     
+                  
+               
+            
+            
+               collectDate
+               collectDate
+               experiment date and timestamp
+               dateTime
+               
+                  
+                     YYYY-MM-DD hh:mm
+                     
+                  
+               
+            
+            
+               type
+               type
+               Type of experiment
+               string
+               
+                  
+                     
+                        
+                           
+                              model
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              model - CRI
+                              Conservative tracer (i.e., NaCl) constant-rate injection.
+                           
+                           
+                              model - slug
+                              Conservative tracer (i.e., NaCl) slug injection.
+                           
+                           
+                              NaBr
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaBr) injection
+                           
+                           
+                              NaCl
+                              Simultaneous inert gas (i.e., SF6) and constant-rate conservative tracer (i.e., NaCl) injection
+                           
+                        
+                     
+                  
+               
+            
+            
+               peakMaxVelocity_mPerSec
+               peakMaxVelocity_mPerSec
+               Water velocity calculated from conductivity time series
+               float
+               
+                  
+                     
+                        meterPerSecond
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing value
+               
+            
+            
+               meanDepth_m
+               meanDepth_m
+               Mean water depth calculated from discharge, water velocity, and wetted width
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  Missing value
+               
+            
+            
+               meanQ_lps
+               meanQ_lps
+               Stream discharge
+               float
+               
+                  
+                     
+                        literPerSecond
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  Missing value
+               
+            
+            
+               meanWettedWidth_m
+               meanWettedWidth_m
+               mean wetted width
+               float
+               
+                  
+                     
+                        meter
+                     
+                     
+                        real
+                     
+                  
+               
+               
+                  NA
+                  missing data
+               
+            
+         
+         no
+         793
+      
+      
+         KING_big_K600_v2
+         Stanfit object for estimating gas exchange rate for KING
+         
+            KING_big_K600_v2.rds
+            24513036
+            58d1d8eb6adbe9b99414388a9b0fafe9
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/fa442c9dd80acfbadffd766bc88dd6c7
+               
+            
+         
+         stanfit object
+      
+      
+         KING_little_k600_v3
+         Stanfit object for estimating gas exchange velocity for KING
+         
+            KING_little_k600_v3.rds
+            23612161
+            b292f97655ed153890a4fceec1ba9b61
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/34a6b72cb55833894c3e2e048652c12e
+               
+            
+         
+         stanfit object
+      
+      
+         PRIN_big_K600_v2
+         Stanfit object for estimating gas exchange rate for PRIN
+         
+            PRIN_big_K600_v2.rds
+            109976155
+            257d8d67d8fcba5ed7c2cbc6700eaa56
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/ce912071d671e54b283999686fae10bd
+               
+            
+         
+         stanfit object
+      
+      
+         PRIN_little_k600_v2
+         Stanfit object for estimating gas exchange velocity for PRIN
+         
+            PRIN_little_k600_v2.rds
+            107517483
+            ecca6e34464b51af94d60da5263c5c6b
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/9500aacee0dea6787bbc27987fe1633d
+               
+            
+         
+         stanfit object
+      
+      
+         CUPE_big_K600_corr_v2
+         Stanfit object for estimating gas exchange rate for CUPE
+         
+            CUPE_big_K600_corr_v2.rds
+            29659887
+            eceda05c180ebbe9854adbaa71bf2a0f
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/54726b8a91825dc19b115ea6726c8a6f
+               
+            
+         
+         stanfit
+      
+      
+         CUPE_little_k600_corr_v2
+         Stanfit object for estimating gas exchange velocity for CUPE
+         
+            CUPE_little_k600_corr_v2.rds
+            29735469
+            76b640f325e02f817b7b454d249ffc57
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/090618706027d47f64b4cd21f4d68447
+               
+            
+         
+         stanfit object
+      
+      
+         TECR_big_K600_v1
+         Stanfit object for estimating gas exchange rate for TECR
+         
+            TECR_big_K600_v1.rds
+            18103799
+            f99d4c71ff3a042253e04d987b132710
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/9b5727f1b3ae72c10f5d11a61da51bc5
+               
+            
+         
+         stanfit object
+      
+      
+         TECR_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for TECR
+         
+            TECR_little_k600_v1.rds
+            18116086
+            f6a19004f715af46427d4b5949200ca2
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/6f209769d13cb0525447b07ade79cf83
+               
+            
+         
+         stanfit object
+      
+      
+         SYCA_big_K600_v1
+         Stanfit object for estimating gas exchange rate for SYCA
+         
+            SYCA_big_K600_v1.rds
+            14041257
+            ed9e71149953b6f5634242069a6e053d
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/a6e8b49d861da0b7ed060e3fc0fceb9a
+               
+            
+         
+         stanfit object
+      
+      
+         SYCA_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for SYCA
+         
+            SYCA_little_k600_v1.rds
+            14079641
+            1cad55c5cc7ddc4b16220def417c3cf3
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/70c2f39f360bf7834780dfb90a85c161
+               
+            
+         
+         stanfit object
+      
+      
+         MCRA_big_K600_v1
+         Stanfit object for estimating gas exchange rate for MCRA
+         
+            MCRA_big_K600_v1.rds
+            19175673
+            26c4724acd981e5513ddb00d3493942e
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/d1a8f1ccdecbac09a71af41670c78369
+               
+            
+         
+         stanfit object
+      
+      
+         MCRA_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for MCRA
+         
+            MCRA_little_k600_v1.rds
+            19193982
+            2bbc5c9d29aacf56d51079ce7ef9a522
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/cc475d5cb2e666c668b7012d641d04a7
+               
+            
+         
+         stanfit object
+      
+      
+         MCDI_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for MCDI
+         
+            MCDI_little_k600_v1.rds
+            10297181
+            e3697009bd44a1a65d1da7715362e4c8
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/40ace3eb8c0cbd34af6088524f711129
+               
+            
+         
+         stanfit object
+      
+      
+         MCDI_big_K600_v1
+         Stanfit object for estimating gas exchange rate for MCDI
+         
+            MCDI_big_K600_v1.rds
+            8753340
+            1a9061f46770d61371bef7d8baa211d9
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/b2fec92dc14873be7e847ef9d79c6f7f
+               
+            
+         
+         stanfit object
+      
+      
+         MAYF_big_K600_v1
+         Stanfit object for estimating gas exchange rate for MAYF
+         
+            MAYF_big_K600_v1.rds
+            9739604
+            d4203056ed20fc3d5e5052ec6cd7e69e
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/863dc7b6d81f7175079a2abe224b8e32
+               
+            
+         
+         stanfit object
+      
+      
+         MAYF_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for MAYF
+         
+            MAYF_little_k600_v1.rds
+            9759442
+            82bba1d7eeee79ea8fd60ad300b53f41
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/9b7ab4e8426fd8bc3b0900b16e7024f2
+               
+            
+         
+         stanfit object
+      
+      
+         MART_big_K600_corr_v1
+         Stanfit object for estimating gas exchange rate for MART
+         
+            MART_big_K600_corr_v1.rds
+            9682197
+            114823a37110a552728ccda184a2cf33
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/b43aa9256d87a7633fac36f3297f8723
+               
+            
+         
+         stanfit object
+      
+      
+         MART_little_k600_corr_v1
+         Stanfit object for estimating gas exchange velocity for MART
+         
+            MART_little_k600_corr_v1.rds
+            9710917
+            3e1e8235320387c8366b66674c270073
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/e773069e5b576195f21f19afff54f4de
+               
+            
+         
+         stanfit object
+      
+      
+         HOPB_big_K600_v1
+         Stanfit object for estimating gas exchange rate for HOPB
+         
+            HOPB_big_K600_v1.rds
+            22047643
+            01d36a0e37e8b8396e58c1daea9bb6db
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/ae98288ac2ef06da757773ac016c8baa
+               
+            
+         
+         stanfit object
+      
+      
+         HOPB_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for HOPB
+         
+            HOPB_little_k600_v1.rds
+            22086835
+            0ba91f5349b2ccd02065f1d6e05fe19d
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/bda2ef9ea455be52c3a82be46c033ea2
+               
+            
+         
+         stanfit object
+      
+      
+         WLOU_big_K600_v1
+         Stanfit object for estimating gas exchange rate for WLOU
+         
+            WLOU_big_K600_v1.rds
+            31355306
+            6e41a7c92d7328131bd7bd4b4b3fab9b
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/17e564540c79f9889bce58c8c9cb6ca3
+               
+            
+         
+         stanfit object
+      
+      
+         WLOU_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for WLOU
+         
+            WLOU_little_k600_v1.rds
+            31354023
+            a5ce4c8a8058ec4802fbb6f393bc5149
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/f9102c99d51c0631add5c8c70cee195f
+               
+            
+         
+         stanfit object
+      
+      
+         WALK_big_K600_corr_v1
+         Stanfit object for estimating gas exchange rate for WALK
+         
+            WALK_big_K600_corr_v1.rds
+            11741973
+            e918a19fe491996c3fb0efd5700226b6
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/0e67e67cf4736da92caa7b098633255d
+               
+            
+         
+         stanfit object
+      
+      
+         WALK_little_k600_corr_v1
+         Stanfit object for estimating gas exchange velocity for WALK
+         
+            WALK_little_k600_corr_v1.rds
+            11788944
+            b71da253d9f8632c6da35521abe99414
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/136f7d40d8735a86c8aa69b677df2a2e
+               
+            
+         
+         stanfit object
+      
+      
+         REDB_big_K600_v1
+         Stanfit object for estimating gas exchange rate for REDB
+         
+            REDB_big_K600_v1.rds
+            28458242
+            a531b2c67922fd2f1049dcef7f942879
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/976792778fd663ddbf3c77f88af9a7aa
+               
+            
+         
+         stanfit object
+      
+      
+         REDB_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for REDB
+         
+            REDB_little_k600_v1.rds
+            28506196
+            94e4f13401f8f835792c66ea647c1580
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/62337a6a85411b327f7ca38f10689648
+               
+            
+         
+         stanfit object
+      
+      
+         POSE_big_K600_v1
+         Stanfit object for estimating gas exchange rate for POSE
+         
+            POSE_big_K600_v1.rds
+            32617517
+            70bd65a4e7d54f2fc9db362945105d52
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/ba71913a7996f95398168df859ab3533
+               
+            
+         
+         stanfit object
+      
+      
+         POSE_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for POSE
+         
+            POSE_little_k600_v1.rds
+            32751356
+            5ba53c6009f4783144fe9bb96126765a
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/e8a25c959848fdef2707e0d98cb0eba1
+               
+            
+         
+         stanfit object
+      
+      
+         OKSR_big_K600_v1
+         Stanfit object for estimating gas exchange rate for OKSR
+         
+            OKSR_big_K600_v1.rds
+            24636250
+            98b5d656607070744c3ca0590001e535
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/7f8ea522871085ef5ccb33e2ec82fad3
+               
+            
+         
+         stanfit object
+      
+      
+         OKSR_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for OKSR
+         
+            OKSR_little_k600_v1.rds
+            24648759
+            e226912f41ebeccc0ac0d9a6e4c1fe78
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/3aadc34839d5f47bdd69a631f1c5d659
+               
+            
+         
+         stanfit object
+      
+      
+         LEWI_big_K600_v1
+         Stanfit object for estimating gas exchange rate for LEWI
+         
+            LEWI_big_K600_v1.rds
+            24574482
+            5661721c7d03e01b1b9d7d2ac3bdc41b
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/795b7201fd220f443e5af6e21e16f50a
+               
+            
+         
+         stanfit object
+      
+      
+         LEWI_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for LEWI
+         
+            LEWI_little_k600_v1.rds
+            24614498
+            1fea389cf051922b51038c115ef8e602
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/35da36e6049db8aab486f1ebba252bda
+               
+            
+         
+         stanfit object
+      
+      
+         LECO_big_K600_v1
+         Stanfit object for estimating gas exchange rate for LECO
+         
+            LECO_big_K600_v1.rds
+            12821700
+            c3d248a41ef0d70da810ff5faec8fbb3
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/ebca547e0d4af1c4b9ef5d161abe9062
+               
+            
+         
+         stanfit object
+      
+      
+         LECO_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for LECO
+         
+            LECO_little_k600_v1.rds
+            12794891
+            821f537c0b8a5ef72fe6f3ba9b27ea76
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/e4b6145f0933412d7344f187770aac0a
+               
+            
+         
+         stanfit object
+      
+      
+         GUIL_big_K600_corr_v1
+         Stanfit object for estimating gas exchange rate for GUIL
+         
+            GUIL_big_K600_corr_v1.rds
+            18044069
+            60be9503014c11f56a0b12f48aeef933
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/9f381532da1f52ca1fd84cc6dcd8f2ce
+               
+            
+         
+         stanfit object
+      
+      
+         GUIL_little_k600_corr_v1
+         Stanfit object for estimating gas exchange velocity for GUIL
+         
+            GUIL_little_k600_corr_v1.rds
+            18048180
+            15ed22c6f4f79f9452c052a340264dbf
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/d85e6c07cd79d567e082f2be140925e0
+               
+            
+         
+         stanfit object
+      
+      
+         CARI_big_K600_v1
+         Stanfit object for estimating gas exchange rate for CARI
+         
+            CARI_big_K600_v1.rds
+            19190126
+            a5d294650fc534afcb82b6e942293963
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/4b5314cb871b09be37809d93e2188ca3
+               
+            
+         
+         stanfit object
+      
+      
+         CARI_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for CARI
+         
+            CARI_little_k600_v1.rds
+            19178191
+            33d11290b0c46bfdaaf3764cceaba21e
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/389594f93b36cf635000fdec8ef1578e
+               
+            
+         
+         stanfit object
+      
+      
+         BLDE_big_K600_v1
+         Stanfit object for estimating gas exchange rate for BLDE
+         
+            BLDE_big_K600_v1.rds
+            13773850
+            f6e5a47728c6837e9a26baa549aa28ef
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/48ebd324bbdaf02ce1e1ad29626d4a30
+               
+            
+         
+         stanfit object
+      
+      
+         BLDE_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for BLDE
+         
+            BLDE_little_k600_v1.rds
+            13777814
+            8b81ed77d969805886db78c9adb0a0f3
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/1d83330588b4130608e30ebc68a1d91f
+               
+            
+         
+         stanfit object
+      
+      
+         BIGC_big_K600_v1
+         Stanfit object for estimating gas exchange rate for BIGC
+         
+            BIGC_big_K600_v1.rds
+            25350938
+            2be161e158794aa51113898b2fd6267c
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/deff398c9fbde302d6e7a7e6f25bd03f
+               
+            
+         
+         stanfit object
+      
+      
+         BIGC_little_k600_v1
+         Stanfit object for estimating gas exchange velocity for BIGC
+         
+            BIGC_little_k600_v1.rds
+            25389333
+            e9fd5b126754bf4c0f8d79757bd80a59
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/457e73e225618a9b9d81c679e66bae07
+               
+            
+         
+         stanfit object
+      
+      
+         COMO_big_K600_corr_v1
+         Stanfit object for estimating gas exchange rate for COMO
+         
+            COMO_big_K600_corr_v1.rds
+            20079257
+            9a36adae01568d3c9fa662201f1391b6
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/fa5ca62e4a6e2b9405f9b0afa79982c8
+               
+            
+         
+         stanfit object
+      
+      
+         COMO_little_k600_corr_v1
+         Stanfit object for estimating gas exchange velocity for COMO
+         
+            COMO_little_k600_corr_v1.rds
+            20121244
+            bb14b256d32b789527f0fda63f92ee14
+            
+               
+                  .rds
+               
+            
+            
+               
+                  https://pasta.lternet.edu/package/data/eml/edi/1735/2/0917a66ed424f23870ac42829d394a07
+               
+            
+         
+         stanfit object
+      
+   
+   
+      
+         
+            
+               parts per million
+            
+            
+               
+            
+            
+               parts per million by volume
+            
+            
+               
+            
+         
+      
+   
+   
+      
+         
+      
+   

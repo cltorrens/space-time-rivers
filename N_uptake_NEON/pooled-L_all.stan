@@ -45,6 +45,7 @@
     
     // process error and obs error equations (L36, 39, 40) can live up in the transformed params block. I still need the double loops in the model.
     // = are transfrmed params, ~ stay in the model block. 
+    // so nope, nvmd, can't separate those out. Use conc_pred in the enerated quantities block instead.
             }
          }
    
