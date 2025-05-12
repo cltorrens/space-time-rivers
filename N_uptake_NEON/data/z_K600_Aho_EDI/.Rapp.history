@@ -1,1 +1,3 @@
 load("/Users/torrensc/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/z_K600_Aho_EDI/KING_big_K600_v2.rds")
+load("/Users/torrensc/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/z_K600_Aho_EDI/BIGC_big_K600_v1.rds")
+load("/Users/torrensc/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/z_K600_Aho_EDI/WLOU_big_K600_v1.rds")

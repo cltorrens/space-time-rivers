@@ -29,3 +29,7 @@ N_uptake_NEON/data/Archive_data/no3_raw_data/CARI-BIGC-KING-WALK_rawdata/q_data.
 N_uptake_NEON/data/GPP_Marzolf_published.zip
 N_uptake_NEON/data/z_K600_Aho_EDI/PRIN_big_K600_v2.rds
 N_uptake_NEON/data/z_K600_Aho_EDI/PRIN_little_k600_v2.rds
+N_uptake_NEON/data/neon_data_derived/q_dataset.prov.Rds
+N_uptake_NEON/data/neon_data_derived/q_dataset.Rds
+N_uptake_NEON/data/neon_data_raw/q_data_2124.Rdata
+N_uptake_NEON/data/neon_data_raw/q_data_2324prov.Rdata

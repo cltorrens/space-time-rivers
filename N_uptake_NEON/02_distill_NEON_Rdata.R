@@ -10,7 +10,8 @@ library(here)
 
 ### Load raw data
 load(here("N_uptake_NEON/data/neon_data_raw/no3_data_all_2124.Rdata"))
-#load(here("N_uptake_NEON/data/neon_data_raw/q_data.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_raw/q_data_2124.Rdata"))
+load(here("N_uptake_NEON/data/neon_data_raw/q_data_2324prov.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/wqual_data_CARI.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
 #load(here("N_uptake_NEON/data/neon_data_raw/wtemp_data.Rdata"))
@@ -19,6 +20,9 @@ load(here("N_uptake_NEON/data/neon_data_raw/par_data.Rdata"))
 # load(here("N_uptake_NEON/data/neon_data_raw/manualq_data.Rdata"))
 # load(here("N_uptake_NEON/data/neon_data_raw/reaeration_data.Rdata"))
 
+# The Q data is so large that loading it threw an error (Error: vector memory exhausted (limit reached?))
+# temp_env <- new.env()
+# load(here("N_uptake_NEON/data/neon_data_raw/q_data_2124.Rdata"), envir = temp_env)
 
 ### Separate out variables (and select rows?)
 
@@ -33,6 +37,18 @@ no3_flags <- no3.data.2124$science_review_flags_20033
 Q_data_sensor <- q_data$csd_continuousDischarge
 Q_spatial_sensor <- q_data$sensor_positions_00130
 Q_variables <- q_data$variables_00130
+Q_issuelog <- q_data$issueLog_00130
+Q_readme <- q_data$readme_00130
+Q_flags <- q_data$science_review_flags_00130
+
+
+# Provisional Q
+Q_data.prov <- q_data.prov$csd_continuousDischarge
+Q_spatial_sensor.prov <- q_data.prov$sensor_positions_00130
+Q_variables.prov <- q_data.prov$variables_00130
+Q_issuelog.prov <- q_data.prov$issueLog_00130
+Q_readme.prov <- q_data.prov$readme_00130
+Q_flags.prov <- q_data.prov$science_review_flags_00130
 
 
 # Field (Manual) Q 
@@ -96,9 +112,19 @@ save(no3_issuelog, file=here('N_uptake_NEON/data/neon_data_derived/no3_issuelog.
 save(no3_flags, file=here('N_uptake_NEON/data/neon_data_derived/no3_flags.Rdata'))
 
 # Q
-save(Q_data_sensor, file=here("N_uptake_NEON/data/neon_data_derived/q_dataset.Rdata"))
-save(Q_spatial_sensor, file=here('N_uptake_NEON/data/neon_data_derived/q_spatial_sensor.Rdata'))
-save(Q_variables, file=here('N_uptake_NEON/data/neon_data_derived/q_variables.Rdata'))
+# save(Q_data_sensor, file=here("N_uptake_NEON/data/neon_data_derived/q_dataset.Rdata"))
+saveRDS(Q_data_sensor, file=here("N_uptake_NEON/data/neon_data_derived/q_dataset.Rds")) #same size as the Rdata file
+saveRDS(Q_spatial_sensor, file=here('N_uptake_NEON/data/neon_data_derived/q_spatial_sensor.Rds'))
+saveRDS(Q_variables, file=here('N_uptake_NEON/data/neon_data_derived/q_variables.Rds'))
+saveRDS(Q_issuelog, file=here('N_uptake_NEON/data/neon_data_derived/q_issuelog.Rds'))
+saveRDS(Q_flags, file=here('N_uptake_NEON/data/neon_data_derived/q_flags.Rds'))
+saveRDS(Q_readme, file=here('N_uptake_NEON/data/neon_data_derived/q_readme.Rds'))
+
+# provisional Q
+saveRDS(Q_data.prov, file=here("N_uptake_NEON/data/neon_data_derived/q_dataset.prov.Rds")) #same size as the Rdata file
+saveRDS(Q_issuelog.prov, file=here('N_uptake_NEON/data/neon_data_derived/q_issuelog.prov.Rds'))
+saveRDS(Q_flags.prov, file=here('N_uptake_NEON/data/neon_data_derived/q_flags.prov.Rds'))
+saveRDS(Q_readme.prov, file=here('N_uptake_NEON/data/neon_data_derived/q_readme.prov.Rds'))
 
 
 # Field (Manual) Q 

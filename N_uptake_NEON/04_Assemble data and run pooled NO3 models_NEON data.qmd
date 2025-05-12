@@ -42,7 +42,7 @@ Then work with the site-level nitrate and light datasets to create the model dat
 -   Load the datasets
 -   Assemble the model data
 -   Create the data list and call to STAN
--   Save each model fit and data list as Rdata
+-   Save each model fit and data list as Rdata =\> CHANGE TO RDS
 
 ### BIGC - Upper Big Creek, Fresno, CA
 

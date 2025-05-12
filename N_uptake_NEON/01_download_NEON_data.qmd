@@ -44,6 +44,8 @@ Bobby Hensley informed us that Q and O2 data are unreliable before 2021. Current
 ### download NO3 and related datasets  ###
 sitelist <- c("ARIK", "BIGC", "BLDE", "BLUE", "BLWA", "CARI", "COMO", "CUPE", "FLNT", "GUIL","HOPB", "KING", "LECO", "MART", "OKSR", "POSE", "PRIN", "REDB", "SYCA", "TECR", "WALK", "WLOU")  #already have "CARI", "BIGC", "KING", "WALK", but re-downloading so everything is together
 
+sitelist <- c("BIGC", "BLDE", "CARI", "CUPE", "MART", "OKSR", "PRIN", "REDB", "SYCA", "WALK", "WLOU")
+
 # Not pulled:Lewis Run [LEWI], Clarke, VA; Mayfield Creek [MAYF], Bibb, AL; McDiffett Creek [MCDI], Wabaunsee, KS; McRae Creek [MCRA], Linn, OR; Tombigbee River [TOMB], Choctaw, AL
 
 # startdate and enddate need to be character strings in YYYY-MM format 
@@ -83,10 +85,19 @@ par_data <- loadByProduct(dpID = "DP1.00024.001",
 #                             package="expanded", check.size=F, 
 #                             token = Sys.getenv("NEON_TOKEN"))
 # 
-# q_data <- loadByProduct(dpID = "DP4.00130.001", 
-#                         site = sitelist, 
-#                         package="expanded", check.size=F, 
-#                         token = Sys.getenv("NEON_TOKEN"))
+q_data <- loadByProduct(dpID = "DP4.00130.001",
+                        site = sitelist,
+                        startdate="2021-01", enddate="2024-06",
+                        include.provisional=FALSE,
+                        package="expanded", check.size=F,
+                        token = Sys.getenv("NEON_TOKEN"))
+
+q_data.prov <- loadByProduct(dpID = "DP4.00130.001",
+                        site = sitelist,
+                        startdate="2023-10", enddate="2024-12",
+                        include.provisional=TRUE,
+                        package="expanded", check.size=F,
+                        token = Sys.getenv("NEON_TOKEN"))
 # 
 # manual.q_data <- loadByProduct(dpID = "DP1.20048.001",              # field discharge data
 #                         site = sitelist, 
@@ -121,7 +132,8 @@ save(par_wsurf_data, file=here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.
 save(par_data, file=here("N_uptake_NEON/data/neon_data_raw/par_data.Rdata"))
 
 # save(precip_data, file=here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
-# save(q_data, file= here("N_uptake_NEON/data/neon_data_raw/q_data.Rdata"))
+save(q_data, file= here("N_uptake_NEON/data/neon_data_raw/q_data_2124.Rdata"))
+save(q_data.prov, file= here("N_uptake_NEON/data/neon_data_raw/q_data_2324prov.Rdata"))
 # save(manual.q_data, file=here("N_uptake_NEON/data/neon_data_raw/manualq_data.Rdata"))
 # save(wtemp_data, file=here("N_uptake_NEON/data/neon_data_raw/wtemp_data.Rdata"))
 # save(wqual_data, file=here("N_uptake_NEON/data/neon_data_raw/wqual_data_BIGC.Rdata"))
