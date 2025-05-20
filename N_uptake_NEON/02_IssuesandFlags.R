@@ -72,3 +72,5 @@ datatable(no3_issuelog, options = list(pageLength = 20, autoWidth = TRUE))
 datatable(Q_flags, options = list(pageLength = 20, autoWidth = TRUE))
 
 datatable(Q_issuelog, options = list(pageLength = 20, autoWidth = TRUE))
+
+datatable(Q_readme, options = list(pageLength = 20, autoWidth = TRUE))

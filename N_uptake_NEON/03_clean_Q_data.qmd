@@ -7,27 +7,17 @@ editor: visual
 
 ## Intro
 
-This script's purpose is to clean and fill NEON Continuous Discharge [Q] data for the modeled sites. Per the 'Quick Start' guide, Q is measured in liters per second, at 1 minute resolution (i.e. 1 min instantaneous readings). The column to use is 'maxpostDischarge'**: this is the total maximum posterior estimate of stream or river discharge; equal to the mode value of the posterior distribution.  
+This script's purpose is to clean and fill NEON Continuous Discharge \[Q\] data for the modeled sites. Per the 'Quick Start' guide, Q is measured in liters per second, at 1 minute resolution (i.e. 1 min instantaneous readings). The column to use is 'maxpostDischarge'\*\*: this is the total maximum posterior estimate of stream or river discharge; equal to the mode value of the posterior distribution.
 
-** From later in the Quick Start guide: 
-Note: The developers of the Bayesian discharge model used by NEON recommend the maxpostDischarge, which is the mode of the posterior distribution (means and medians are also provided).
+\*\* From later in the Quick Start guide: Note: The developers of the Bayesian discharge model used by NEON recommend the maxpostDischarge, which is the mode of the posterior distribution (means and medians are also provided).
 
-From the 'Quick start' guide to NEON Q, re: NAs in Jan-Sept 2021: 
-Continuous discharge data include both data flags and uncertainty estimates for the calculated stage and discharge. Beginning with RELEASE-2025 and in all subsequent releases, applying to all Water Years starting with Water Year 2022 (from October 1, 2021), when continuous discharge data cannot be cleaned and gap filled using the methods documented in the Data Processing section, values are set to NA. For data collected prior to Water Year 2022, and all water years in Releases prior to RELEASE-2025, maxpost discharge data identified as potentially suspect have the
-dischargeFinalQF set to 1. Estimated upper and lower bounds of parametric and remnant uncertainty from the Bayesian model are provided.
-
+From the 'Quick start' guide to NEON Q, re: NAs in Jan-Sept 2021: Continuous discharge data include both data flags and uncertainty estimates for the calculated stage and discharge. Beginning with RELEASE-2025 and in all subsequent releases, applying to all Water Years starting with Water Year 2022 (from October 1, 2021), when continuous discharge data cannot be cleaned and gap filled using the methods documented in the Data Processing section, values are set to NA. For data collected prior to Water Year 2022, and all water years in Releases prior to RELEASE-2025, maxpost discharge data identified as potentially suspect have the dischargeFinalQF set to 1. Estimated upper and lower bounds of parametric and remnant uncertainty from the Bayesian model are provided.
 
 NB: Per Bobby Hensley, Q data improved from 2021 on - perhaps he meant the start of water year 2022?
 
-NB: as of 5/10/2025, QAQC'd data ends w. Sept 2023. I may need to pare down my dates so that I have good Q (and therefore z) data. 
+NB: as of 5/10/2025, QAQC'd data ends w. Sept 2023. I may need to pare down my dates so that I have good Q (and therefore z) data.
 
-Workflow:
-load data
-Select model days for each site (before Oct 2023)
-ID NAs in 2021 Jan-Sept data (dischargeFinalQF set to 1) and elsewhere
-For all NAs - fill gaps <= 2h
-aggregate to daily data in cms (from L s^-1?)
-save as rds by site
+Workflow: load data Select model days for each site (before Oct 2023) ID NAs in 2021 Jan-Sept data (dischargeFinalQF set to 1) and elsewhere For all NAs - fill gaps \<= 2h aggregate to daily data in cms (from L s\^-1?) save as rds by site
 
 ### Load the required packages
 
@@ -53,6 +43,7 @@ library(plotly) # interactive plots
 ```
 
 ### Functions
+
 ```{r functions}
 
 prepQ <- function(data, tz, span) {
@@ -60,12 +51,40 @@ prepQ <- function(data, tz, span) {
   mutate(local_datetime = with_tz(endDate, tzone=tz),
          Jday = yday(local_datetime),
          model_datetime = local_datetime - hours(4), 
-         model_jday = yday(model_datetime)) %>%
+         model_jday = yday(model_datetime), 
+         Year = year(model_datetime)) %>%
   filter(year(model_datetime) %in% span)
 }
 
-```
+prep2123 <- function(data) {
+  data %>%
+  mutate(Year = year(model_datetime)) %>% 
+  rename(UTC_endDateTime=endDate, 
+         lower.ci=withParaUncQLower2Std, 
+         upper.ci=withParaUncQUpper2Std) %>%
+  mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
+  dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
 
+}
+
+# written for datasets that have all the elements listed... NOT TESTED (try later...)
+dailysum <- function(data) {
+    data %>%
+    dplyr::group_by(yr_jday) %>%
+    summarise(
+        siteID = first(siteID), 
+        model_date=first(model_datetime),
+        Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
+        Year = first(Year),
+        model_jday = first(model_jday),
+        release = first(release),
+        ) %>%
+    mutate(Q_cms = Qmean_ls/1000) %>%
+    select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
+}
+
+```
 
 ### Load the PAR/ WS-PAR Rdata
 
@@ -106,15 +125,15 @@ hydrogeom_aho <- read_csv(here("N_uptake_NEON/data/sites_powerlawvalues_Aho.csv"
 
 ```
 
-
-
-
 ### BIGC
+
 ##### Save files by site and select model days
+
 ```{r select model days}
 
 # combine released and provisional datasets
 bigc.q <- bind_rows(BIGC.q, BIGC.q.prov) 
+saveRDS(bigc.q, file=here("N_uptake_NEON/data/neon_data_derived/bigc.q.unfiltered.rds"))
 
 # model day list from '03_select no3 data for the model'
 list.21 <- c(56, 57, 58, 59, 60, 61, 63, 64, 65, 128, 129, 130, 133, 139, 140, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 175, 176, 177, 178, 179, 197, 198, 202, 203, 204, 225, 226, 227, 228, 229, 230, 243, 245, 246, 247, 248, 249, 250, 251, 257, 258, 259, 260, 261, 262, 263, 264, 267, 268, 269, 270, 274, 275, 337, 338, 339, 340)
@@ -127,12 +146,17 @@ list.22 <- c(22, 23, 24, 25, 26, 27, 28, 38, 41, 42, 48, 49, 51, 52, 58, 59, 68,
 
 list.23 <- c(291, 292, 293, 294, 299, 300, 301, 302, 303, 304, 305, 306, 307, 309, 313, 314, 315, 317, 318, 325, 326, 327, 328, 329, 330, 336, 337, 338, 339, 340, 341, 344, 345, 346, 347, 348, 349, 350)
 
+# 191 days
 
 
 # Use the objects to create dataframes of the selected *model* jdays (ensures complete 24-h model days, i.e. from 4a-3:59a)
 bigc.q.21 <- bigc.q %>%
   prepQ(tz="US/Pacific", span=2021) %>%
-  filter(model_jday %in% list.21)
+  filter(model_jday %in% list.21) 
+
+# bigc.q.21.daily <- bigc.q.21 %>%
+#   dplyr::group_by(model_jday) %>%
+#   
   
 bigc.q.22 <- bigc.q %>%  
   prepQ(tz="US/Pacific", span=2022) %>%
@@ -142,9 +166,22 @@ bigc.q.23 <- bigc.q %>%
   prepQ(tz="US/Pacific", span=2023) %>%
   filter(model_jday %in% list.23)
 
+remove.21 <- bigc.q.21 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.22 <- bigc.q.22 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.23 <- bigc.q.23 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs}
@@ -155,17 +192,25 @@ bigc.q.21 <- bigc.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
 bigc.q.2123 <- bind_rows(bigc.q.21, bigc.q.22, bigc.q.23) %>%
-  mutate(Year = year(model_datetime)) %>% 
   rename(UTC_endDateTime=endDate, 
          lower.ci=withParaUncQLower2Std, 
          upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
+  mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+  
+remove.2123 <- bigc.q.2123 %>% 
+  count(yr_jday) %>%
+  filter(n != 1440) 
+  
+remove.2123.2 <- bigc.q.2123 %>% 
+  count(as.Date(model_datetime)) %>%
+  filter(n != 1440) 
 
+
+# 191 days
 # save progress
 saveRDS(bigc.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/bigc.q.2123.rds"))
 ```
@@ -211,7 +256,6 @@ bigc.q.2123$maxpostDischarge <- na.approx(bigc.q.2123$maxpostDischarge, maxgap =
 
 ```
 
-
 ##### UNUSED - fill gaps
 
 ```{r fill gaps}
@@ -251,31 +295,35 @@ which(is.na(bigc.wlight.df.2123$surfWaterNitrateMean))
 
 ```
 
-
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
+It looks like there are steady changes in most days, but only \~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom.
+
 ```{r daily Q}
 
 bigc.q.2123.daily <- bigc.q.2123 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
+  dplyr::group_by(yr_jday) %>%
   summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
+     siteID = first(siteID), 
+     model_date=first(model_datetime),
+     # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
     Year = first(Year),
     model_jday = first(model_jday),
     release = first(release),
-    .groups = "drop"
   ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+  mutate(Q_cms = Qmean_ls/1000) %>%
+  select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
+
+
 
 zeroQ <- bigc.q.2123.daily %>%
   dplyr::filter(Qmean_ls == 0)
 
 ```
 
-##### Calculate daily v (m s^-1) and z (m)
+##### Calculate daily v (m s\^-1) and z (m)
+
 ```{r calc v and z - bigc}
 
 bigc.geom <- hydrogeom_aho %>%
@@ -290,8 +338,8 @@ bigc.q.2123.daily <- bigc.q.2123.daily %>%
 
 ```
 
-
 ##### Save file updates
+
 ```{r save files - bigc}
 # save cleaned daily data
 saveRDS(bigc.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
@@ -302,9 +350,10 @@ saveRDS(bigc.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/bigc.q.2123
 
 ```
 
-
 ### BLDE
+
 ##### save combined files as neon_data_derived/blde.q
+
 ```{r select model days - blde}
 
 # combine released and provisional datasets
@@ -313,6 +362,7 @@ saveRDS(blde.q, file=here("N_uptake_NEON/data/neon_data_derived/blde.q.unfiltere
 ```
 
 ##### reload when ready to use
+
 ```{r reload blde.q}
 
 blde.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/blde.q.unfiltered.rds"))
@@ -321,20 +371,19 @@ blde.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/blde.q.unfiltered.r
 ### CARI
 
 ##### Save files by site and select model days
+
 ```{r select model days - cari}
 
 # combine released and provisional datasets
 cari.q <- bind_rows(CARI.q, CARI.q.prov) 
 
 # model day list from '03_select no3 data for the model'
-list.21 <- c(140, 141, 142, 143, 144, 145, 146, 147, 149, 150, 151, 163, 164, 165, 166, 167, 168, 169, 170, 172, 713, 174, 175, 177, 178, 179, 180, 181, 182, 183, 185, 186, 187, 191, 192, 193, 194, 195, 196, 198, 199, 200, 201, 223, 224, 225, 226, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277)
+list.21 <- c(140, 141, 142, 143, 144, 145, 146, 147, 149, 150, 151, 163, 164, 165, 166, 167, 168, 169, 170, 172, 713, 174, 175, 177, 178, 179, 180, 181, 182, 183, 185, 186, 187, 191, 192, 193, 194, 195, 196, 198, 199, 200, 201, 223, 224, 225, 226, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 267, 268, 269, 270, 274, 275, 276, 277)  # rm 271, 272, 273 - NA q days
 
 list.22 <- c(130, 131, 135, 136, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 161, 162, 163, 164, 165, 166, 169, 170, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 186, 188, 189, 190, 194, 195, 198, 199, 202, 203, 204, 205, 208, 209, 210, 211, 212, 215, 216, 217, 218, 223, 224, 225, 226, 236, 237, 238, 239, 240, 241, 242, 243, 246, 247, 248, 249, 250, 251, 252, 253, 254, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282)
 
 
-list.23 <- c(132, 133, 134, 139, 140, 141, 158, 159, 160, 161, 162, 163, 164, 165, 166, 170, 171, 172, 173, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 191, 192, 193, 194, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 208, 209, 210, 211, 212, 213,  214, 215, 216, 217, 218, 219, 220, 221, 223, 224, 252, 253, 254, 256, 257, 258, 259, 263, 264, 265, 266, 267, 268, 269, 270, 271, 274, 275, 276, 277, 279, 280, 281, 282, 283, 284, 285, 287, 288, 290, 291)
-
-
+list.23 <- c(132, 133, 134, 139, 140, 141, 158, 159, 160, 161, 162, 163, 164, 165, 166, 170, 171, 172, 173, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 191, 192, 193, 194, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 208, 209, 210, 211, 212, 213,  214, 215, 216, 217, 218, 219, 220, 221, 223, 224, 252, 253, 254, 256, 257, 258, 259, 263, 264, 265, 266, 267, 268, 269, 270, 271, 274, 275, 276, 277, 279, 280, 281, 282, 283, 284, 287, 288, 290, 291) # rm 285 - flagged, big spike
 
 # Use the objects to create dataframes of the selected *model* jdays (ensures complete 24-h model days, i.e. from 4a-3:59a)
 cari.q.21 <- cari.q %>%
@@ -349,9 +398,24 @@ cari.q.23 <- cari.q %>%
   prepQ(tz="US/Alaska", span=2023) %>%
   filter(model_jday %in% list.23)
 
+
+remove.21 <- cari.q.21 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.22 <- cari.q.22 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.23 <- cari.q.23 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs - cari}
@@ -362,16 +426,20 @@ cari.q.21 <- cari.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
 cari.q.2123 <- bind_rows(cari.q.21, cari.q.22, cari.q.23) %>%
   mutate(Year = year(model_datetime)) %>% 
   rename(UTC_endDateTime=endDate, 
          lower.ci=withParaUncQLower2Std, 
          upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
+  mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+
+
+remove.2123 <- cari.q.2123 %>% 
+  count(yr_jday) %>%
+  filter(n != 1440)
 
 # save progress
 saveRDS(cari.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/cari.q.2123.rds"))
@@ -386,14 +454,38 @@ Q.NA
 
 Q.flag <- which(cari.q.2123$dischargeFinalQF == 1)
 
-# no NAs or flags in the cari.q data
+NAdays <- cari.q.2123 %>%
+  filter(is.na(maxpostDischarge)) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(NAdays)
 
+# 1 2021_144 (9)
+# 2 2021_270 (59 continuous: 1h)
+# 3 2021_271 (LOTS - about 1440 (so, all day))
+# 4 2021_272 (all day)
+# 5 2021_273 (720, so half the day)
 
-Yr = 2022
+which(NAdays$yr_jday == "2021_144")
 
+flagdays <- cari.q.2123 %>%
+  filter(cari.q.2123$dischargeFinalQF == 1) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(flagdays)
+# 1 2021_144
+# 2 2021_270
+# 3 2021_271
+# 4 2021_272
+# 5 2021_273
+# 6 2023_284 (82, so < 1.5h)
+# 7 2023_285 (931)
+
+which(flagdays$yr_jday == "2021_270")
+
+# plot Q
+Yr = 2023
 p <- cari.q.2123 %>%
-  filter(Year == Yr, 
-        model_jday < 30
+  filter(Year == Yr
+        , model_jday %in% 225:300
         ) %>%
   ggplot(aes(x=model_datetime, y=maxpostDischarge)) +
   geom_point() + 
@@ -402,46 +494,56 @@ p <- cari.q.2123 %>%
 
 plotly::ggplotly(p)
 
-# From cupe.q.2123 - removing spike, filling gap
+# Remove days 2021_271:271, 2023_285
 
-# cari.q.2123 <- cari.q.2123 %>%
-#   mutate(
-#     maxpostDischarge = if_else(date(model_datetime) == as.Date("2022-01-25") & maxpostDischarge > 41, NA_real_, maxpostDischarge)
-#   )
+# 2023-10-03, model_jday ??? : removing spike, filling gap
+
+cari.q.2123 <- cari.q.2123 %>%
+  mutate(
+    maxpostDischarge = if_else(date(model_datetime) == as.Date("2023-10-03") & maxpostDischarge > 490, NA_real_, maxpostDischarge)
+  )
 
 # Fill the gap I created: 
-# maxgap <- 8  # set the maximum gap for zoo() to fill
-# cari.q.2123$maxpostDischarge <- na.approx(cari.q.2123$maxpostDischarge, maxgap = maxgap) 
+maxgap <- 8  # set the maximum gap for zoo() to fill
+cari.q.2123$maxpostDischarge <- na.approx(cari.q.2123$maxpostDischarge, maxgap = maxgap)
 
 ```
 
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
+It looks like there are steady changes in most days, but only \~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom.
+
 ```{r daily Q - cari}
 
 cari.q.2123.daily <- cari.q.2123 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
+  dplyr::group_by(yr_jday) %>%
   summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
+     siteID = first(siteID), 
+     model_date=first(model_datetime),
+     # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
     Year = first(Year),
     model_jday = first(model_jday),
     release = first(release),
-    .groups = "drop"
   ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+  mutate(Q_cms = Qmean_ls/1000) %>%
+  select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
 
+
+zeroQ <- cari.q.2123.daily %>%
+  dplyr::filter(Qmean_ls == 0)
+# no days in CARI
+
+cari.q.2123.daily
 
 ```
 
-##### Calculate daily v (m s^-1) and z (m)
+##### Calculate daily v (m s\^-1) and z (m)
+
 ```{r calc v and z - cari}
 
 cari.geom <- hydrogeom_aho %>%
   dplyr::filter(ID == "CARI")
-
 
 
 cari.q.2123.daily <- cari.q.2123.daily %>%
@@ -451,8 +553,8 @@ cari.q.2123.daily <- cari.q.2123.daily %>%
 
 ```
 
-
 ##### Save file updates
+
 ```{r save files - cari}
 # save cleaned daily data
 saveRDS(cari.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
@@ -463,10 +565,10 @@ saveRDS(cari.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/cari.q.2123
 
 ```
 
-
 ### CUPE
 
 ##### Save files by site and select model days
+
 ```{r select model days-cupe}
 
 # combine released and provisional datasets
@@ -493,9 +595,23 @@ cupe.q.23 <- cupe.q %>%
   prepQ(tz="America/Puerto_Rico", span=2023) %>%
   filter(model_jday %in% list.23)
 
+remove.21 <- cupe.q.21 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.22 <- cupe.q.22 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.23 <- cupe.q.23 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs-cupe}
@@ -506,16 +622,24 @@ cupe.q.21 <- cupe.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
 cupe.q.2123 <- bind_rows(cupe.q.21, cupe.q.22, cupe.q.23) %>%
   mutate(Year = year(model_datetime)) %>% 
   rename(UTC_endDateTime=endDate, 
          lower.ci=withParaUncQLower2Std, 
          upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
+  mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+
+
+# cupe.q.2123 <- prep2123(bind_rows(cupe.q.21, cupe.q.22, cupe.q.23))  #works!
+
+remove.2123 <- cupe.q.2123 %>% 
+  count(yr_jday) %>%
+  filter(n != 1440)
+  
+# 500 days
 
 # save progress
 saveRDS(cupe.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/cupe.q.2123.rds"))
@@ -530,14 +654,68 @@ Q.NA
 
 Q.flag <- which(cupe.q.2123$dischargeFinalQF == 1)
 
-# no NAs or flags in the cupe.q data
+NAdays <- cupe.q.2123 %>%
+  filter(is.na(maxpostDischarge)) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(NAdays)
+
+#  1 2021_19  (1)
+#  2 2021_26  (1)
+#  3 2021_27  (1)
+#  4 2021_40  (1)
+#  5 2021_66  (1)
+#  6 2021_99  (1)
+#  7 2021_109 (1)
+#  8 2021_113 (2)
+#  9 2021_115 (1)
+# 10 2021_131 (1)
+# 11 2021_134 (1)
+# 12 2021_148 (1)
+# 13 2021_155 (1)
+# 14 2021_158 (45, so < 1h)
+# 15 2021_201 (20)
+# 16 2021_223 (41)
+# 17 2021_241 (1)
+# 18 2021_242 (9)
+# 19 2021_246 (1)
+
+which(NAdays$yr_jday == "2021_246")
+
+flagdays <- cupe.q.2123 %>%
+  filter(cupe.q.2123$dischargeFinalQF == 1) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(flagdays)
+# same ones - probably made NA by the 2021-NA code above
+#  1 2021_19 
+#  2 2021_26 
+#  3 2021_27 
+#  4 2021_40 
+#  5 2021_66 
+#  6 2021_99 
+#  7 2021_109
+#  8 2021_113
+#  9 2021_115
+# 10 2021_131
+# 11 2021_134
+# 12 2021_148
+# 13 2021_155
+# 14 2021_158
+# 15 2021_201
+# 16 2021_223
+# 17 2021_241
+# 18 2021_242
+# 19 2021_246
 
 
-Yr = 2022
+which(flagdays$yr_jday == "2021_270")
+
+
+
+Yr = 2023
 
 p <- cupe.q.2123 %>%
-  filter(Year == Yr, 
-        model_jday < 30
+  filter(Year == Yr 
+        # , model_jday < 30
         ) %>%
   ggplot(aes(x=model_datetime, y=maxpostDischarge)) +
   geom_point() + 
@@ -548,39 +726,47 @@ plotly::ggplotly(p)
 
 # From cupe.q.2123 - removing spike, filling gap
 
-# cupe.q.2123 <- cupe.q.2123 %>%
-#   mutate(
-#     maxpostDischarge = if_else(date(model_datetime) == as.Date("2022-01-25") & maxpostDischarge > 41, NA_real_, maxpostDischarge)
-#   )
+cupe.q.2123 <- cupe.q.2123 %>%
+  mutate(
+    maxpostDischarge = if_else(date(model_datetime) == as.Date("2022-01-25") & maxpostDischarge > 41, NA_real_, maxpostDischarge)
+  )
 
 # Fill the gap I created: 
-# maxgap <- 8  # set the maximum gap for zoo() to fill
-# cupe.q.2123$maxpostDischarge <- na.approx(cupe.q.2123$maxpostDischarge, maxgap = maxgap) 
+maxgap <- 30  # set the maximum gap for zoo() to fill
+cupe.q.2123$maxpostDischarge <- na.approx(cupe.q.2123$maxpostDischarge, maxgap = maxgap)
 
 ```
 
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
+It looks like there are steady changes most days
+
 ```{r daily Q - cupe}
 
 cupe.q.2123.daily <- cupe.q.2123 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
+   dplyr::group_by(yr_jday) %>%
   summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
+     siteID = first(siteID), 
+     model_date=first(model_datetime),
+     # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
     Year = first(Year),
     model_jday = first(model_jday),
     release = first(release),
-    .groups = "drop"
   ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+  mutate(Q_cms = Qmean_ls/1000) %>%
+  select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
 
+# cupe.q.2123.daily <- dailysum(cupe.q.2123) works!
+
+zeroQ <- cupe.q.2123.daily %>%
+  dplyr::filter(Qmean_ls == 0)
+# none
 
 ```
 
-##### Calculate daily v (m s^-1) and z (m)
+##### Calculate daily v (m s\^-1) and z (m)
+
 ```{r calc v and z - cupe}
 
 cupe.geom <- hydrogeom_aho %>%
@@ -595,8 +781,8 @@ cupe.q.2123.daily <- cupe.q.2123.daily %>%
 
 ```
 
-
 ##### Save file updates
+
 ```{r save files - cupe}
 # save cleaned daily data
 saveRDS(cupe.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/cupe.q.daily.rds"))
@@ -607,9 +793,10 @@ saveRDS(cupe.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/cupe.q.2123
 
 ```
 
-
 ### MART
+
 ##### save combined files as neon_data_derived/mart.q
+
 ```{r select model days - mart}
 
 # combine released and provisional datasets
@@ -618,13 +805,16 @@ saveRDS(mart.q, file=here("N_uptake_NEON/data/neon_data_derived/mart.q.unfiltere
 ```
 
 ##### reload when ready to use
+
 ```{r reload mart.q}
 
 mart.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/mart.q.unfiltered.rds"))
 ```
 
 ### OKSR
+
 ##### save combined files as neon_data_derived/oksr.q
+
 ```{r select model days - oksr}
 
 # combine released and provisional datasets
@@ -633,15 +823,16 @@ saveRDS(oksr.q, file=here("N_uptake_NEON/data/neon_data_derived/oksr.q.unfiltere
 ```
 
 ##### reload when ready to use
+
 ```{r reload oksr.q}
 
 oksr.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/oksr.q.unfiltered.rds"))
 ```
 
-
 ### PRIN
 
 ##### Save files by site and select model days
+
 ```{r select model days - prin}
 
 # combine released and provisional datasets
@@ -667,9 +858,22 @@ prin.q.23 <- prin.q %>%
   prepQ(tz="US/Central", span=2023) %>%
   filter(model_jday %in% list.23)
 
+remove.21 <- prin.q.21 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.22 <- prin.q.22 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.23 <- prin.q.23 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs - prin}
@@ -680,19 +884,21 @@ prin.q.21 <- prin.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
-prin.q.2123 <- bind_rows(prin.q.21, prin.q.22, prin.q.23) %>%
-  mutate(Year = year(model_datetime)) %>% 
-  rename(UTC_endDateTime=endDate, 
-         lower.ci=withParaUncQLower2Std, 
-         upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
-  dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+# prin.q.2123 <- bind_rows(prin.q.21, prin.q.22, prin.q.23) %>%
+#   mutate(Year = year(model_datetime)) %>% 
+#   rename(UTC_endDateTime=endDate, 
+#          lower.ci=withParaUncQLower2Std, 
+#          upper.ci=withParaUncQUpper2Std) %>%
+#   mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+#   unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
+#   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+
+prin.q.2123 <- prep2123(bind_rows(prin.q.21, prin.q.22, prin.q.23))
 
 # save progress
 saveRDS(prin.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/prin.q.2123.rds"))
+
 ```
 
 ##### Check NAs
@@ -707,11 +913,11 @@ Q.flag <- which(prin.q.2123$dischargeFinalQF == 1)
 # no NAs or flags in the prin.q data
 
 
-Yr = 2022
+Yr = 2023
 
 p <- prin.q.2123 %>%
-  filter(Year == Yr, 
-        model_jday < 30
+  filter(Year == Yr
+        # , model_jday < 30
         ) %>%
   ggplot(aes(x=model_datetime, y=maxpostDischarge)) +
   geom_point() + 
@@ -734,27 +940,33 @@ plotly::ggplotly(p)
 ```
 
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
 ```{r daily Q - prin}
 
 prin.q.2123.daily <- prin.q.2123 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
+    dplyr::group_by(yr_jday) %>%
   summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
+     siteID = first(siteID), 
+     model_date=first(model_datetime),
+     # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
     Year = first(Year),
     model_jday = first(model_jday),
     release = first(release),
-    .groups = "drop"
-  ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+    ) %>%
+  mutate(Q_cms = Qmean_ls/1000) %>%
+  select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
 
+prin.q.2123.daily <- dailysum(prin.q.2123)
+
+zeroQ <- prin.q.2123.daily %>%
+  dplyr::filter(Qmean_ls == 0)
+# none
 
 ```
 
-##### Calculate daily v (m s^-1) and z (m)
+##### Calculate daily v (m s\^-1) and z (m)
+
 ```{r calc v and z - prin}
 
 prin.geom <- hydrogeom_aho %>%
@@ -769,8 +981,8 @@ prin.q.2123.daily <- prin.q.2123.daily %>%
 
 ```
 
-
 ##### Save file updates
+
 ```{r save files - prin}
 # save cleaned daily data
 saveRDS(prin.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
@@ -781,9 +993,10 @@ saveRDS(prin.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/prin.q.2123
 
 ```
 
-
 ### REDB
+
 ##### save combined files as neon_data_derived/redb.q
+
 ```{r select model days - redb}
 
 # combine released and provisional datasets
@@ -792,16 +1005,16 @@ saveRDS(redb.q, file=here("N_uptake_NEON/data/neon_data_derived/redb.q.unfiltere
 ```
 
 ##### reload when ready to use
+
 ```{r reload redb.q}
 
 redb.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/redb.q.unfiltered.rds"))
 ```
 
-
-
 ### SYCA
 
 ##### Save files by site and select model days
+
 ```{r select model days - syca}
 
 # combine released and provisional datasets
@@ -832,6 +1045,7 @@ syca.q.23 <- syca.q %>%
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs - syca}
@@ -842,15 +1056,14 @@ syca.q.21 <- syca.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
 syca.q.2123 <- bind_rows(syca.q.21, syca.q.22, syca.q.23) %>%
   mutate(Year = year(model_datetime)) %>% 
   rename(UTC_endDateTime=endDate, 
          lower.ci=withParaUncQLower2Std, 
          upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
+  mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
 
 # save progress
@@ -896,28 +1109,33 @@ plotly::ggplotly(p)
 ```
 
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
+It looks like there are steady changes in most days, but only \~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom.
+
 ```{r daily Q - syca}
 
 syca.q.2123.daily <- syca.q.2123 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
+    dplyr::group_by(yr_jday) %>%
   summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
+     siteID = first(siteID), 
+     model_date=first(model_datetime),
+     # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
     Year = first(Year),
     model_jday = first(model_jday),
     release = first(release),
-    .groups = "drop"
   ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+  mutate(Q_cms = Qmean_ls/1000) %>%
+  select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
 
+
+zeroQ <- syca.q.2123.daily %>%
+  dplyr::filter(Qmean_ls == 0)
 
 ```
 
+##### Calculate daily v (m s\^-1) and z (m)
 
-##### Calculate daily v (m s^-1) and z (m)
 ```{r calc v and z - syca}
 
 syca.geom <- hydrogeom_aho %>%
@@ -931,8 +1149,8 @@ syca.q.2123.daily <- syca.q.2123.daily %>%
 
 ```
 
-
 ##### Save file updates
+
 ```{r save files - syca}
 # save cleaned daily data
 saveRDS(syca.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/syca.q.daily.rds"))
@@ -946,6 +1164,7 @@ saveRDS(syca.q.2123, file=here("N_uptake_NEON/data/neon_data_derived/syca.q.2123
 ### WALK
 
 ##### save combined files as neon_data_derived/walk.q
+
 ```{r select model days - walk}
 
 # combine released and provisional datasets
@@ -954,15 +1173,16 @@ saveRDS(walk.q, file=here("N_uptake_NEON/data/neon_data_derived/walk.q.unfiltere
 ```
 
 ##### reload when ready to use
+
 ```{r reload walk.q}
 
 walk.q <- readRDS(here("N_uptake_NEON/data/neon_data_derived/walk.q.unfiltered.rds"))
 ```
 
-
 ### WLOU
 
 ##### Save files by site and select model days
+
 ```{r select model days}
 
 # combine released and provisional datasets
@@ -970,6 +1190,7 @@ wlou.q <- bind_rows(WLOU.q, WLOU.q.prov)
 
 # model day list from '03_select no3 data for the model'
 list.21 <- c(32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 68, 69, 70, 71, 74, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 238, 240, 241, 265, 268, 269, 270, 276, 277, 278, 285, 287, 288, 289, 290, 291, 292, 293, 294, 299, 300, 301, 302, 303, 304, 305, 306, 307, 309, 311, 313, 314, 315, 316, 317, 318, 319, 320, 321, 340, 341, 342, 343, 344)
+
 
 list.22 <- c(43, 53, 54, 55, 56, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 116, 117, 118, 119, 120, 121, 122, 123, 171, 173, 178, 179, 182, 183, 184, 185, 202, 203, 207, 221, 222, 223, 224, 235, 236, 237, 238, 239, 240, 242, 244, 245, 246, 247, 248, 250, 251, 252, 253, 254, 255, 267, 268, 269, 270, 271, 272, 273, 279, 280, 281, 282, 283, 305, 306, 307, 308, 310, 316, 317, 318, 340, 343, 360, 363, 364)
 
@@ -987,9 +1208,23 @@ wlou.q.22 <- wlou.q %>%
 #   prepQ(tz="US/Mountain", span=2023) %>%
 #   filter(model_jday %in% list.23)
 
+remove.21 <- wlou.q.21 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+remove.22 <- wlou.q.22 %>% 
+  count(model_jday) %>%
+  filter(n != 1440)
+
+# remove.23 <- wlou.q.23 %>% 
+#   count(model_jday) %>%
+#   filter(n != 1440)
+
+
 ```
 
 ##### Find 2021 NAs (), fill gaps
+
 E.G. where dischargeFinalQF is set to 1
 
 ```{r ID 2021 NAs}
@@ -1000,16 +1235,21 @@ wlou.q.21 <- wlou.q.21 %>%
 
 ```
 
-
-
 ```{combine q dfs}
-wlou.q.2122 <- bind_rows(wlou.q.21, wlou.q.22) %>%
-  mutate(Year = year(model_datetime)) %>% 
-  rename(UTC_endDateTime=endDate, 
-         lower.ci=withParaUncQLower2Std, 
-         upper.ci=withParaUncQUpper2Std) %>%
-  unite("yr_jday", Year:model_jday, remove=FALSE) %>%
-  dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+# wlou.q.2122 <- bind_rows(wlou.q.21, wlou.q.22) %>%
+#   mutate(Year = year(model_datetime)) %>% 
+#   rename(UTC_endDateTime=endDate, 
+#          lower.ci=withParaUncQLower2Std, 
+#          upper.ci=withParaUncQUpper2Std) %>%
+#   mutate(pad_model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+#   unite("yr_jday", Year, pad_model_jday, sep='_', remove=FALSE) %>%
+#   dplyr::select(siteID, yr_jday, model_datetime, maxpostDischarge, lower.ci, upper.ci, dischargeFinalQF, UTC_endDateTime, local_datetime, Jday, model_jday, Year, release)
+
+wlou.q.2122 <- prep2123(bind_rows(wlou.q.21, wlou.q.22))
+
+remove.2122 <- wlou.q.2122 %>% 
+  count(yr_jday) %>%
+  filter(n != 1440)
 
 # save progress
 saveRDS(wlou.q.2122, file=here("N_uptake_NEON/data/neon_data_derived/wlou.q.2122.rds"))
@@ -1019,19 +1259,42 @@ saveRDS(wlou.q.2122, file=here("N_uptake_NEON/data/neon_data_derived/wlou.q.2122
 
 ```{r ID NAs}
 
-Q.NA <- which(is.na(wlou.q.2123$maxpostDischarge))
+Q.NA <- which(is.na(wlou.q.2122$maxpostDischarge))
 Q.NA
 
-Q.flag <- which(wlou.q.2123$dischargeFinalQF == 1)
+Q.flag <- which(wlou.q.2122$dischargeFinalQF == 1)
 
-# no NAs or flags in the wlou.q data
+NAdays <- wlou.q.2122 %>%
+  filter(is.na(maxpostDischarge)) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(NAdays)
+# 1 2021_57  (3)
+# 2 2021_103 (1)
+# 3 2021_104 (29)
+# 4 2021_153 (1)
+# 5 2021_158 (40)
+# 6 2021_164 (11)
+# 7 2021_238 (1)
+# 8 2021_268 (6)
+# 9 2021_270 (212)  **
+
+which(NAdays$yr_jday == "2021_270")
+
+flagdays <- wlou.q.2122 %>%
+  filter(wlou.q.2122$dischargeFinalQF == 1) %>%   # Filter rows where 'no3mean' is NA
+  select(yr_jday)  
+unique(flagdays)
+# same ones - probably made NA by the 2021-NA code above
+
+which(flagdays$yr_jday == "2021_270")
+
 
 
 Yr = 2022
 
 p <- wlou.q.2122 %>%
-  filter(Year == Yr, 
-        model_jday < 30
+  filter(Year == Yr 
+        # , model_jday %in% 150:167
         ) %>%
   ggplot(aes(x=model_datetime, y=maxpostDischarge)) +
   geom_point() + 
@@ -1054,27 +1317,67 @@ plotly::ggplotly(p)
 ```
 
 ##### Convert 1-min values to daily avg Q
-It looks like there are steady changes in most days, but only ~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom. 
+
+It looks like there are steady changes in most days, but only \~ 2 L/s so not a huge effect in the bigger picture/ should be good enough to get good hydraulic geom.
+
 ```{r daily Q}
 
-wlou.q.2122.daily <- wlou.q.2122 %>%
-  mutate(model_date = as.Date(model_datetime)) %>%
-  dplyr::group_by(model_date) %>%
-  summarise(
-    siteID = first(siteID), 
-    yr_jday = first(yr_jday),
-    Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
-    Year = first(Year),
-    model_jday = first(model_jday),
-    release = first(release),
-    .groups = "drop"
-  ) %>%
-  mutate(Q_cms = Qmean_ls/1000)
+# wlou.q.2122.daily <- wlou.q.2122 %>%
+#     dplyr::group_by(yr_jday) %>%
+#   summarise(
+#      siteID = first(siteID), 
+#      model_date=first(model_datetime),
+#      # yr_jday = first(yr_jday),  # these values got offset from the model_date somehow... seems OK in parent file, and model_date seems fine...
+#     Qmean_ls = mean(maxpostDischarge, na.rm = TRUE),
+#     Year = first(Year),
+#     model_jday = first(model_jday),
+#     release = first(release),
+#   ) %>%
+#   mutate(Q_cms = Qmean_ls/1000) %>%
+#   select(siteID, model_date, yr_jday, Q_cms, Qmean_ls, Year, model_jday, release)
 
+wlou.q.2122.daily <- dailysum(wlou.q.2122)
+
+zeroQ <- wlou.q.2122.daily %>%
+  dplyr::filter(Qmean_ls == 0)
+# 40 days!
+
+# Nick Marzolf has qaqc'd data for most or all of these days in his GPP datafiles... adding that info here:
+MarzolfQ <- read_csv(file=here("N_uptake_NEON/data/GPP_Marzolf_publ/marzolfQ_WLOU.csv")) %>%
+  mutate(date = as.Date(date, format = "%m/%d/%y")) %>%
+  select(date, Q_cms)
+
+Q_joined <- wlou.q.2122.daily %>%
+  left_join(MarzolfQ, by = c("model_date" = "date"), suffix = c(".Q1", ".Q2"))
+
+Q_final <- Q_joined %>%
+  mutate(Q_cms = if_else(Q_cms.Q1 == 0 | is.na(Q_cms.Q1), Q_cms.Q2, Q_cms.Q1)) %>%
+  select(-Q_cms.Q1, -Q_cms.Q2)  # Drop the old columns
+
+zeroQ <- Q_final %>%
+  dplyr::filter(Q_cms == 0 | is.na(Q_cms))
+
+wlou.q.2122.daily <- Q_final
+
+zeroQ <- wlou.q.2122.daily %>%
+  dplyr::filter(Q_cms == 0 | is.na(Q_cms))
+# Just 13 left! 
+
+wlou.q.2122.daily <- wlou.q.2122.daily %>%
+  dplyr::filter(!is.na(Q_cms))
+# gone!
+
+yr = 2022
+wlou.q.2122.daily %>%
+  filter(Year == yr) %>%
+  ggplot(aes(x=model_date, y=Q_cms)) +
+  geom_point() + 
+  theme_bw()
 
 ```
 
-##### Calculate daily v (m s^-1) and z (m)
+##### Calculate daily v (m s\^-1) and z (m)
+
 ```{r calc v and z - wlou}
 
 wlou.geom <- hydrogeom_aho %>%
@@ -1082,15 +1385,17 @@ wlou.geom <- hydrogeom_aho %>%
 
 
 
-wlou.q.2123.daily <- wlou.q.2123.daily %>%
+wlou.q.2122.daily <- wlou.q.2122.daily %>%
   mutate(z = wlou.geom$c*Q_cms^wlou.geom$f, 
          v = wlou.geom$k*Q_cms^wlou.geom$m
   )
 
+
+
 ```
 
-
 ##### Save file updates
+
 ```{r save files - wlou}
 # save cleaned daily data
 saveRDS(wlou.q.2122.daily, file=here("N_uptake_NEON/data/neon_data_clean/wlou.q.daily.rds"))
@@ -1101,250 +1406,38 @@ saveRDS(wlou.q.2122, file=here("N_uptake_NEON/data/neon_data_derived/wlou.q.2122
 
 ```
 
+# Check and delete before publishing: code fix should ensure this is no longer needed.
+
+```{r fix date-yday mess}
 
 
-### Visualize the data by site and year
+bigc.q.2123.daily <- bigc.q.2123.daily %>%
+  mutate(model_jday = str_pad(yday(model_date), width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
 
-```{r visualize PAR and WS Par}
-
-par_sensor_30m <- par_sensor_30m %>% 
-  add_column(month=month(par_sensor_30m$endDateTime),.after=par_sensor_30m$endDateTime)
-
-###### CARI plot
-
-yr = 2021
-plottitle = "CARI PAR 2021"
-
-CARIplot_PAR <- par_sensor_30m %>%
-  filter(siteID == "CARI", 
-         year(startDateTime) == yr)%>%
-  ggplot(aes(x=endDateTime, y=PARMean)) + 
-  geom_point() +
-  # facet_wrap(~month) + 
-  ggtitle(plottitle) +
-  theme_bw()
-  
-quartz(width=6.5, height=6.5)
-CARIplot_PAR
+saveRDS(bigc.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
 
 
-CARIplot_WSPAR <- par_wsurf_sensor_30m %>%
-  filter(siteID == "CARI", 
-         year(startDateTime) == yr) %>%
-  ggplot(aes(x=endDateTime, y=PARMean)) + 
-  geom_point() +
-  # facet_wrap(~month) + 
-  ggtitle("CARI Water Surface PAR 2023") +
-  theme_bw()
-  
-quartz(width=6.5, height=6.5)
-CARIplot_WSPAR
+cari.q.2123.daily <- cari.q.2123.daily %>%
+  mutate(model_jday = str_pad(yday(model_date), width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
 
-##### OKSR plot
-
-yr = 2021
-
-OKSRplot_PAR <- par_sensor_30m %>%
-  filter(siteID == "OKSR", 
-         year(startDateTime) == yr) %>%
-  ggplot(aes(x=endDateTime, y=PARMean)) + 
-  geom_point() +
-  # facet_wrap(~month) + 
-  ggtitle("OKSR PAR 2021") +
-  theme_bw()
-  
-quartz(width=6.5, height=6.5)
-OKSRplot_PAR
+saveRDS(cari.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
 
 
-OKSRplot_WSPAR <- par_wsurf_sensor_30m %>%
-  filter(siteID == "OKSR", 
-         year(startDateTime) == yr) %>%
-  ggplot(aes(x=endDateTime, y=PARMean)) + 
-  geom_point() +
-  # facet_wrap(~month) + 
-  ggtitle("OKSR Water Surface PAR 2021") +
-  theme_bw()
-  
-quartz(width=6.5, height=6.5)
-OKSRplot_WSPAR
+cupe.q.2123.daily <- cupe.q.2123.daily %>%
+  mutate(model_jday = str_pad(yday(model_date), width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
+
+saveRDS(cupe.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/cupe.q.daily.rds"))
 
 
-###### 1:1 plot for par and wspar
+prin.q.2123.daily <- prin.q.2123.daily %>%
+  mutate(model_jday = str_pad(yday(model_date), width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
 
-all_par_30m <- par_sensor_30m %>%
-  dplyr::select(siteID, startDateTime, endDateTime, PARMean, PARMinimum, PARMaximum) 
+saveRDS(prin.q.2123.daily, file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
 
-all_wspar_30m <- par_wsurf_sensor_30m %>%
-  dplyr::select(siteID, startDateTime, endDateTime, PARMean, PARMinimum, PARMaximum) %>%
-  rename(wsPARMean = PARMean, wsPARMinimum = PARMinimum, wsPARMaximum = PARMaximum)
-
-combo_par_30m <- all_wspar_30m %>%
-  inner_join(all_par_30m)
-
-one2one <- combo_par_30m %>%
-  ggplot(aes(x=PARMean, y=wsPARMean, color=year(endDateTime))) +
-  geom_point() + 
-  geom_abline(slope=1, intercept=0, color="darkred", linetype=2) + 
-  facet_wrap(~siteID) +
-  theme_bw()
-
-quartz(6.5, 6.5)
-one2one
 
 
 ```
-
-### Check flags and issue logs
-
-```{r check_flags_issue_logs}
-
-# Issue logs - only available for ws par
-
-WSPARissues <- par_wsurf_issuelog %>%
-  filter(
-    grepl(paste(unique(par_wsurf_sensor_30m$siteID), collapse = "|"), locationAffected, ignore.case = TRUE) |
-    grepl("all", locationAffected, ignore.case = TRUE)
-  )
-
-# view(WSPARissues) truncates cell text. INSTEAD, use DT::datatable()
-
-datatable(WSPARissues, options = list(pageLength = 20, autoWidth = TRUE))
-
-
-# Flags by site and sensor
-
-datatable(par_wsurf_flags, options = list(pageLength = 20, autoWidth = TRUE))
-# 3 total for CARI and OKSR: positive nighttime PAR, out of range data offset
-
-datatable(par_flags, options = list(pageLength = 20, autoWidth = TRUE))
-# 1 for CARI: positive nighttime PAR (water ingress likely): 2022-08-15T06:30:00Z to 2022-08-23T13:00:00Z
-
-```
-
-### ID NAs in PAR data by site
-
-#### Caribou Creek, Fairbanks North Star, AK
-
-nitrate sensor lat-long: 65.153076 -147.502004; elevation (m): 225.41\
-PAR tower sensor lat-long: 65.15323 -147.5034; elevation (m): 229.05
-
-```{r ID NAs CARI}
-
-CARI_PAR <- par_sensor_30m %>%
-  filter(siteID == "CARI") %>%
-  mutate(local_datetime = with_tz(endDateTime, tzone="US/Alaska"),
-         Jday = yday(local_datetime), 
-         model_datetime = local_datetime - hours(2), # midsummer days start 2:45, end 1a the next day
-         model_jday = yday(model_datetime), 
-         Time = as_hms(local_datetime))
-
-which(is.na(CARI_PAR$PARMean))
-
-NAdatetime <- CARI_PAR$local_datetime[which(is.na(CARI_PAR$PARMean))]
-NAdays <- unique(as_date(NAdatetime))
-
-# 40 NA days: "2021-04-29" "2021-04-30" "2021-05-01" "2021-05-02" "2021-05-03" "2021-05-04" "2021-06-03" "2021-07-08" "2021-12-19" "2021-12-20" "2022-04-26" "2022-06-20" "2022-07-25" "2022-07-26" "2022-09-01" "2022-09-15" "2022-11-08" "2022-11-09" "2022-11-11" "2022-11-12" "2022-11-13" "2022-12-02" "2022-12-04" "2022-12-05" "2022-12-07" "2022-12-08" "2022-12-09" "2022-12-10" "2022-12-11" "2022-12-14" "2022-12-23" "2023-01-16" "2023-05-05" "2023-06-05" "2023-06-06" "2023-06-16" "2023-07-14" "2023-07-25" "2023-09-12" "2024-04-29"
-
-nadaysc("2021-04-29", "2021-04-30", "2021-05-01", "2021-05-02", "2021-05-03", "2021-05-04", "2021-06-03", "2021-07-08", "2021-12-19", "2021-12-20", "2022-04-26", "2022-06-20", "2022-07-25", "2022-07-26", "2022-09-01", "2022-09-15", "2022-11-08", "2022-11-09", "2022-11-11", "2022-11-12", "2022-11-13", "2022-12-02", "2022-12-04", "2022-12-05", "2022-12-07", "2022-12-08", "2022-12-09", "2022-12-10", "2022-12-11", "2022-12-14", "2022-12-23", "2023-01-16", "2023-05-05", "2023-06-05", "2023-06-06", "2023-06-16", "2023-07-14", "2023-07-25", "2023-09-12", "2024-04-29")
-
-NAday.df <- as_tibble(NAdays) %>%
-  add_column(Year = year(NAdays), 
-             na_jday = yday(NAdays))
-
-datatable(NAday.df)
-
-## Avoid these when selecting CARI days... ALSO 2022 Jdays 227-235
-
-yr = 2021
-mo = 1
-plottitle = "CARI PAR Jan 2021"
-
-CARI_dayplot <- CARI_PAR %>%
-  filter(month(endDateTime) == mo,
-         year(startDateTime) == yr)%>%
-  
-  ggplot(aes(x=Time, y=PARMean)) + 
-  geom_point() +
-  facet_wrap(~Jday) + 
-  ggtitle(plottitle) +
-  theme_bw()
-  
-quartz(width=6.5, height=6.5)
-CARI_dayplot
-```
-
-#### Save CARI PAR data
-```{ r save CARI PAR}
-
-path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/CARI_neonlight30m_all.csv")
-
-write_csv(CARI_PAR, path)
-
-```
-
-
-**Avoid these dates when selecting days for CARI (single days may be OK on inspection)**
-
--   2021: Apr 29- May 3; June 3; July 8; Dec 19-20
-
--   2022: Apr 26, June 20, July 25-26, Sept 1, Sept 15, Nov 8-9 and 11-13, Dec 2, 4-5, 7-11, 14 and 23
-
--   2023: Jan 16, May 5, June 5-6, June 16, July 14, July 25, Sept 12
-
--   2024: Apr 29
-
-Also: note this flag for CARI, Aug 15-23, 2022:\
-positive nighttime PAR (water ingress likely): 2022-08-15T06:30:00Z to 2022-08-23T13:00:00Z  (2022 Jdays 227-235)
-
-#### Oksrukuyik Creek, North Slope, AK
-
-nitrate sensor lat-long: 68.669769 -149.142847; elevation (m): 767.19\
-PAR sensor tower lat-long: 68.66995 -149.1424; elevation (m): 768.58
-
-```{r ID NAs OKSR}
-
-OKSR_PAR <- par_sensor_30m %>%
-  filter(siteID == "OKSR") %>%
-  mutate(local_datetime = with_tz(endDateTime, tzone="US/Alaska"),
-         Jday = yday(local_datetime), 
-         model_datetime = local_datetime - hours(2),   # Not sure what to do here, since there are days w/o dark... 
-         model_jday = yday(model_datetime), 
-         Time = as_hms(local_datetime))
-
-which(is.na(OKSR_PAR$PARMean))
-
-NAdatetime <- OKSR_PAR$local_datetime[which(is.na(OKSR_PAR$PARMean))]
-NAdays <- unique(as_date(NAdatetime))
-
-# 136 NA days: 
-#"2021-04-23" "2021-04-24" "2021-05-18" "2021-05-25" "2021-06-07" "2021-06-08" "2021-06-16" "2021-07-02" "2021-07-03" "2021-07-04" "2021-07-05" "2021-07-06" "2021-07-07" "2021-07-08" "2021-07-09" "2021-07-10" "2021-07-11" "2021-07-27" "2021-07-28" "2021-07-29" "2021-07-30" "2021-07-31" "2021-08-01" "2021-08-02" "2021-08-03" "2021-08-04" "2021-08-09" "2021-08-26" "2021-08-27" "2021-08-29" "2021-08-30" "2021-08-31" "2021-09-01" "2021-09-14" "2021-09-20" 
-#"2022-03-24" "2022-03-25" "2022-04-09" "2022-04-10" "2022-04-11" "2022-04-12" "2022-04-13" "2022-04-14" "2022-04-15" "2022-04-16" "2022-04-17" "2022-04-18" "2022-04-19" "2022-04-20" "2022-05-18" "2022-05-19" "2022-05-20" "2022-06-21" "2022-06-25" "2022-07-08" "2022-07-09" "2022-07-10" "2022-07-11" "2022-07-12" "2022-07-13" "2022-07-14" "2022-07-15" "2022-07-16" "2022-07-17" "2022-07-18" "2022-07-19" "2022-07-20" "2022-07-21" "2022-07-22" "2022-07-23" "2022-07-24" "2022-07-25" "2022-07-26" "2022-07-27" "2022-07-28" "2022-07-29" "2022-07-30" "2022-07-31" "2022-08-01" "2022-08-02" "2022-08-03" "2022-08-04" "2022-08-05" "2022-08-06" "2022-10-25" "2022-10-26" "2022-10-27" 
-# "2023-04-10" "2023-04-11" "2023-04-12" "2023-04-13" "2023-04-14" "2023-04-15" "2023-04-16" "2023-04-17" "2023-04-18" "2023-04-19" "2023-04-20" "2023-04-21" "2023-04-22" "2023-04-23" "2023-04-24" "2023-04-25" "2023-04-26" "2023-04-27" "2023-04-28" "2023-04-29" "2023-04-30" "2023-05-01" "2023-05-02" "2023-05-30" "2023-06-03" "2023-06-07" "2023-06-22" "2023-07-31" "2023-08-01" "2023-08-24" "2023-10-14" "2023-10-15" "2023-10-16" "2023-10-17" "2023-10-18" "2023-10-19" "2023-10-20" "2023-10-21" "2023-10-22" "2023-10-23" "2023-10-24" "2023-10-25" "2023-10-26" "2023-10-27" "2023-10-28" "2023-10-29" "2023-10-30" 
-#"2024-05-29" "2024-06-04"
-
-## Avoid these when selecting OKSR days... 
-
-```
-
-#### Save OKSR data
-```{ r save OKSR PAR}
-
-path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/OKSR_neonlight30m_all.csv")
-
-write_csv(OKSR_PAR, path)
-
-```
-
-
-**Avoid these dates when selecting days for OKSR (single days may be OK on inspection)**
-
--   2021: Apr 3-4; May 18, 25; June 7-8, 16; July 2-11; July 27-31; Aug 1-4, 9, 26-27, Aug 29-31; Sept 1, 14, 20
-
--   2022: Mar 24-25; Apr 9-20; May 18-20; June 21, 25; July 8-31; August 1-6; Oct 25-27
-
--   2023: Apr 10-30; May 1-2, 30; June 3, 7, 22; July 31-Aug 1; Aug 1, 24; Oct 14-30
-
--   2024: Apr 29, June 4
-
-No PAR flags reported.

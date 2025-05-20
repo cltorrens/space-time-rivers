@@ -59,7 +59,7 @@ Then work with the site-level nitrate and light datasets to create the model dat
 # making sure the wd is set correctly
 setwd(here())
 
-####################### NO3 + real light data ##################
+#######################  NO3 + real light data  ##################
 
 # Need to re-specify the tz for local_datetime *and* re-derive model_datetime: per code in '03_select NEON data...':  the model_datetime column already exists but values changed to the UTC time - 4h... weird but there it is. 
 
@@ -67,14 +67,32 @@ setwd(here())
 path <- here("N_uptake_NEON/data/neon_data_clean/bigc_clean.csv")
 bigc.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(-model_jday_pad)
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv")
 bigc.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
+
+
+# daily dataseset for Q, v, z
+bigc.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
+
+
+# filter no3 datasets to match days in q dataset
+bigc.df <- bigc.df %>%
+  dplyr::filter(yr_jday %in% bigc.qvz$yr_jday)
+bigc.df.h <- bigc.df.h %>%
+  dplyr::filter(yr_jday %in% bigc.qvz$yr_jday)
+
+
 
 ```
 
@@ -212,7 +230,7 @@ sumlight.real <-  bigc.sumlightReal.df.h$sumlightReal.trapz
 
 set.seed(0220)
 
-nday <-  209 # 39
+nday <-  191
 
 N_init <- bigc.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
 concMA <- matrix(unlist(bigc.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -220,13 +238,24 @@ concMA <- matrix(unlist(bigc.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(bigc.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(bigc.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #~mean depth in m based on Kelly Aho's dataset (rounded up from ~ 1.5) - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+z <- bigc.qvz$z # z from Kelly Aho's hydraulic geometry
+zMA<- matrix(rep(z, each = 24), nrow = 24, ncol = nday)  #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 
 
 
+
+```
+
+##### Save updated BIGC data
+
+```{r save bigc data}
+
+path <- here("N_uptake_NEON/data/neon_data_clean/bigc_clean.csv")
+path_h <- here("N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv")
+write_csv(bigc.df, path)
+write_csv(bigc.df.h, path_h)
 
 ```
 
@@ -296,9 +325,23 @@ setwd(here())
 path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
 cari.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
-         model_datetime.x = local_datetime - hours(2)) %>%
-  rename(model_datetime = model_datetime.x) %>%
-  select(-model_datetime.y)
+         model_datetime = local_datetime - hours(2), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  # rename(model_datetime = model_datetime.x) %>%
+  select(-model_jday_pad)
+
+
+# daily dataseset for Q, v, z
+cari.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
+  
+# filter no3 datasets to match days in q dataset
+# cari.df.h <- cari.df.h %>%
+#   dplyr::filter(yr_jday %in% cari.qvz$yr_jday)
+
+cari.df.h <- cari.df.h %>%
+  dplyr::filter(yr_jday %in% cari.qvz$yr_jday)
+
 
 
 ```
@@ -450,7 +493,7 @@ cari.sumlightReal.df.h %>%
 
 set.seed(0220)
 
-nday <- 275  # 39
+nday <- 271 
 
 N_init <- cari.df.h$surfWaterNitrateMean[1] # 33.6 umol l-1
 concMA <- matrix(unlist(cari.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -458,13 +501,24 @@ concMA <- matrix(unlist(cari.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(cari.df.h$surfWaterNitrateMean) # 28.293
 Ne_sdprior <- sd(cari.df.h$surfWaterNitrateMean)     # 4.416
 
-z <- 0.33 #mean depth in m based on Kelly Aho's dataset - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+z <- cari.qvz$z # z from Kelly Aho's hydraulic geometry
+zMA<- matrix(rep(z, each = 24), nrow = 24, ncol = nday) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 
 
 ```
+
+##### Save updated CARI data
+
+```{r save cari data}
+
+
+path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
+write_csv(cari.df.h, path_h)
+
+```
+
 
 ##### List data and call to stan
 
@@ -544,15 +598,31 @@ setwd(here())
 path <- here("N_uptake_NEON/data/neon_data_clean/cupe_clean.csv")
 cupe.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv")
 cupe.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
+
+# daily dataseset for Q, v, z
+cupe.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cupe.q.daily.rds"))
+  
+# filter no3 datasets to match days in q dataset - NOT NEEDED, no change
+# cupe.df.h <- cupe.df.h %>%
+#   dplyr::filter(yr_jday %in% cupe.qvz$yr_jday)
+# 
+# cupe.df.h <- cupe.df.h %>%
+#   dplyr::filter(yr_jday %in% cupe.qvz$yr_jday)
 
 ```
 
@@ -703,8 +773,8 @@ concMA <- matrix(unlist(cupe.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(cupe.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(cupe.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.15 #mean depth in m based on Kelly Aho's dataset - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+z <- cupe.qvz$z
+zMA<- matrix(rep(z, each = 24), nrow = 24, ncol = nday) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 
@@ -768,15 +838,31 @@ setwd(here())
 path <- here("N_uptake_NEON/data/neon_data_clean/prin_clean.csv")
 prin.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
 prin.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
+
+# daily dataseset for Q, v, z
+prin.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
+  
+# # filter no3 datasets to match days in q dataset - NOT NEEDED, no change
+# prin.df.h <- prin.df.h %>%
+#   dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
+# 
+# prin.df.h <- prin.df.h %>%
+#   dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
 
 ```
 
@@ -921,8 +1007,8 @@ concMA <- matrix(unlist(prin.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(prin.df.h$surfWaterNitrateMean) # 15.446
 Ne_sdprior <- sd(prin.df.h$surfWaterNitrateMean)     # 6.410
 
-z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.5) - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+z <- prin.qvz$z
+zMA <- matrix(rep(z, each = 24), nrow = 24, ncol = nday) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 
@@ -984,15 +1070,29 @@ setwd(here())
 path <- here("N_uptake_NEON/data/neon_data_clean/syca_clean.csv")
 syca.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Arizona"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE) 
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/syca_hourly_clean.csv")
 syca.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Arizona"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
 
+
+# daily dataseset for Q, v, z
+syca.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/syca.q.daily.rds"))
+
+# filter no3 datasets to match days in q dataset
+syca.df.h <- syca.df.h %>%
+  dplyr::filter(yr_jday %in% syca.qvz$yr_jday)
+
+syca.df.h <- syca.df.h %>%
+  dplyr::filter(yr_jday %in% syca.qvz$yr_jday)
 
 ```
 
@@ -1137,8 +1237,8 @@ concMA <- matrix(unlist(syca.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(syca.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(syca.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.4) - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+z <- syca.qvz$z
+zMA<- matrix(rep(z, each = 24), nrow = 24, ncol = nday) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 
@@ -1200,15 +1300,29 @@ setwd(here())
 path <- here("N_uptake_NEON/data/neon_data_clean/wlou_clean.csv")
 wlou.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4), 
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
 
 # hourly dataset
 path_h <- here("N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv")
 wlou.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
-         model_datetime = local_datetime - hours(4))  
+         model_datetime = local_datetime - hours(4),
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE) %>%
+  select(!model_jday_pad)
 
+# daily dataseset for Q, v, z
+wlou.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/wlou.q.daily.rds"))
+  
+# filter no3 datasets to match days in q dataset
+wlou.df <- wlou.df %>%
+  dplyr::filter(yr_jday %in% wlou.qvz$yr_jday)
+wlou.df.h <- wlou.df.h %>%
+  dplyr::filter(yr_jday %in% wlou.qvz$yr_jday)
 
 ```
 
@@ -1232,6 +1346,18 @@ quartz(width = 10, height = 4.5)
 wlou.plot
 
 ```
+
+##### Save updated WLOU data
+
+```{r save wlou data}
+
+path <- here("N_uptake_NEON/data/neon_data_clean/wlou_clean.csv")
+path_h <- here("N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv")
+write_csv(wlou.df, path)
+write_csv(wlou.df.h, path_h)
+
+```
+
 
 ##### Assemble data for the model
 
@@ -1340,12 +1466,11 @@ wlou.sumlightReal.df.h <- wlou.df.h %>%
 # standardize for model
 sumlight.real <-  wlou.sumlightReal.df.h$sumlightReal.trapz
 
-
 ########  Other elements for the data list  ___________________________________
 
 set.seed(0220)
 
-nday <-  198 # 39
+nday <-  185 # 39
 
 N_init <- wlou.df.h$surfWaterNitrateMean[1] # 3.7 umol l-1
 concMA <- matrix(unlist(wlou.df.h$surfWaterNitrateMean), ncol = nday, byrow = FALSE)
@@ -1353,8 +1478,9 @@ concMA <- matrix(unlist(wlou.df.h$surfWaterNitrateMean), ncol = nday, byrow = FA
 Ne_meanprior <- mean(wlou.df.h$surfWaterNitrateMean) # 3.027
 Ne_sdprior <- sd(wlou.df.h$surfWaterNitrateMean)     # 1.340
 
-z <- 0.2 #~ mean depth in m based on Kelly Aho's dataset (generously rounded up from 1.4) - constant for now
-zMA<- matrix(z, ncol = nday, nrow=24) #depth at each timestep as matrix (col=days, row= hours/day)
+ #~ daily mean depth in m calculated from Kelly Aho's hydraulic geometry
+z <- wlou.qvz$z
+zMA<- matrix(rep(z, each = 24), nrow = 24, ncol = nday) #depth at each timestep as matrix (col=days, row= hours/day)
 
 lightMA <- matrix(light, nrow=24)
 

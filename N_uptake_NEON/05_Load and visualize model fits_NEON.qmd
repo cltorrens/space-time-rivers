@@ -206,6 +206,39 @@ plot_autoUperc <- function(data, plot_title) {
 
 ```
 
+### Load GPP dataset (full)
+
+```{r load gpp}
+
+gpp.df <- read_csv(file=here("N_uptake_NEON/data/GPP_Marzolf_publ/8_NEON_metab_estimates.csv")) %>%
+  mutate(date = mdy(date)) %>%
+  filter(year(date) %in% 2021:2023)
+
+gpp.df <- as_tibble(gpp.df)
+# Split by siteID
+site_list <- split(gpp.df, gpp.df$site)
+# Add '.q' suffix to each name
+names(site_list) <- paste0(names(site_list), ".gpp")
+# Create objects in global environment
+list2env(site_list, envir = .GlobalEnv)
+
+# Only WLOU and CARI foverlap for 2021-2023 data
+
+
+```
+
+### Load LINX II Vf data
+
+```{r LINX II data}
+
+linx.df <- read_csv(here("N_uptake_NEON/data/LINX_II_raw_data.csv")) %>%
+  select(state, stream, Date_15Nexpt, water_velocity_m_min,Q_L_s,NO3conc_ugN_L, GPP_gO2_m2_d, width_m, depth_m, Vf_tot_no3_cm_s, Vfdentot_cm_s, Vf_assim_cm_s) %>%
+  rename(Date = Date_15Nexpt, 
+         v_m_min = water_velocity_m_min, 
+         Q_Ls = Q_L_s)
+
+```
+
 ### Load model fits and data by site (stored as RDS files), then extract parameters
 
 ```{r, error notes}
@@ -258,6 +291,16 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv")
 bigc.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
          model_datetime = local_datetime - hours(4))  
+
+# daily dataseset for Q, v, z
+bigc.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
+
+
+  
+  
+
+
+
   
   
 ```
@@ -304,7 +347,7 @@ bigc.meanqi$N_e.median <- bigc.medqi$N_e
 
 ##### Get draws for b1 and b0 (for plotting later)
 bigc.betas <- spread_draws(bigc.fit, b0, b1) %>%
-  sample_n(209)
+  sample_n(191)
 
 ########## Summarize the hourly variable (conc_pred) ____________________________
 
@@ -355,14 +398,16 @@ domainID <- bigc.df.h$domainID[1:nday]
 daily_output_bigc.df <- bigc.meanqi %>%
   add_column(yr_jday = unique(bigc.df.h$yr_jday), 
              sumlightReal = bigc.modeldata$sumlightReal, 
-             sumlightIdeal = bigc.modeldata$sumlightIdeal, 
+             sumlightIdeal = bigc.modeldata$sumlightIdeal,
+             Q = bigc.qvz$Q_cms,
+             v = bigc.qvz$v,
              z = colMeans(bigc.modeldata$zMA), # daily depth = avg of hourly depth
              b0 = bigc.betas$b0,
              b1 = bigc.betas$b1,
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>% # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_bigc.df$K) # 3.225407
@@ -464,9 +509,10 @@ What percentage of total uptake is the autotrophic uptake?
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_bigc.df <- daily_output_bigc.df %>%
-  mutate(U_het = N_e*K*z,      
-         U_tot = U_het + U, 
-         U_auto_perc = 100*U/U_tot)
+  mutate(U_other = N_e*K*z,      
+         U_tot = U_other + U, 
+         U_auto_perc = 100*U/U_tot) 
+
 
 U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #11.7% on average
 
@@ -490,8 +536,8 @@ Uauto_perc_bigc
 path = here("N_uptake_NEON/data/model_output/bigc_output_daily.csv")
 write_csv(daily_output_bigc.df, file=path)
 # 
-# path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly.csv")
-# write_csv(N_output_bigc.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly.csv")
+write_csv(N_output_bigc.df, file=path.h)
 
 ```
 
@@ -528,6 +574,10 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
 cari.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
          model_datetime = local_datetime - hours(2))# 2-hr offset because it starts getting light at 02:45 in midsummer...
+
+# daily dataseset for Q, v, z
+cari.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
+  
 
 ```
 
@@ -631,6 +681,8 @@ daily_output_cari.df <- cari.meanqi %>%
   add_column(yr_jday = unique(cari.df.h$yr_jday), 
              sumlightReal = cari.modeldata$sumlightReal, 
              sumlightIdeal = cari.modeldata$sumlightIdeal, 
+             Q = cari.qvz$Q_cms,
+             v = cari.qvz$v,
              z = colMeans(cari.modeldata$zMA), # daily depth = average of hourly depth
              b0 = cari.betas$b0, 
              b1 = cari.betas$b1,
@@ -638,7 +690,7 @@ daily_output_cari.df <- cari.meanqi %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%   # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1), 
          sumlightReal = sumlightReal/4.6) %>%     # CONVERT (for now) to W m-2 to match others (evt will change all to umol m-2 s-1)
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_cari.df$K) # 3.225407
@@ -743,8 +795,8 @@ What percentage of total uptake is the autotrophic uptake?
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_cari.df <- daily_output_cari.df %>%
-  mutate(U_het = N_e*K*z,      
-         U_tot = U_het + U, 
+  mutate(U_other = N_e*K*z,      
+         U_tot = U_other + U, 
          U_auto_perc = 100*U/U_tot)
 
 U_auto_avg <- mean(daily_output_cari.df$U_auto_perc) #4.9% on average
@@ -769,8 +821,8 @@ Uauto_perc_cari
 path = here("N_uptake_NEON/data/model_output/cari_output_daily.csv")
 write_csv(daily_output_cari.df, file=path)
 # 
-# path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly.csv")
-# write_csv(N_output_cari.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly.csv")
+write_csv(N_output_cari.df, file=path.h)
 
 ```
 
@@ -812,6 +864,10 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv")
 cupe.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="America/Puerto_Rico"), 
          model_datetime = local_datetime - hours(4))  
+  
+
+# daily dataseset for Q, v, z
+cupe.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cupe.q.daily.rds"))
   
   
 ```
@@ -914,13 +970,16 @@ daily_output_cupe.df <- cupe.meanqi %>%
   add_column(yr_jday = unique(cupe.df.h$yr_jday), 
              sumlightReal = cupe.modeldata$sumlightReal, 
              sumlightIdeal = cupe.modeldata$sumlightIdeal, 
-             z = colMeans(cupe.modeldata$zMA), # daily depth = average of hourly depth
+             Q = cupe.qvz$Q_cms,
+             v = cupe.qvz$v,
+             z = cupe.qvz$z,
+             # z = colMeans(cupe.modeldata$zMA), # daily depth = average of hourly depth
              b0 = cupe.betas$b0,
              b1 = cupe.betas$b1,
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_cupe.df$K) # 3.225407
@@ -1023,8 +1082,8 @@ What percentage of total uptake is the autotrophic uptake?
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_cupe.df <- daily_output_cupe.df %>%
-  mutate(U_het = N_e*K*z,      
-         U_tot = U_het + U, 
+  mutate(U_other = N_e*K*z,      
+         U_tot = U_other + U, 
          U_auto_perc = 100*U/U_tot)
 
 U_auto_avg <- mean(daily_output_cupe.df$U_auto_perc) #4.7% on average
@@ -1049,8 +1108,8 @@ Uauto_perc_cupe
 path = here("N_uptake_NEON/data/model_output/cupe_output_daily.csv")
 write_csv(daily_output_cupe.df, file=path)
 # 
-# path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly.csv")
-# write_csv(N_output_cupe.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly.csv")
+write_csv(N_output_cupe.df, file=path.h)
 
 ```
 
@@ -1092,6 +1151,10 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
 prin.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
          model_datetime = local_datetime - hours(4))  
+
+# daily dataseset for Q, v, z
+prin.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
+  
   
   
 ```
@@ -1195,13 +1258,16 @@ daily_output_prin.df <- prin.meanqi %>%
   add_column(yr_jday = unique(prin.df.h$yr_jday), 
              sumlightReal = prin.modeldata$sumlightReal, 
              sumlightIdeal = prin.modeldata$sumlightIdeal, 
-             z = colMeans(prin.modeldata$zMA), # daily depth = avg of hourly depth
+             Q = prin.qvz$Q_cms,
+             v = prin.qvz$v,
+             z = prin.qvz$z,
+             #z = colMeans(prin.modeldata$zMA), # daily depth = avg of hourly depth
              b0 = prin.betas$b0,
              b1 = prin.betas$b1,
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_prin.df$K) #
@@ -1307,8 +1373,8 @@ What percentage of total uptake is the autotrophic uptake?
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_prin.df <- daily_output_prin.df %>%
-  mutate(U_het = N_e*K*z,      
-         U_tot = U_het + U, 
+  mutate(U_other = N_e*K*z,      
+         U_tot = U_other + U, 
          U_auto_perc = 100*U/U_tot)
 
 U_auto_avg <- mean(daily_output_prin.df$U_auto_perc) #12.74% on average
@@ -1333,8 +1399,8 @@ Uauto_perc_prin
 path = here("N_uptake_NEON/data/model_output/prin_output_daily.csv")
 write_csv(daily_output_prin.df, file=path)
 
-# path.h = here("N_uptake_NEON/data/model_output/prin_output_hourly.csv")
-# write_csv(N_output_prin.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/prin_output_hourly.csv")
+write_csv(N_output_prin.df, file=path.h)
 
 ```
 
@@ -1377,6 +1443,10 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/wlou_hourly_clean.csv")
 wlou.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Mountain"), 
          model_datetime = local_datetime - hours(4))  
+
+# daily dataseset for Q, v, z
+wlou.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/wlou.q.daily.rds"))
+  
   
   
 ```
@@ -1492,13 +1562,15 @@ daily_output_wlou.df <- wlou.meanqi %>%
   add_column(yr_jday = unique(wlou.df.h$yr_jday), 
              sumlightReal = wlou.modeldata$sumlightReal, 
              sumlightIdeal = wlou.modeldata$sumlightIdeal, 
-             z = colMeans(wlou.modeldata$zMA), # daily depth = avg of hourly depth
+             Q = wlou.qvz$Q_cms,
+             v = wlou.qvz$v,
+             z = wlou.qvz$z,
              b0 = wlou.betas$b0,
              b1 = wlou.betas$b1,
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_wlou.df$K) # 3.225407
@@ -1715,8 +1787,8 @@ U_vs_light_wlou
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_wlou.df <- daily_output_wlou.df %>%
-  mutate(U_het = N_e*K*z,      
-         U_tot = U_het + U, 
+  mutate(U_other = N_e*K*z,      
+         U_tot = U_other + U, 
          U_auto_perc = 100*U/U_tot)
 
 
@@ -1749,9 +1821,9 @@ Uauto_perc_wlou
 
 path = here("N_uptake_NEON/data/model_output/wlou_output_daily.csv")
 write_csv(daily_output_wlou.df, file=path)
-# 
-# path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly.csv")
-# write_csv(N_output_wlou.df, file=path.h)
+
+path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly.csv")
+write_csv(N_output_wlou.df, file=path.h)
 
 ```
 
@@ -1806,6 +1878,7 @@ write_csv(hourly_summary_all.df, path2)
 ### Create whole-dataset visualizations
 
 ##### Reload the summary dfs if needed
+
 ```{r}
  
 path <- here("N_uptake_NEON/data/model_output/daily_summary_all.csv")
@@ -1816,7 +1889,7 @@ hourly_summary_all.df <- read_csv(file=path2)
 
 ```
 
-
+##### U v light
 
 ```{r whole-dataframe visualizations}
 
@@ -1840,7 +1913,7 @@ UvLight_all <- ggplot(daily_summary_all.df, aes(x = sumlightReal, y = U, color =
   labs(
     title = "Uptake vs. Light by Site",
     x = expression("Measured Light"~(W~m^-2)),
-    y = expression("Autotrophic Uptake"~(mmol~m^-2~d^-1))
+    y = expression("Autotrophic"~NO_3~"Uptake"~(mmol~m^-2~d^-1))
   ) +
   ylim(0,1.7)
 
@@ -1859,7 +1932,7 @@ UvNe_all <- ggplot(daily_summary_all.df, aes(x = N_e, y = U, color = site)) +
   labs(
     # title = "Across sites, autotrophic uptake increases with equilibrium nitrate",
     x = expression("Equilibrium Nitrate"~(mmol~m^-3)),
-    y = expression("Autotrophic Uptake"~(mmol~m^-2~d^-1))
+    y = expression("Autotrophic"~NO_3~"Uptake"~(mmol~m^-2~d^-1))
   ) + 
   ylim(0,2)
   
@@ -1933,6 +2006,25 @@ Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K)) +
 
 quartz(height =5, width=8)
 Kplot
+
+
+
+```
+
+##### Uptake length for nitrate at sites
+
+```{r uptake length}
+
+
+
+
+
+```
+
+##### My Vf (K\*z) v daily avg N conc w. LINX II (log scale axes)
+
+```{r vf vs no3 conc}
+
 
 
 
