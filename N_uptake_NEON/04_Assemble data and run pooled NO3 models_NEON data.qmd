@@ -64,8 +64,8 @@ setwd(here())
 # Need to re-specify the tz for local_datetime *and* re-derive model_datetime: per code in '03_select NEON data...':  the model_datetime column already exists but values changed to the UTC time - 4h... weird but there it is. 
 
 # full dataset
-path <- here("N_uptake_NEON/data/neon_data_clean/bigc_clean.csv")
-bigc.df <- read_csv(path) %>%
+path <- here("N_uptake_NEON/data/neon_data_clean/prin_clean.csv")
+prin.df <- read_csv(path) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
          model_datetime = local_datetime - hours(4), 
          model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
@@ -74,8 +74,8 @@ bigc.df <- read_csv(path) %>%
 
 
 # hourly dataset
-path_h <- here("N_uptake_NEON/data/neon_data_clean/bigc_hourly_clean.csv")
-bigc.df.h <- read_csv(path_h) %>%
+path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
+prin.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
          model_datetime = local_datetime - hours(4), 
          model_jday = str_pad(model_jday, width=3, pad="0")) %>%
@@ -83,14 +83,14 @@ bigc.df.h <- read_csv(path_h) %>%
 
 
 # daily dataseset for Q, v, z
-bigc.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
+prin.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
 
 
 # filter no3 datasets to match days in q dataset
-bigc.df <- bigc.df %>%
-  dplyr::filter(yr_jday %in% bigc.qvz$yr_jday)
-bigc.df.h <- bigc.df.h %>%
-  dplyr::filter(yr_jday %in% bigc.qvz$yr_jday)
+prin.df <- prin.df %>%
+  dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
+prin.df.h <- prin.df.h %>%
+  dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
 
 
 
@@ -98,12 +98,12 @@ bigc.df.h <- bigc.df.h %>%
 
 ##### Visualize NO3 data if needed
 
-```{r - bigc - visualize data, plot, clip as needed}
+```{r - prin - visualize data, plot, clip as needed}
 #low <- 175
 #high <- 186
 #cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
   
-bigc.plot <- bigc.df.h %>%
+prin.plot <- prin.df.h %>%
   #filter(model_day >= low & model_day <= high) %>%
   #filter(model_day != cliplist) %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
@@ -113,7 +113,7 @@ bigc.plot <- bigc.df.h %>%
   theme_bw()
 
 quartz(width = 10, height = 4.5)
-bigc.plot
+prin.plot
 
 ```
 
@@ -315,15 +315,15 @@ setwd(here())
 # Need to re-specify the tz for local_datetime *and* re-derive model_datetime: per code in '03_select NEON data...':  the model_datetime column already exists but values changed to the UTC time - 4h... weird but there it is. 
 
 # # full dataset - given the 30-min NEON PAR data, only saved the hourly combined dataframe
-# path <- here("N_uptake_NEON/data/neon_data_clean/cari_clean.csv")
-# cari.df <- read_csv(path) %>%
+# path <- here("N_uptake_NEON/data/neon_data_clean/prin_clean.csv")
+# prin.df <- read_csv(path) %>%
 #   mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
 #          model_datetime = local_datetime - hours(2))  
 
 
 # hourly dataset
-path_h <- here("N_uptake_NEON/data/neon_data_clean/cari_hourly_clean.csv")
-cari.df.h <- read_csv(path_h) %>%
+path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
+prin.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"), 
          model_datetime = local_datetime - hours(2), 
          model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
@@ -333,14 +333,14 @@ cari.df.h <- read_csv(path_h) %>%
 
 
 # daily dataseset for Q, v, z
-cari.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
+prin.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
   
 # filter no3 datasets to match days in q dataset
-# cari.df.h <- cari.df.h %>%
-#   dplyr::filter(yr_jday %in% cari.qvz$yr_jday)
+# prin.df.h <- prin.df.h %>%
+#   dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
 
-cari.df.h <- cari.df.h %>%
-  dplyr::filter(yr_jday %in% cari.qvz$yr_jday)
+prin.df.h <- prin.df.h %>%
+  dplyr::filter(yr_jday %in% prin.qvz$yr_jday)
 
 
 
@@ -353,7 +353,7 @@ cari.df.h <- cari.df.h %>%
 #high <- 186
 #cliplist <- c(135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147)  # 135-147 = May 15-27, 2019
   
-cari.plot <- cari.df.h %>%
+prin.plot <- prin.df.h %>%
   #filter(model_day >= low & model_day <= high) %>%
   #filter(model_day != cliplist) %>%
   ggplot(aes(x=local_datetime, y=surfWaterNitrateMean)) + 
@@ -363,7 +363,7 @@ cari.plot <- cari.df.h %>%
   theme_bw()
 
 quartz(width = 10, height = 4.5)
-cari.plot
+prin.plot
 
 ```
 
@@ -405,7 +405,7 @@ cari.df.h %>%
   filter(model_jday == 32) %>%
   summarize(count = n())
 
-#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+#lastday <- prin.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
@@ -423,7 +423,7 @@ View(cari.sumlightIdeal.df.h)
 summary(cari.sumlightIdeal.df.h)
 head(cari.sumlightIdeal.df.h)  # 2021-32
 tail(cari.sumlightIdeal.df.h)  # 2022-364
-# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+# prin.df.19h <- prin.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
@@ -435,9 +435,9 @@ cari.sumlightIdeal.df.h$model_jday[which(cari.sumlightIdeal.df.h$light.hrs == 0)
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
 # 
-# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+# prin.df.19h <- prin.df.19h[!(prin.df.19h$model_day %in% darkdays),]
 
-# tail(bigc.df.19h$model_day)
+# tail(prin.df.19h$model_day)
 
 # get the updated range of model days
 
@@ -446,7 +446,7 @@ cari.sumlightIdeal.df.h$model_jday[which(cari.sumlightIdeal.df.h$light.hrs == 0)
 # plot(cari.sumlight.df.h$yr_jday, cari.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
 
 ## Standardize terms for model
-light <- cari.df.h$mod_light    #bigc.df.19h$light
+light <- cari.df.h$mod_light    #prin.df.19h$light
 sumlight.ideal <- cari.sumlightIdeal.df.h$sumlight.trapz
 
 which(is.na(cari.df.h$mod_light))
@@ -457,12 +457,12 @@ which(is.na(cari.sumlightIdeal.df.h$sumlight.trapz))
 ## these data are included in the cari.df and cari.df.h datasets; clip if/as  needed to match the steps above
 
 # First remove model days to match sumlight.h ####### NOT NEEDED ##########
-# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+# prin19_sat_sumlight_clip <- prin19_sat_sumlight %>% 
 #   filter(model_day >= low_cut & model_day <= high_cut) 
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-# View(bigc19_sat_sumlight_clip) 
+# View(prin19_sat_sumlight_clip) 
 
 cari.sumlightReal.df.h <- cari.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
@@ -686,7 +686,7 @@ tail(cupe.df.h$model_jday) #2023_365 is the last model day (complete)
 #   filter(model_jday == 32) %>%
 #   summarize(count = n())
 
-#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+#lastday <- cupe.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
@@ -720,9 +720,9 @@ which(cupe.sumlightIdeal.df.h$light.hrs == 0) # none
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
 # 
-# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+# cupe.df.19h <- cupe.df.19h[!(cupe.df.19h$model_day %in% darkdays),]
 
-# tail(bigc.df.19h$model_day)
+# tail(cupe.df.19h$model_day)
 
 # get the updated range of model days
 
@@ -740,12 +740,12 @@ sumlight.ideal <- cupe.sumlightIdeal.df.h$sumlight.trapz
 ## these data are included in the cupe.df and cupe.df.h datasets; clip if/as  needed to match the steps above
 
 # First remove model days to match sumlight.h ####### NOT NEEDED ##########
-# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+# cupe19_sat_sumlight_clip <- cupe19_sat_sumlight %>% 
 #   filter(model_day >= low_cut & model_day <= high_cut) 
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-# View(bigc19_sat_sumlight_clip) 
+# View(cupe19_sat_sumlight_clip) 
 
 cupe.sumlightReal.df.h <- cupe.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
@@ -781,6 +781,19 @@ lightMA <- matrix(light, nrow=24)
 
 ```
 
+##### Save updated CUPE data
+
+```{r save cupe data}
+
+path <- here("N_uptake_NEON/data/neon_data_clean/cupe_clean.csv")
+path_h <- here("N_uptake_NEON/data/neon_data_clean/cupe_hourly_clean.csv")
+write_csv(cupe.df, path)
+write_csv(cupe.df.h, path_h)
+
+```
+
+
+
 ##### List data and call to stan
 
 ```{r - CUPE list data and call to stan}
@@ -794,7 +807,7 @@ fit.cupe <-  stan("N_uptake_NEON/pooled-L_all.stan", data = data,  iter = 2000, 
 
 # check the summary sigma and beta parameters
 summary(fit.cupe)
-print(fit.cupe, pars=c("sigma", "sigma_U", "b0", "b1"))
+cupet(fit.cupe, pars=c("sigma", "sigma_U", "b0", "b1"))
 
 ```
 
@@ -925,7 +938,7 @@ prin.df.h %>%
   filter(model_jday == 32) %>%
   summarize(count = n())
 
-#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+#lastday <- prin.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
@@ -943,7 +956,7 @@ View(prin.sumlightIdeal.df.h)
 summary(prin.sumlightIdeal.df.h)
 head(prin.sumlightIdeal.df.h)  # 2021-32
 tail(prin.sumlightIdeal.df.h)  # 2022-364
-# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+# prin.df.19h <- prin.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
@@ -955,9 +968,9 @@ prin.sumlightIdeal.df.h$model_day[which(prin.sumlightIdeal.df.h$light.hrs == 0)]
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
 # 
-# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+# prin.df.19h <- prin.df.19h[!(prin.df.19h$model_day %in% darkdays),]
 
-# tail(bigc.df.19h$model_day)
+# tail(prin.df.19h$model_day)
 
 # get the updated range of model days
 
@@ -966,7 +979,7 @@ prin.sumlightIdeal.df.h$model_day[which(prin.sumlightIdeal.df.h$light.hrs == 0)]
 # plot(prin.sumlight.df.h$yr_jday, prin.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
 
 ## Standardize terms for model
-light <- prin.df.h$mod_light    #bigc.df.19h$light
+light <- prin.df.h$mod_light    #prin.df.19h$light
 sumlight.ideal <- prin.sumlightIdeal.df.h$sumlight.trapz
 
 
@@ -975,12 +988,12 @@ sumlight.ideal <- prin.sumlightIdeal.df.h$sumlight.trapz
 ## these data are included in the prin.df and prin.df.h datasets; clip if/as  needed to match the steps above
 
 # First remove model days to match sumlight.h ####### NOT NEEDED ##########
-# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+# prin19_sat_sumlight_clip <- prin19_sat_sumlight %>% 
 #   filter(model_day >= low_cut & model_day <= high_cut) 
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-# View(bigc19_sat_sumlight_clip) 
+# View(prin19_sat_sumlight_clip) 
 
 prin.sumlightReal.df.h <- prin.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
@@ -1014,6 +1027,18 @@ lightMA <- matrix(light, nrow=24)
 
 
 ```
+
+##### Save updated PRIN data
+
+```{r save prin data}
+
+path <- here("N_uptake_NEON/data/neon_data_clean/prin_clean.csv")
+path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
+write_csv(prin.df, path)
+write_csv(prin.df.h, path_h)
+
+```
+
 
 ##### List data and call to stan
 
@@ -1155,7 +1180,7 @@ syca.df.h %>%
   filter(model_jday == 32) %>%
   summarize(count = n())
 
-#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+#lastday <- prin.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
@@ -1173,7 +1198,7 @@ View(syca.sumlightIdeal.df.h)
 summary(syca.sumlightIdeal.df.h)
 head(syca.sumlightIdeal.df.h)  # 2021-32
 tail(syca.sumlightIdeal.df.h)  # 2022-364
-# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+# prin.df.19h <- prin.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
@@ -1185,9 +1210,9 @@ syca.sumlightIdeal.df.h$model_day[which(syca.sumlightIdeal.df.h$light.hrs == 0)]
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
 # 
-# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+# prin.df.19h <- prin.df.19h[!(prin.df.19h$model_day %in% darkdays),]
 
-# tail(bigc.df.19h$model_day)
+# tail(prin.df.19h$model_day)
 
 # get the updated range of model days
 
@@ -1196,7 +1221,7 @@ syca.sumlightIdeal.df.h$model_day[which(syca.sumlightIdeal.df.h$light.hrs == 0)]
 # plot(syca.sumlight.df.h$yr_jday, syca.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
 
 ## Standardize terms for model
-light <- syca.df.h$mod_light    #bigc.df.19h$light
+light <- syca.df.h$mod_light    #prin.df.19h$light
 sumlight.ideal <- syca.sumlightIdeal.df.h$sumlight.trapz
 
 
@@ -1205,12 +1230,12 @@ sumlight.ideal <- syca.sumlightIdeal.df.h$sumlight.trapz
 ## these data are included in the syca.df and syca.df.h datasets; clip if/as  needed to match the steps above
 
 # First remove model days to match sumlight.h ####### NOT NEEDED ##########
-# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+# prin19_sat_sumlight_clip <- prin19_sat_sumlight %>% 
 #   filter(model_day >= low_cut & model_day <= high_cut) 
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-# View(bigc19_sat_sumlight_clip) 
+# View(prin19_sat_sumlight_clip) 
 
 syca.sumlightReal.df.h <- syca.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
@@ -1397,7 +1422,7 @@ wlou.df.h %>%
   filter(model_jday == 32) %>%
   summarize(count = n())
 
-#lastday <- bigc.df.19h$model_day[]  # add index # here if further clipping is needed
+#lastday <- prin.df.19h$model_day[]  # add index # here if further clipping is needed
 
 ######## Create ideal sumlight data from full dataset _____________________
 
@@ -1415,7 +1440,7 @@ View(wlou.sumlightIdeal.df.h)
 summary(wlou.sumlightIdeal.df.h)
 head(wlou.sumlightIdeal.df.h)  # 2021-32
 tail(wlou.sumlightIdeal.df.h)  # 2022-364
-# bigc.df.19h <- bigc.df.19h %>%  # also remove that day from the main df 
+# prin.df.19h <- prin.df.19h %>%  # also remove that day from the main df 
 #   filter(model_day != 226) 
 #   
 
@@ -1427,9 +1452,9 @@ wlou.sumlightIdeal.df.h$model_day[which(wlou.sumlightIdeal.df.h$light.hrs == 0)]
 # 
 # sumlight.h <- sumlight.h.df[!(sumlight.h.df$light.hrs == 0),]
 # 
-# bigc.df.19h <- bigc.df.19h[!(bigc.df.19h$model_day %in% darkdays),]
+# prin.df.19h <- prin.df.19h[!(prin.df.19h$model_day %in% darkdays),]
 
-# tail(bigc.df.19h$model_day)
+# tail(prin.df.19h$model_day)
 
 # get the updated range of model days
 
@@ -1438,7 +1463,7 @@ wlou.sumlightIdeal.df.h$model_day[which(wlou.sumlightIdeal.df.h$light.hrs == 0)]
 # plot(wlou.sumlight.df.h$yr_jday, wlou.sumlight.df.h$sumlight.trapz)  ## ~ 14000 - 20000
 
 ## Standardize terms for model
-light <- wlou.df.h$mod_light    #bigc.df.19h$light
+light <- wlou.df.h$mod_light    #prin.df.19h$light
 sumlight.ideal <- wlou.sumlightIdeal.df.h$sumlight.trapz
 
 
@@ -1447,12 +1472,12 @@ sumlight.ideal <- wlou.sumlightIdeal.df.h$sumlight.trapz
 ## these data are included in the wlou.df and wlou.df.h datasets; clip if/as  needed to match the steps above
 
 # First remove model days to match sumlight.h ####### NOT NEEDED ##########
-# bigc19_sat_sumlight_clip <- bigc19_sat_sumlight %>% 
+# prin19_sat_sumlight_clip <- prin19_sat_sumlight %>% 
 #   filter(model_day >= low_cut & model_day <= high_cut) 
 # %>%
 #   filter()  # trim further, if needed, to match model dataset. 
 
-# View(bigc19_sat_sumlight_clip) 
+# View(prin19_sat_sumlight_clip) 
 
 wlou.sumlightReal.df.h <- wlou.df.h %>%
   group_by(Year, model_jday) %>%  # with multiple years, need to group by the year-jday column
@@ -1521,90 +1546,3 @@ saveRDS(data, path2)
 
 ```
 
-### OLD CODE CHUNKS - glean then delete
-
-```{r old code}
-
-###### NB: the local_datetime (and all other posix/datetime columns) reverts to UTC when saved and reloaded; need to re-apply the tz change here. Local_datetime values do not change. 
-
-###### ALSO need to re-create the model_datetime column: on reload, the values DO  change to = UTC-4h instead of local_datetime-4h. 
-
-
-# making sure the wd is set correctly
-setwd(here())
-
-####################### NO3 data ##################
-#~/Documents/R_working/Modelscape/space-time-rivers/N_uptake_NEON/data/neon_data_clean
-##### BIGC
-bigc19_filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2019_74_226.csv")
-bigc.df.19h <- read_csv(bigc19_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
-         model_datetime = local_datetime - hours(4))  
-
-bigc21_filepath <- here("N_uptake_NEON/data/neon_data_clean/bigc_2021_60_281.csv")
-bigc.df.21h <- read_csv(bigc21_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"),
-         model_datetime = local_datetime - hours(4))
-
-#### CARI
-
-cari19_filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2019_127_267.csv")
-cari.df.19h <- read_csv(cari19_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"),
-         model_datetime = local_datetime - hours(4))
-
-cari20_filepath <- here("N_uptake_NEON/data/neon_data_clean/cari_2020_170_252.csv")
-cari.df.20h <- read_csv(cari20_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Alaska"),
-         model_datetime = local_datetime - hours(4))
-
-#### KING
-
-king19_filepath <- here("N_uptake_NEON/data/neon_data_clean/king_2019_232_365.csv")
-king.df.19h <- read_csv(king19_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"),
-         model_datetime = local_datetime - hours(4))
-
-
-king20_filepath <- here("N_uptake_NEON/data/neon_data_clean/king_2020_1_289.csv")
-king.df.20h <- read_csv(king20_filepath) %>%
-  mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"),
-         model_datetime = local_datetime - hours(4))
-
-
-#### WALK
-
-# walk19_filepath <- here("N_uptake_NEON/data/neon_data_clean/walk_2019_XXXX.csv")
-# walk.df.19h <- read_csv(walk_filepath) %>%
-# mutate(local_datetime = with_tz(local_datetime, tzone="US/Eastern"),
-# model_datetime = local_datetime - hours(4))
-# 
-# walk20_filepath <- here("N_uptake_NEON/data/neon_data_clean/walk_2020_XXXX.csv")
-# walk.df.20h <- read_csv(walk_filepath) %>%
-# mutate(local_datetime = with_tz(local_datetime, tzone="US/Eastern"),
-# model_datetime = local_datetime - hours(4))
-
-
-old_obj <- c(bigc19_filepath, bigc21_filepath, cari19_filepath, cari20_filepath, king19_filepath, king20_filepath)
-rm(old_obj)
-
-####################### satellite light data ##################
-
-bigc19_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/bigc2019_realsumlight_73_227.csv"))
-
-bigc21_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/bigc2021_realsumlight_60_281.csv"))
-
-#cari19_sat_sumlight <- read_csv()
-
-#cari20_sat_sumlight <- read_csv()
-
-king19_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king2019_realsumlight_232_365.csv"))
-
-king20_sat_sumlight <- read_csv(here("N_uptake_NEON/data/NSRDB_data_clean/king2020_realsumlight_1_289.csv"))
-
-# walk19_sat_sumlight <- read_csv()
-# 
-# walk22_sat_sumlight <- read_csv()
-
-
-```

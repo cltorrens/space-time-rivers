@@ -526,6 +526,7 @@ Uauto_perc_bigc
 
 ```
 
+
 ###### Save updated model output datasets
 
 ```{r bigc: save updated datasets}
@@ -533,11 +534,11 @@ Uauto_perc_bigc
 #| message: false
 #| warning: false
 
-path = here("N_uptake_NEON/data/model_output/bigc_output_daily.csv")
-write_csv(daily_output_bigc.df, file=path)
+path = here("N_uptake_NEON/data/model_output/bigc_output_daily.rds")
+saveRDS(daily_output_bigc.df, file=path)
 # 
-path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly.csv")
-write_csv(N_output_bigc.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly.rds")
+saveRDS(N_output_bigc.df, file=path.h)
 
 ```
 
@@ -818,11 +819,11 @@ Uauto_perc_cari
 #| message: false
 #| warning: false
 
-path = here("N_uptake_NEON/data/model_output/cari_output_daily.csv")
-write_csv(daily_output_cari.df, file=path)
+path = here("N_uptake_NEON/data/model_output/cari_output_daily.rds")
+saveRDS(daily_output_cari.df, file=path)
 # 
-path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly.csv")
-write_csv(N_output_cari.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly.rds")
+saveRDS(N_output_cari.df, file=path.h)
 
 ```
 
@@ -1105,11 +1106,11 @@ Uauto_perc_cupe
 #| message: false
 #| warning: false
 
-path = here("N_uptake_NEON/data/model_output/cupe_output_daily.csv")
-write_csv(daily_output_cupe.df, file=path)
+path = here("N_uptake_NEON/data/model_output/cupe_output_daily.rds")
+saveRDS(daily_output_cupe.df, file=path)
 # 
-path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly.csv")
-write_csv(N_output_cupe.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly.rds")
+saveRDS(N_output_cupe.df, file=path.h)
 
 ```
 
@@ -1396,11 +1397,11 @@ Uauto_perc_prin
 #| message: false
 #| warning: false
 
-path = here("N_uptake_NEON/data/model_output/prin_output_daily.csv")
-write_csv(daily_output_prin.df, file=path)
+path = here("N_uptake_NEON/data/model_output/prin_output_daily.rds")
+saveRDS(daily_output_prin.df, file=path)
 
-path.h = here("N_uptake_NEON/data/model_output/prin_output_hourly.csv")
-write_csv(N_output_prin.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/prin_output_hourly.rds")
+saveRDS(N_output_prin.df, file=path.h)
 
 ```
 
@@ -1819,13 +1820,49 @@ Uauto_perc_wlou
 #| message: false
 #| warning: false
 
-path = here("N_uptake_NEON/data/model_output/wlou_output_daily.csv")
-write_csv(daily_output_wlou.df, file=path)
+path = here("N_uptake_NEON/data/model_output/wlou_output_daily.rds")
+saveRDS(daily_output_wlou.df, file=path)
 
-path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly.csv")
-write_csv(N_output_wlou.df, file=path.h)
+path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly.rds")
+saveRDS(N_output_wlou.df, file=path.h)
 
 ```
+
+### Remove days w. crazy-high outlier Ks from BIGC and CUPE
+One day per site has super-high K relative to the other Ks
+(later, should likely re-run model w/o these days)
+```{r remove outlier}
+
+# For BIGC
+#   ID the day, so I can fix it later and re-run model
+bigc_daily.df$model_date[which(bigc_daily.df$K > 7)] #"2021-05-20"
+bigc_daily.df$model_jday[which(bigc_daily.df$K > 7)] # 2021, 140
+# bigc_daily.df$yr_jday[which(bigc_daily.df$K > 7)] # just checking this value!
+
+# remove the day
+bigc_daily.df <- bigc_daily.df %>%
+  filter(K<=7)
+# save
+path = here("N_uptake_NEON/data/model_output/bigc_output_daily.rds")
+saveRDS(bigc_daily.df, file=path)
+
+# For CUPE
+#   ID the day, so I can fix it later and re-run model
+cupe_daily.df$model_date[which(cupe_daily.df$K > 20)]  # "2021-07-06"
+cupe_daily.df$model_jday[which(cupe_daily.df$K > 20)]  # 187
+cupe_daily.df$yr_jday[which(cupe_daily.df$K > 20)]     # "2021_187": just checking this value!
+
+# remove the day
+cupe_daily.df <- cupe_daily.df %>%
+  filter(K <= 20)
+
+#save
+path = here("N_uptake_NEON/data/model_output/cupe_output_daily.rds")
+saveRDS(cupe_daily.df, file=path)
+
+```
+
+
 
 ### Assemble and save mean, median, 95% QI tibble for all sites
 
@@ -1839,22 +1876,23 @@ Combine the site tibbles into one large tibble, then save it
 ########## Reload all output datasets as needed  _______________________________________
 
 ##### Load daily datasets
-bigc_daily.df <- read_csv(here("N_uptake_NEON/data/model_output/bigc_output_daily.csv"))
-cari_daily.df <- read_csv(here("N_uptake_NEON/data/model_output/cari_output_daily.csv"))
-cupe_daily.df <- read_csv(here("N_uptake_NEON/data/model_output/cupe_output_daily.csv"))
-prin_daily.df <- read_csv(here("N_uptake_NEON/data/model_output/prin_output_daily.csv"))
-wlou_daily.df <- read_csv(here("N_uptake_NEON/data/model_output/wlou_output_daily.csv"))
+bigc_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/bigc_output_daily.rds"))
+cari_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/cari_output_daily.rds"))
+cupe_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/cupe_output_daily.rds"))
+prin_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/prin_output_daily.rds"))
+wlou_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/wlou_output_daily.rds"))
 
 # Checking for any duplicate names (per the initial error: solved by using list())
 # map(list(bigc_daily.df, cari_daily.df, cupe_daily.df, prin_daily.df, wlou_daily.df), ~ any(duplicated(names(.))))
 
 
 ##### Load hourly datasets
-bigc_hourly.df <- read_csv(here("N_uptake_NEON/data/model_output/bigc_output_hourly.csv"))
-cari_hourly.df <- read_csv(here("N_uptake_NEON/data/model_output/cari_output_hourly.csv")) 
-cupe_hourly.df <- read_csv(here("N_uptake_NEON/data/model_output/cupe_output_hourly.csv"))
-prin_hourly.df <- read_csv(here("N_uptake_NEON/data/model_output/prin_output_hourly.csv"))
-wlou_hourly.df <- read_csv(here("N_uptake_NEON/data/model_output/wlou_output_hourly.csv"))
+bigc_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/bigc_output_hourly.rds")) %>%
+  mutate(model_jday = as.numeric(model_jday))
+cari_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/cari_output_hourly.rds")) 
+cupe_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/cupe_output_hourly.rds"))
+prin_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/prin_output_hourly.rds"))
+wlou_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/wlou_output_hourly.rds"))
 
 ########## Bind then save daily parameters (K, U, N_e)  _________________________
 daily_list <- list(bigc_daily.df, cari_daily.df, cupe_daily.df, prin_daily.df, wlou_daily.df)
@@ -1862,15 +1900,15 @@ daily_summary_all.df <- bind_rows(daily_list)
 # View(daily_summary_all.df)
 
 ### Save daily df
-path <- here("N_uptake_NEON/data/model_output/daily_summary_all.csv")
-write_csv(daily_summary_all.df, path)
+path <- here("N_uptake_NEON/data/model_output/daily_summary_all.rds")
+saveRDS(daily_summary_all.df, path)
 
 ########## Bind then save hourly parameters (N_pred)  ___________________________
 
 hourly_list <- list(bigc_hourly.df, cari_hourly.df, cupe_hourly.df, prin_hourly.df, wlou_hourly.df)
 hourly_summary_all.df <- bind_rows(hourly_list)
-path2 <- here("N_uptake_NEON/data/model_output/hourly_summary_all.csv")
-write_csv(hourly_summary_all.df, path2)
+path2 <- here("N_uptake_NEON/data/model_output/hourly_summary_all.rds")
+saveRDS(hourly_summary_all.df, path2)
 
 
 ```
@@ -1881,11 +1919,11 @@ write_csv(hourly_summary_all.df, path2)
 
 ```{r}
  
-path <- here("N_uptake_NEON/data/model_output/daily_summary_all.csv")
-daily_summary_all.df <- read_csv(file=path)
+path <- here("N_uptake_NEON/data/model_output/daily_summary_all.rds")
+daily_summary_all.df <- readRDS(file=path)
 
-path2 <- here("N_uptake_NEON/data/model_output/hourly_summary_all.csv")
-hourly_summary_all.df <- read_csv(file=path2)
+path2 <- here("N_uptake_NEON/data/model_output/hourly_summary_all.rds")
+hourly_summary_all.df <- readRDS(file=path2)
 
 ```
 
@@ -1900,22 +1938,24 @@ hourly_summary_all.df <- read_csv(file=path2)
 colorblind_palettes
 # Archambault works
 pal<- pnw_palette("Sunset2", n=5)
-pal <- 
+
 UvLight_all <- ggplot(daily_summary_all.df, aes(x = sumlightReal, y = U, color = site)) +
-  geom_point(alpha = 0.5) +  # scatterplot of points
-  scale_fill_manual(values = pal) +
+   geom_errorbar(aes(ymin = U.lower, ymax = U.upper),
+                 width = 0.2, color='grey70') + # CI bars
+  geom_point(alpha = 0.7) +  # scatterplot of points
+  scale_color_manual(values = pal) +
   # geom_abline(
   #   aes(intercept = b0, slope = b1),
   #   alpha = 0.2,
   #   color = "blue") +  # model fits per site using output b1 and b0
-  facet_wrap(~site) +
+  facet_wrap(~site, scales="free_y") +
   theme_bw() +  # clean look
   labs(
-    title = "Uptake vs. Light by Site",
     x = expression("Measured Light"~(W~m^-2)),
     y = expression("Autotrophic"~NO_3~"Uptake"~(mmol~m^-2~d^-1))
   ) +
-  ylim(0,1.7)
+  # ylim(0,1.7) + 
+  theme(legend.position = "none")
 
   
 quartz(height =5, width=8)
@@ -1988,26 +2028,35 @@ uptakeBarplot
 
 
 ##### K over time
+pal<- pnw_palette("Sunset2", n=5)
 
-
-Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K)) +
+Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper),
                  width = 0.2, color='grey70') + # CI bars
    geom_point() +
   # geom_point(y = sumlight.real, color = 'gold') +
+  scale_color_manual(values = pal) +
   facet_wrap(~site)+
    labs( x= "Index",
          y=expression("K"~(d^-1)) # ~ = a space, * = no space
       ) +
   ylim(0,15) +
+  xlim(0,200)+
    # ggtitle(plot_title) +
-   theme_bw()
+  theme_bw() + 
+  theme(legend.position = "none")
 
 
 quartz(height =5, width=8)
 Kplot
 
+daily_summary_all.df %>%
+  group_by(site) %>%
+  summarise(mean_K = mean(K, na.rm = TRUE))
 
+daily_summary_all.df %>%
+  group_by(site) %>%
+  summarise(meanSw = mean(Sw_x, na.rm=TRUE))
 
 ```
 
@@ -2015,17 +2064,149 @@ Kplot
 
 ```{r uptake length}
 
+## for each site, horizontal boxplot of avg for 90% distance: x = ln(.90)*v/k
+pal<- pnw_palette("Sunset2", n=5)
+
+daily_summary_all.df <- daily_summary_all.df %>%
+  mutate(Sw_x = 86400*2.302585*v/K)  #UNITS: remember to convert m s-1 to m d-1...
+  # mutate(Sw_x = log(.1)*-v/K)
+
+# 
+
+Swplot <- daily_summary_all.df %>%
+  ggplot(aes(x=Sw_x, y=site, fill=site)) + 
+  geom_boxplot() + 
+  scale_fill_manual(values = pal) +
+  scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
+  coord_cartesian(xlim = c(0, 20000)) +  # <-- zoom in instead of xlim(): doesn't remove CARI
+  labs(x = "Uptake Length (m)", y = "") + 
+  theme_bw()
+  
+quartz(width=7.5, height=5)
+Swplot
+
+# The jitter didn't look as good...
+SwJitter <- daily_summary_all.df %>%
+  ggplot(aes(x=Sw_x, y=site, fill=site)) + 
+  geom_boxplot(fill = "gray90", color = "black") +
+  geom_jitter(aes(color = site), width = 0.2, height = 0.1, alpha = 0.7) +
+  scale_color_manual(values = pal) +
+  scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
+  coord_cartesian(xlim = c(0, 20000)) +  # <-- zoom in instead of xlim(): doesn't remove CARI
+  labs(x = "Uptake Length (m)", y = "") + 
+  theme_bw()
+  
+quartz(width=7.5, height=5)
+SwJitter
 
 
+geom_boxplot(fill = "gray90", color = "black") +
+  geom_jitter(aes(color = siteID), width = 0.2, height = 0.1, alpha = 0.7) +
+  scale_color_manual(values = pal) +
+
+#   Hmmm, weird. Let's look at the v values... AND check the units. 
+vel_plot <- daily_summary_all.df %>%
+  ggplot(aes(x=v, y=site, fill=site)) + 
+  geom_boxplot() + 
+  scale_fill_manual(values = pal) +
+  scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
+  labs(y = "", x=expression("velocity"~(m~s^-1))) + 
+  theme_bw()
+
+quartz(width=7.5, height=5)
+vel_plot
+
+
+K_boxplot <- daily_summary_all.df %>%
+  ggplot(aes(y=site, x=K, fill=site)) + 
+  geom_boxplot() + 
+  scale_fill_manual(values = pal) +
+  scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
+  labs(y = "", x=expression("K"~(d^-1))) + 
+  theme_bw()
+
+quartz(width=7.5, height=5)
+K_boxplot
 
 
 ```
 
-##### My Vf (K\*z) v daily avg N conc w. LINX II (log scale axes)
+
+##### C:N stoichiometry and GPP vs N uptake
+
+```{r cn stoich}
+gpp.df <- bind_rows(CARI.gpp, WLOU.gpp)
+
+U.df <- daily_summary_all.df %>%
+  filter(site %in% c("CARI", "WLOU"))
+
+U_GPP <- inner_join(U.df, gpp.df, by = c("site", "model_date" = "date")) %>%
+  mutate(GPP.mmol = GPP*1000/32) %>%
+  filter(GPP.mmol > 0)
+
+# Plot w. same palette as all graphs
+pal<- pnw_palette("Sunset2", n=5)
+
+UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol, y=U, color=site)) + 
+  geom_point(size=3) +
+  scale_color_manual(values = pal[c(2, 5)]) +
+  geom_abline(intercept= 0, slope = 1/10, linetype = "twodash", color='grey') + 
+  geom_abline(intercept= 0, slope = 1/20, linetype = "twodash", color='grey') + 
+  geom_abline(intercept= 0, slope = 1/40, linetype = "twodash", color='grey') +  #1:20
+  geom_abline(intercept= 0, slope = 1/60, linetype = "twodash", color='grey') +  #1:30
+  # geom_abline(intercept= 0, slope = 1/70, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/80, linetype = "twodash", color='grey') + #1:40
+  # geom_abline(intercept= 0, slope = 1/90, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/100, linetype = "twodash", color='grey') +# 1:50
+  # geom_abline(intercept= 0, slope = 1/110, linetype = "dotted", color='grey') +
+  geom_abline(intercept= 0, slope = 1/120, linetype = "twodash", color='grey') + #1:60
+   geom_abline(intercept= 0, slope = 1/140, linetype = "twodash", color='grey') + #1:70
+  labs(x=expression("GPP"~(mmol~O[2]~m^-2~d^-1)),
+       y=expression("U"~(mmol~NO[3]-N~m^-2~d^-1))) +
+  # facet_wrap(~site) +
+  theme_bw()
+
+UvGPPmarg <- ggMarginal(UvGPP, type='density', margins = "y", groupFill = TRUE)
+
+quartz(height =5, width=8)
+UvGPP
+
+```
+
+
+
+##### My Vf (K*z) v daily avg N conc w. LINX II (log scale axes)
 
 ```{r vf vs no3 conc}
 
+# Calc daily Vf for NEON sites
+daily_summary_all.df <- daily_summary_all.df %>%
+  mutate(Vf_auto = K*z)  # units = m/d
 
+# Change LINX II df units to match mine: N conc in mmol m^-3; 
+linx.df <- linx.df %>%
+  mutate(N_conc = NO3conc_ugN_L/14.0067, #convert to mmol m^-3  (just divide by molar wt)
+         Vf_tot = Vf_tot_no3_cm_s*864, # convert to m/day (0.001*86400 = 864)
+         Vf_assim = Vf_assim_cm_s*864) # convert to m/day (0.001*86400 = 864)
+
+# the usual palette: 
+pal<- pnw_palette("Sunset2", n=5)
+
+Vf_plot <- ggplot() + 
+  geom_point(data=linx.df, aes(x=N_conc, y=Vf_tot), color="grey") + 
+  geom_point(data=daily_summary_all.df, aes(x=N_e, y=Vf_auto, color=site)) + 
+  scale_color_manual(values = pal) +
+  labs(
+    x = expression("N" ~ (mmol ~ m^-3)),
+    y = expression("Uptake velocity,"~V[f]~~(m~d^-1))
+  ) +
+  # coord_cartesian(xlim = c(0, 125)) +
+  coord_cartesian(xlim = c(0,40), ylim=c(0,5)) + 
+  theme_bw()
+ 
+quartz(height =5, width=8)
+Vf_plot
+  
 
 
 ```
