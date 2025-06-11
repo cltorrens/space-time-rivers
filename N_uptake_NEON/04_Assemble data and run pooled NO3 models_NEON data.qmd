@@ -78,8 +78,8 @@ path_h <- here("N_uptake_NEON/data/neon_data_clean/prin_hourly_clean.csv")
 prin.df.h <- read_csv(path_h) %>%
   mutate(local_datetime = with_tz(local_datetime, tzone="US/Pacific"), 
          model_datetime = local_datetime - hours(4), 
-         model_jday = str_pad(model_jday, width=3, pad="0")) %>%
-  unite("yr_jday", Year, model_jday, sep = '_', remove=FALSE)
+         model_jday_pad = str_pad(model_jday, width=3, pad="0")) %>%
+  unite("yr_jday", Year, model_jday_pad, sep = '_', remove=FALSE)
 
 
 # daily dataseset for Q, v, z

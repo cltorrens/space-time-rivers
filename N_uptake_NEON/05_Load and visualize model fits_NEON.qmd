@@ -1927,6 +1927,17 @@ hourly_summary_all.df <- readRDS(file=path2)
 
 ```
 
+##### Set palette
+```{r palette}
+# Check for colorblind friendly palettes from MetBrewer
+colorblind_palettes
+# Archambault works - but I couldn't get it to visualize. Moving on to PNW palettes...
+
+pal<- pnw_palette("Sunset2", n=5)
+
+
+```
+
 ##### U v light
 
 ```{r whole-dataframe visualizations}
@@ -1934,36 +1945,34 @@ hourly_summary_all.df <- readRDS(file=path2)
 ##### U vs measured light
 ## FIRST CHANGE CARI UNITS FOR LIGHT! - DONE
 
-# Check for colorblind friendly palettes from MetBrewer
-colorblind_palettes
-# Archambault works
-pal<- pnw_palette("Sunset2", n=5)
 
 UvLight_all <- ggplot(daily_summary_all.df, aes(x = sumlightReal, y = U, color = site)) +
    geom_errorbar(aes(ymin = U.lower, ymax = U.upper),
                  width = 0.2, color='grey70') + # CI bars
   geom_point(alpha = 0.7) +  # scatterplot of points
   scale_color_manual(values = pal) +
+  scale_x_log10() + scale_y_log10() + 
   # geom_abline(
   #   aes(intercept = b0, slope = b1),
   #   alpha = 0.2,
   #   color = "blue") +  # model fits per site using output b1 and b0
-  facet_wrap(~site, scales="free_y") +
+  facet_wrap(~site, scales="free") +  # use scales="free_y" or "free_x" to free only 1 axis
   theme_bw() +  # clean look
   labs(
     x = expression("Measured Light"~(W~m^-2)),
-    y = expression("Autotrophic"~NO_3~"Uptake"~(mmol~m^-2~d^-1))
+    y = expression("Autotrophic"~NO[3]~"Uptake"~(mmol~m^-2~d^-1))
   ) +
   # ylim(0,1.7) + 
   theme(legend.position = "none")
 
   
-quartz(height =5, width=8)
+quartz(height=5, width=8)
 UvLight_all
 
-
+```
 
 ##### U vs. N_e
+```{r UvsNe}
 
 UvNe_all <- ggplot(daily_summary_all.df, aes(x = N_e, y = U, color = site)) +
   geom_point(alpha=0.5) +  # scatterplot of points
@@ -1976,12 +1985,14 @@ UvNe_all <- ggplot(daily_summary_all.df, aes(x = N_e, y = U, color = site)) +
   ) + 
   ylim(0,2)
   
-quartz(height =5, width=8)
+quartz(height=5, width=8)
 UvNe_all
 
+```
 
 ##### Stacked barplot w. total uptake and % autotrophic uptake
 
+```{r perc auto uptake}
 # Reshape uptake types to long format
 site_summary <- daily_summary_all.df %>%
   mutate(perc_otherU = 100-U_auto_perc) %>%
@@ -2023,12 +2034,15 @@ uptakeBarplot <- ggplot(long_uptake, aes(x = site, y = percent, fill = uptake_ty
   labs(x = "Site", y = "Uptake type percentages by site", fill = "Uptake Type") +
   theme_minimal()
 
-quartz(height =5, width=8)
+quartz(height=5, width=8)
 uptakeBarplot
 
+```
 
 ##### K over time
-pal<- pnw_palette("Sunset2", n=5)
+
+```{r K_ts}
+# pal<- pnw_palette("Sunset2", n=5) ## load above
 
 Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper),
@@ -2047,7 +2061,7 @@ Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
   theme(legend.position = "none")
 
 
-quartz(height =5, width=8)
+quartz(height=5, width=8)
 Kplot
 
 daily_summary_all.df %>%
@@ -2060,12 +2074,40 @@ daily_summary_all.df %>%
 
 ```
 
+##### U vs K w. uncertainty
+```{r UvsK}
+
+# pal<- pnw_palette("Sunset2", n=5)   ## load above
+
+UvKplot <- ggplot(data=daily_summary_all.df, aes(x=K, y=U, color=site)) +
+   geom_errorbar(aes(ymin = U.lower, ymax = U.upper), 
+                 width = 0.2, color='grey70') + # vertical CI bars for U
+  geom_errorbar(aes(xmin=K.lower, xmax=K.upper), 
+                width=0.2, color='grey70') + # horizontal CI bars for K
+  geom_point() + 
+  scale_color_manual(values = pal) +
+  scale_x_log10() + scale_y_log10() + 
+  # facet_wrap(~site) +
+  labs(y=expression("K"~(d^-1)),
+       x=expression("Autotrophic uptake (U)"~(mmol~m^-2~d^-1))
+        ) + 
+  
+  # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
+  theme_bw()
+
+quartz(height=5, width=8)
+UvKplot
+  
+
+```
+
+
 ##### Uptake length for nitrate at sites
 
 ```{r uptake length}
 
 ## for each site, horizontal boxplot of avg for 90% distance: x = ln(.90)*v/k
-pal<- pnw_palette("Sunset2", n=5)
+# pal<- pnw_palette("Sunset2", n=5)   ## load above
 
 daily_summary_all.df <- daily_summary_all.df %>%
   mutate(Sw_x = 86400*2.302585*v/K)  #UNITS: remember to convert m s-1 to m d-1...
@@ -2078,11 +2120,12 @@ Swplot <- daily_summary_all.df %>%
   geom_boxplot() + 
   scale_fill_manual(values = pal) +
   scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
-  coord_cartesian(xlim = c(0, 20000)) +  # <-- zoom in instead of xlim(): doesn't remove CARI
+  scale_x_log10() + # log the x axis so all sites visualize better
+  # coord_cartesian(xlim = c(0, 20000)) +  # <-- zoom in instead of xlim(): doesn't remove CARI
   labs(x = "Uptake Length (m)", y = "") + 
   theme_bw()
   
-quartz(width=7.5, height=5)
+quartz(width=8, height=5)
 Swplot
 
 # The jitter didn't look as good...
@@ -2145,7 +2188,7 @@ U_GPP <- inner_join(U.df, gpp.df, by = c("site", "model_date" = "date")) %>%
   filter(GPP.mmol > 0)
 
 # Plot w. same palette as all graphs
-pal<- pnw_palette("Sunset2", n=5)
+# pal<- pnw_palette("Sunset2", n=5)   ## load above
 
 UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol, y=U, color=site)) + 
   geom_point(size=3) +
@@ -2190,18 +2233,32 @@ linx.df <- linx.df %>%
          Vf_assim = Vf_assim_cm_s*864) # convert to m/day (0.001*86400 = 864)
 
 # the usual palette: 
-pal<- pnw_palette("Sunset2", n=5)
+# pal<- pnw_palette("Sunset2", n=5)   ## load above
+# names(pal) <- unique(daily_summary_all.df$site)  # ensure this matches exactly
 
+### Extend the palette to include LINX II
+pal_extended <- c(pal, "LINX II" = "darkgrey")
+
+### set up legend to have "LINX II" last 
+
+# Set desired legend order
+legend_order <- c(unique(daily_summary_all.df$site), "LINX II")
+# Main data: use original site names, but add ordered factor for legend
+daily_summary_all.df$site_legend <- factor(daily_summary_all.df$site, levels = legend_order)
+# LINX data: assign "LINX II" to the new legend column
+linx.df$site_legend <- factor("LINX II", levels = legend_order)
+
+# create the plot
 Vf_plot <- ggplot() + 
-  geom_point(data=linx.df, aes(x=N_conc, y=Vf_tot), color="grey") + 
-  geom_point(data=daily_summary_all.df, aes(x=N_e, y=Vf_auto, color=site)) + 
-  scale_color_manual(values = pal) +
+  geom_point(data=daily_summary_all.df, aes(x=N_e, y=Vf_auto, color=site_legend)) + 
+  geom_point(data=linx.df, aes(x=N_conc, y=Vf_tot, color=site_legend)) + 
+  scale_color_manual(values = pal_extended) +  
+  scale_x_log10() + scale_y_log10() + 
   labs(
     x = expression("N" ~ (mmol ~ m^-3)),
-    y = expression("Uptake velocity,"~V[f]~~(m~d^-1))
+    y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
+    color = 'Site'
   ) +
-  # coord_cartesian(xlim = c(0, 125)) +
-  coord_cartesian(xlim = c(0,40), ylim=c(0,5)) + 
   theme_bw()
  
 quartz(height =5, width=8)

@@ -1,0 +1,70 @@
+---
+title: "Aho's WLOU K600 - playing"
+author: "CLT"
+format: html
+editor: visual
+---
+## About
+checking out Kelly Aho's modeled equation, $K600 = aQ^b$, for WLOU
+#### Load required packages
+```{r packages}
+library(tidyverse)
+library(tidybayes)
+library(here)
+
+```
+
+
+#### Load the WLOU data
+```{r load_data}
+# model output for WLOU big-K600
+wlou_K600 <- readRDS(here("N_uptake_NEON/data/z_K600_Aho_EDI/WLOU_big_K600_v1.rds"))
+# data from gas exchange experiment, used to inform the model
+gasExchange_ds_v2 <- read_csv(here("N_uptake_NEON/data/z_K600_Aho_EDI/gasExchange_ds_v2") 
+
+# filtered to just the 28 days of WLOU
+gasExch_wlou <- gasExchange_ds_v2 %>%
+  dplyr::filter(siteID == "WLOU")
+
+```
+
+#### Extract parameters, mutate some values
+
+```{r spread_draws}
+
+wlou_K600.spread <- spread_draws(wlou_K600, Kd[d], logK600[d], a, b)
+
+wlou_K600.meanqi <- wlou_K600.spread %>%
+  mean_qi() %>%
+  add_column(site = "WLOU") %>%
+  mutate(exp_logK600 = exp(logK600), 
+         diff = exp_logK600-Kd, 
+         Q_lps = gasExch_wlou$meanQ_lps, 
+         K_calc = a*Q_lps^b)
+
+```
+
+#### Visualize data
+I'm not sure what Kd is: values are *very* small. Also, logK600 may NOT be logged/ may be the already-exponentiated parameter, because exp(logK600) seems WAY too large to be an actual K600 (100-400 d^-1)
+
+##### Plot 1: Kd and exp(logK600)
+```{r plot1}
+plot(wlou_K600.meanqi$Kd, wlou_K600.meanqi$exp_logK600)
+```
+
+##### Plot 2: Kd and K_calc 
+(K_calc = K calculated using the model estimates for a and b, and Q from the experimental dataset "gasExchange_ds_v2.csv")
+```{r plot2}
+plot(wlou_K600.meanqi$Kd, wlou_K600.meanqi$K_calc)
+
+```
+K_calc seems a bit high, ranging from ~ 6 to 19
+
+##### Plot 3: logK600 and K_calc 
+LogK600 looks reasonable for a K600 value (4.5-6), but does not align well with the calculated K600 value (from the estimated a and b + experiment's Q). The dashed line is a 1:1 line
+
+```{r}
+plot(wlou_K600.meanqi$logK600, wlou_K600.meanqi$K_calc)
+abline(a=0, b=1, lty = "dashed", col="darkred")
+
+```
