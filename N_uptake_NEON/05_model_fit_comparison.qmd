@@ -1,0 +1,813 @@
+---
+title: "Comparing model fits"
+author: "Christa Torrens"
+format: 
+  html:
+    code-fold: true #enables collapsible code blocks
+    code-summary: "Show the code"
+    self-contained: true #easier to share, no supplemental files
+editor: visual
+---
+
+## Comparing model fits
+
+This script is to compare model fits between 1) the old model (unpooled K), 2) the pooled-K model we developed, with pooled and logged K, and 3) a non-centered, pooled-K model.
+
+Summary: the new pooled-logK model is still really struggling for two sites: BIGC and CARI. ChatGPT and other resources suggested a non-centered model structure to avoid 'funnelling' for sigma and mu: instead of drawing each logU or logK directly from a normal distribution with unknown σ, the non-centered version draws a standard-normal z first, then scales and shifts it by μ and σ.
+
+-   For BIGC, the new data is part of the problem: the earlier, unpooled-K model is also struggling. The non-centered model works well. Solution: find days that might be causing the problems, remove from the dataset, try all models again.
+
+-   For CARI, the original unpooled-K model runs well, but not the initial pooled-K model. The uncentered pooled-K model works well.
+
+Parameter values are similar across all three models, which is a good sign.
+
+For the other four sites, CUPE, PRIN, SYCA, WLOU:
+
+-   The original pooled-K model does very well for CUPE and SYCA, and decently well for PRIN and WLOU. More iterations will probably bring all r-hats to 1.
+
+-   The non-centered pooled-K model is supposed to improve model performance across the board, but it does not. As noted, it worked really well for BIGC and CARI, decently well but more slowly (vs the other pooled-K model) for most of the others (CUPE, PRIN, SYCA), and poorly for WLOU. Again, parameter estimates are similar across all three models (unpooled, pooled logK, uncentered pooled logK), so not much to choose from there.
+
+BIGC probably has problem days, removing them will hopefully improve the modeling. CARI does well w. the non-centered model and struggles with our initial pooled-K ('centered') model. WLOU does well w. the 'centered' model and struggles with the non-centered model. Thoughts on how to proceed?
+
+Fits, chains follow
+
+### Load needed libraries and model fits
+
+```{r - load libraries}
+#| warning: false
+#| output: false
+
+# Load libraries
+library(tidyverse)
+library(tidybayes)
+library(bayesplot)
+library(rstanarm)
+library(here)
+library(plotly)
+library(sf)
+library(MetBrewer)
+library(PNWColors)
+library(ggpubr)
+library(cowplot)
+library(ragg)
+library(latex2exp)
+
+
+```
+
+### Load data
+
+```{r load data}
+#| warning: false
+#| output: false
+
+########## Load model data _____________________________________________________
+# The same model data should work for both pooled and unpooled models
+
+bigc.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/bigc.data.rds"))
+cari.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/cari.data.rds"))
+cupe.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/cupe.data.rds"))
+prin.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/prin.data.rds"))
+syca.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/syca.data.rds"))
+wlou.modeldata <- readRDS(here("N_uptake_NEON/data/model_datalist/wlou.data.rds"))
+
+```
+
+### Big Creek (BIGC)
+
+#### Unpooled K
+
+-   Model finished in 20 min 10 sec BIGC currently struggles with both the old and new model, and clearly needs some 'problem' days removed.
+
+```{r unpooled bigc}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+bigc.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/bigc.fit.rds"))
+
+
+```
+
+Print unpooled parameter fit
+
+```{r param unpooled bigc}
+
+print(bigc.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic bigc unpooled}
+
+posterior <- as.array(bigc.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+# highlights one chain (uses points not lines)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 21 min 54 sec
+
+```{r pooled-log bigc}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+bigc.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/bigc.fit.rds"))
+
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log bigc}
+
+########## Load pooled logK model fit ______________________________________________________
+print(bigc.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log bigc}
+
+posterior <- as.array(bigc.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+```{r param distrib pooled-log bigc}
+
+##### Examine distributions of struggling params + 
+
+# # gets fit into a dataframe - easier for the bayesplotting
+# posteriorMA <- as_draws_matrix(posterior)
+# sigma <- posteriorMA[, "sigma"]
+# 
+# # Find all conc_tilde columns
+# conc_cols <- grep("^conc_tilde\\[", colnames(posteriorMA), value = TRUE)
+# 
+# cors <- sapply(conc_cols, function(nm) {
+#   x <- posteriorMA[, nm]
+#   if (is.numeric(x) && all(!is.na(x))) {
+#     cor(x, sigma)
+#   } else {
+#     NA
+#   }
+# })
+# 
+# cors <- cors[!is.na(cors)]
+# top <- names(sort(abs(cors), decreasing = TRUE))[1]
+# 
+# cat("Most correlated:", top, " (r =", round(cors[top], 3), ")\n")
+# 
+# 
+# bayesplot::mcmc_scatter(as.array(bigc.fit_pooledK.log),
+#                         pars = c(top, "sigma"),
+#                         transform = list(sigma = "log"), 
+#                         alpha = 0.3)
+# 
+# 
+# 
+# scatter_sigma_pool <- mcmc_scatter(
+#   posterior, 
+#   pars = c("sigma", "conc_tilde[10,20]"), 
+#   transform = list(sigma = "log"), 
+#   size = 1
+# )
+# 
+# scatter_sigma_pool
+# 
+
+```
+
+#### Uncentered and pooled
+
+A second, non-centered pooled model worked better: - Model finished in 7 min 45 sec
+
+```{r pooled-log bigc2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+bigc.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/bigc.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log bigc2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(bigc.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log bigc2}
+
+posterior <- as.array(bigc.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - all chains converged well
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+### Caribou Creek (CARI)
+
+#### Unpooled K
+
+-   Model finished in 3 min 36 sec
+
+```{r unpooled cari}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+cari.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/cari.fit.rds"))
+
+```
+
+Print unpooled parameter fit
+
+```{r param unpooled cari}
+
+print(cari.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic unpooled cari}
+
+posterior <- as.array(cari.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+# highlights one chain (uses points not lines) - not needed when chains look good
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 5 min 15 sec
+
+```{r pooled-log cari}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+cari.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cari.fit.rds"))
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log cari}
+
+print(cari.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log cari}
+
+posterior <- as.array(cari.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+#### Uncentered and pooled
+
+-   Model finished in 6 min 28 sec
+
+A second, non-centered pooled model composition worked better:
+
+```{r pooled-log cari2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+cari.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cari.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log cari2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(cari.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log cari2}
+
+posterior <- as.array(cari.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - all chains converged well
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+### Rio Cupeyes (CUPE)
+
+#### Unpooled K
+
+-   Model finished in 9 min 16 sec
+
+```{r unpooled cupe}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+cupe.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/cupe.fit.rds"))
+
+```
+
+Print unpooled parameter fit
+
+```{r param unpooled cupe}
+
+print(cupe.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic unpooled cupe}
+
+posterior <- as.array(cupe.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+# highlights one chain (uses points not lines) - good convergence, did not need
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 18 min 56 sec
+
+```{r pooled-log cupe}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+cupe.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cupe.fit.rds"))
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log cupe}
+
+print(cupe.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log cupe}
+
+posterior <- as.array(cupe.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - converged fairly well, getting a better look at 1 & 2
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+
+```
+
+#### Uncentered and pooled
+
+-   Model finished in 76 min 26 sec (!!!)
+
+A second, non-centered pooled model composition also worked for CUPE, but not quite as well as the original pooled-K - and took a VERY long time, maybe partly due to other draws on computation power/ bandwidth
+
+```{r pooled-log cupe2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+cupe.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cupe.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log cupe2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(cupe.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log cupe2}
+
+posterior <- as.array(cupe.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - all chains converged well
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+### Pringle Creek (PRIN)
+
+#### Unpooled K
+
+-   Model finished in 3 min 16 sec
+
+```{r unpooled prin}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+prin.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/prin.fit.rds"))
+
+```
+
+Print unpooled parameter fit
+
+```{r param unpooled prin}
+
+print(prin.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic unpooled prin}
+
+posterior <- as.array(prin.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - chains converged, did not need
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 3 min 40 sec
+
+```{r pooled-log prin}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+prin.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/prin.fit.rds"))
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log prin}
+
+print(prin.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log prin}
+
+posterior <- as.array(prin.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+
+
+```
+
+#### Uncentered and pooled
+
+-   Model finished in 7 min 32 sec
+
+A second, non-centered pooled model composition also worked, but took longer to converge:
+
+```{r pooled-log prin2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+prin.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/prin.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log prin2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(prin.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log prin2}
+
+posterior <- as.array(prin.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - all chains converged fairly well with a couple of wobbles in the logK hyperparameters
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+
+```
+
+### Sycamore Creek (SYCA)
+
+#### Unpooled K
+
+-   Model finished in 3 min 10 sec
+
+```{r unpooled syca}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+syca.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/syca.fit.rds"))
+
+
+```
+
+Print unpooled parameter fit
+
+```{r param unpooled syca}
+
+print(syca.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic unpooled syca}
+
+posterior <- as.array(syca.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+# highlights one chain (uses points not lines) - chains converged, did not need
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 2 min 22 sec
+
+```{r pooled-log syca}
+#| warning: false
+#| output: false
+
+
+########## Load pooled logK model fit ______________________________________________________
+
+syca.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/syca.fit.rds"))
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log syca}
+
+print(syca.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log syca}
+
+posterior <- as.array(syca.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - chains converged, did not need
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 4, size = 2)
+
+```
+
+#### Uncentered and pooled
+
+-   Model finished in 8 min 42 sec
+
+A second, non-centered pooled model composition also worked, but took longer to converge:
+
+```{r pooled-log syca2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+syca.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/syca.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log syca2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(syca.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log syca2}
+
+posterior <- as.array(syca.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) - mb a little wobbly in the betas(?)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+
+```
+
+### West St. Louis Creek (WLOU)
+
+#### Unpooled K
+
+-   Model finished in 9 min 32 sec
+
+```{r unpooled wlou}
+#| warning: false
+#| output: false
+
+########## Load unpooled model fit ______________________________________________________
+
+wlou.fit_unpooledK <- readRDS(here("N_uptake_NEON/data/model_fits/unpooledK/wlou.fit.rds"))
+
+```
+
+Print unpooled-K parameter fit
+
+```{r param unpooled wlou}
+
+print(wlou.fit_unpooledK, pars=c("sigma", "sigma_U", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic unpooled wlou}
+
+posterior <- as.array(wlou.fit_unpooledK)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "b0", "b1"))
+# highlights one chain (uses points not lines) - chains converged well, did not need
+# mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2)
+
+```
+
+#### Pooled logK
+
+-   Model finished in 6 min 27 sec
+
+```{r pooled-log wlou}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+wlou.fit_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/wlou.fit.rds"))
+
+```
+
+Print pooled logK parameter fit
+
+```{r param pooled-log wlou}
+
+print(wlou.fit_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log wlou}
+
+posterior <- as.array(wlou.fit_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines)
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+```
+
+#### Uncentered and pooled
+
+-   Model finished in 8 min 9 sec
+
+A second, non-centered pooled model composition did not work well for WLOU:
+
+```{r pooled-log wlou2}
+#| warning: false
+#| output: false
+
+########## Load pooled logK model fit ______________________________________________________
+
+wlou.fit2_pooledK.log <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/wlou.fit2.rds"))
+
+
+```
+
+Print non-centered pooled logK parameter fit
+
+```{r param pooled-log wlou2}
+
+########## Load pooled logK model fit ______________________________________________________
+print(wlou.fit2_pooledK.log, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+```
+
+Examine MCMC chains
+
+```{r mcmc diagnostic pooled-log wlou2}
+
+posterior <- as.array(wlou.fit2_pooledK.log)  # from rstan package
+
+color_scheme_set("viridis")
+mcmc_trace(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+# highlights one chain (uses points not lines) 
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 1, size = 2, alpha=0.5)
+
+mcmc_trace_highlight(posterior, pars = c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"), highlight = 2, size = 2, alpha=0.5)
+
+```

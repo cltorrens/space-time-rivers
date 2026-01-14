@@ -37,14 +37,16 @@ options(stringsAsFactors=F)
 
 #### Download data files and save as Rdata
 
-Bobby Hensley informed us that Q and O2 data are unreliable before 2021. Currently (1/16/24) NEON NO3 data are provisional from July 2023 on. Downloading all of 2021-2023, and will run again once data are in final form.
+Bobby Hensley informed us that Q and O2 data are unreliable before 2021 (WY2022!). Currently (1/16/24) NEON NO3 data are provisional from July 2023 on. Downloading all of 2021-2023, and will run again once data are in final form.
 
 ```{r - DL and save data files}
 
 ### download NO3 and related datasets  ###
-sitelist <- c("ARIK", "BIGC", "BLDE", "BLUE", "BLWA", "CARI", "COMO", "CUPE", "FLNT", "GUIL","HOPB", "KING", "LECO", "MART", "OKSR", "POSE", "PRIN", "REDB", "SYCA", "TECR", "WALK", "WLOU")  #already have "CARI", "BIGC", "KING", "WALK", but re-downloading so everything is together
+# sitelist <- c("ARIK", "BIGC", "BLDE", "BLUE", "BLWA", "CARI", "COMO", "CUPE", "FLNT", "GUIL","HOPB", "KING", "LECO", "MART", "OKSR", "POSE", "PRIN", "REDB", "SYCA", "TECR", "WALK", "WLOU")  #already have "CARI", "BIGC", "KING", "WALK", but re-downloading so everything is together
 
-sitelist <- c("BIGC", "BLDE", "CARI", "CUPE", "MART", "OKSR", "PRIN", "REDB", "SYCA", "WALK", "WLOU")
+sitelist <- c("BIGC", "BLDE", "CARI", "CUPE", "MART", "OKSR", "PRIN", "REDB", "SYCA", "WLOU")
+
+# sitelist <- "OKSR"
 
 # Not pulled:Lewis Run [LEWI], Clarke, VA; Mayfield Creek [MAYF], Bibb, AL; McDiffett Creek [MCDI], Wabaunsee, KS; McRae Creek [MCRA], Linn, OR; Tombigbee River [TOMB], Choctaw, AL
 
@@ -54,27 +56,27 @@ sitelist <- c("BIGC", "BLDE", "CARI", "CUPE", "MART", "OKSR", "PRIN", "REDB", "S
 # startdate <- 2021-01
 # enddate <- 2023-12
 
-# no3.data.2124 <- loadByProduct(dpID = "DP1.20033.001", 
-                          # site = sitelist, 
-                          # startdate="2021-01", enddate="2024-06",
-                          # include.provisional=FALSE,
-                          # package="expanded", check.size=F, 
-                          # token = Sys.getenv("NEON_TOKEN"))
+no3.data.2124 <- loadByProduct(dpID = "DP1.20033.001",
+                          site = sitelist,
+                          startdate="2021-10", enddate="2024-09",  # 2024 NO3 has been QA/QC'd
+                          include.provisional=TRUE,
+                          package="expanded", check.size=F,
+                          token = Sys.getenv("NEON_TOKEN"))
 
 # # PAR is HUGE. Wait on this/ do individually? Store in cloud?
-par_wsurf_data <- loadByProduct(dpID = "DP1.20042.001",
-                                # site = sitelist,
-                                site = c("CARI", "OKSR", "BIGC", "WALK"),
-                                startdate="2021-01", enddate="2024-06",
-                                include.provisional=FALSE,
-                                package="expanded", check.size=F,
-                                token = Sys.getenv("NEON_TOKEN"))
+# par_wsurf_data <- loadByProduct(dpID = "DP1.20042.001",
+#                                 # site = sitelist,
+#                                 site = c("CARI", "OKSR", "BIGC", "WALK"),
+#                                 startdate="2021-01", enddate="2024-06",
+#                                 include.provisional=FALSE,
+#                                 package="expanded", check.size=F,
+#                                 token = Sys.getenv("NEON_TOKEN"))
 
 
 par_data <- loadByProduct(dpID = "DP1.00024.001",
                                 # site = sitelist,
-                                startdate="2021-01", enddate="2024-06",
-                                site = c("CARI", "OKSR", "BIGC", "WALK"),
+                                startdate="2021-10", enddate="2024-09",
+                                site = sitelist,
                                 include.provisional=FALSE,
                                 package="expanded", check.size=F,
                                 token = Sys.getenv("NEON_TOKEN"))
@@ -87,17 +89,18 @@ par_data <- loadByProduct(dpID = "DP1.00024.001",
 # 
 q_data <- loadByProduct(dpID = "DP4.00130.001",
                         site = sitelist,
-                        startdate="2021-01", enddate="2024-06",
-                        include.provisional=FALSE,
-                        package="expanded", check.size=F,
-                        token = Sys.getenv("NEON_TOKEN"))
-
-q_data.prov <- loadByProduct(dpID = "DP4.00130.001",
-                        site = sitelist,
-                        startdate="2023-10", enddate="2024-12",
+                        startdate="2021-10", enddate="2024-09",  
+                        # per Bobby H. the WY24 Q data are cleaned and ready to use - 8/7/2025
                         include.provisional=TRUE,
                         package="expanded", check.size=F,
                         token = Sys.getenv("NEON_TOKEN"))
+
+# q_data.prov <- loadByProduct(dpID = "DP4.00130.001",
+#                         site = sitelist,
+#                         startdate="2023-10", enddate="2024-12",
+#                         include.provisional=TRUE,
+#                         package="expanded", check.size=F,
+#                         token = Sys.getenv("NEON_TOKEN"))
 # 
 # manual.q_data <- loadByProduct(dpID = "DP1.20048.001",              # field discharge data
 #                         site = sitelist, 
@@ -110,12 +113,12 @@ q_data.prov <- loadByProduct(dpID = "DP4.00130.001",
 #                             token = Sys.getenv("NEON_TOKEN"))
 # 
 #  
-# wqual_data <- loadByProduct(dpID = "DP1.20288.001", 
-#                             #site = sitelist, 
-#                             #site = c("CARI", "BIGC"),
-#                             site = "BIGC",
-#                             package="expanded", check.size=F, 
-#                             token = Sys.getenv("NEON_TOKEN"))
+wqual_data <- loadByProduct(dpID = "DP1.20288.001",
+                            site = sitelist,
+                            startdate="2023-10", enddate="2024-09",
+                            include.provisional=FALSE,
+                            package="expanded", check.size=F,
+                            token = Sys.getenv("NEON_TOKEN"))
 
 
 # reaeration_data <- loadByProduct(dpID = "DP1.20190.001",  # reaeration field and lab data
@@ -129,15 +132,59 @@ save(no3.data.2124, file=here("N_uptake_NEON/data/neon_data_raw/no3_data_all_212
 
 save(par_wsurf_data, file=here("N_uptake_NEON/data/neon_data_raw/par_wsurf_data.Rdata"))
 
-save(par_data, file=here("N_uptake_NEON/data/neon_data_raw/par_data.Rdata"))
+save(par_data, file=here("N_uptake_NEON/data/neon_data_raw/par_data_OKSR.Rdata"))
 
 # save(precip_data, file=here("N_uptake_NEON/data/neon_data_raw/precip_data.Rdata"))
 save(q_data, file= here("N_uptake_NEON/data/neon_data_raw/q_data_2124.Rdata"))
 save(q_data.prov, file= here("N_uptake_NEON/data/neon_data_raw/q_data_2324prov.Rdata"))
 # save(manual.q_data, file=here("N_uptake_NEON/data/neon_data_raw/manualq_data.Rdata"))
 # save(wtemp_data, file=here("N_uptake_NEON/data/neon_data_raw/wtemp_data.Rdata"))
-# save(wqual_data, file=here("N_uptake_NEON/data/neon_data_raw/wqual_data_BIGC.Rdata"))
+# save(wqual_data, file=here("N_uptake_NEON/data/neon_data_raw/wqual_data.Rdata"))
 # save(reaeration_data, file=here("N_uptake_NEON/data/neon_data_raw/reaeration_data.Rdata"))
+
+
+```
+
+### Loop to download large WQual files
+
+Run packages + NEON_TOKEN 1st
+
+```{r loop for lg files}
+
+# Downloads water quality data by year and site; saves to GPP_model/ WQ_data_NEON_raw folder
+
+sitelist <- c("BIGC", "BLDE", "CARI", "CUPE", "MART", "OKSR", "PRIN", "REDB", "SYCA")
+
+years <- 2021:2024
+
+for (site in sitelist) {
+  for (year in years) {
+    message(paste("Downloading", site, year))
+    
+    temp <- try(
+      loadByProduct(
+        dpID = "DP1.20288.001",
+        site = site,
+        startdate = paste0(year, "-01"),
+        enddate = paste0(year, "-12"),
+        package = "expanded",
+        token = Sys.getenv("NEON_TOKEN"),
+        check.size = FALSE
+      ), silent = TRUE
+    )
+
+      # Save filtered data to your path
+      saveRDS(
+        temp,
+        file = here("N_uptake_NEON", "GPP_model", "DO_data_neon_raw",
+                    paste0("WQual_", site, "_", year, ".rds"))
+      )
+    
+    rm(temp); gc()
+  }
+}
+
+
 
 
 ```

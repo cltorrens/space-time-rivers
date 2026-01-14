@@ -39,23 +39,79 @@ library(DT) # interactive table for flag and issue logs
 
 ```{r load data}
 
-# datasets
-load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_01m.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_30m.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_30m.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_05m.Rdata"))
-
-
-# data review flags, issue log, readme files
-load(here("N_uptake_NEON/data/neon_data_derived/par_flags.Rdata"))
-# no PAR issue log in original DL package
-load(here("N_uptake_NEON/data/neon_data_derived/par_readme.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_flags.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_issuelog.Rdata"))
-load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_readme.Rdata"))
+# # datasets
+# load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_01m.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_dataset_30m.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_30m.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_dataset_05m.Rdata"))
+# # data review flags, issue log, readme files
+# load(here("N_uptake_NEON/data/neon_data_derived/par_flags.Rdata"))
+# # no PAR issue log in original DL package
+# load(here("N_uptake_NEON/data/neon_data_derived/par_readme.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_flags.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_issuelog.Rdata"))
+# load(here("N_uptake_NEON/data/neon_data_derived/par_wsurf_readme.Rdata"))
+# 
+# load(here("N_uptake_NEON/data/neon_data_raw/par_data_CARI.Rdata"))
 
 
 ```
+
+
+### Workflow from Bobby H. 
+
+```{r}
+
+load(here("N_uptake_NEON/data/neon_data_raw/par_data_CARI.Rdata"))
+
+list2env(par_data, .GlobalEnv)
+par<-PARPAR_1min[,c("siteID", "startDateTime","PARMean","PARFinalQF")] 
+
+# Removes quality flagged measurements
+for (i in 1:nrow(par)){if(par[i,4]!=0)(par[i,3]=NA)}
+  
+# Calculates 15 minute averages
+par$startDateTime<-lubridate::round_date(par$startDateTime,unit="5 minute")  # Bobby summarized to 15m, but the other light data is 5 min. 
+
+par <- par %>%
+  dplyr::group_by(startDateTime) %>%
+  dplyr::summarise(PAR = mean(PARMean, na.rm = TRUE)) %>%
+  dplyr::mutate(local_datetime = with_tz(startDateTime, tzone="US/Alaska"))
+
+# Fills data gaps using spline curve.  Max gap to fill set to 6 hrs 
+par$PAR<-zoo::na.spline(par$PAR,maxgap=72)
+
+par$local_datetime <- with_tz(par$startDateTime, tzone="US/Alaska")
+
+parNAs <- tibble(datetime = par$startDateTime[is.na(par$PAR)]) %>%
+  dplyr::mutate(jday = lubridate::yday(datetime))
+
+unique(as.Date(parNAs$datetime))
+unique(parNAs$jday)
+
+ 
+#17 days w. that still have NAs: 
+# "2021-12-20" "2022-07-26" "2022-07-27" "2022-08-15" "2022-08-16" "2022-08-17" "2022-08-18" "2022-08-19" "2022-08-20" "2022-08-21" "2022-08-22" "2022-08-23" "2022-12-05" "2022-12-08" "2022-12-09" "2023-06-05" "2023-06-06"
+
+# ALSO, on inspection, avoid:  "2022-04-26", "2023-07-14" for the 15m data and  
+        # "2023-09-12" and "2024-04-29 for the 5 min data
+
+# Visualize CARI PAR - check for outliers, 'bad' days
+quartz()
+cariplot <- ggplot(data=par, aes(x=local_datetime, y=PAR)) +
+  geom_point() + 
+  labs(x="date", y = "PAR") + 
+  theme_bw()
+
+ggplotly(cariplot)
+
+# Save CARI PAR data
+path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/CARI_neonlight05m_all.csv")
+write_csv(par, path)
+
+```
+
+
 
 ### Visualize the data by site and year
 
@@ -231,9 +287,10 @@ CARI_dayplot
 #### Save CARI PAR data
 ```{ r save CARI PAR}
 
-path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/CARI_neonlight30m_all.csv")
+path <- here("N_uptake_NEON/data/NSRDB_lightdata_clean/CARI_neonlight15m_2124.csv")
 
 write_csv(CARI_PAR, path)
+
 
 ```
 

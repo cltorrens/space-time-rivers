@@ -1,0 +1,1038 @@
+---
+title: "prep_NEON_streamMetabolizer_BIGC"
+author: "Christa Torrens, based on Bobby Hensley"
+format: html
+editor: visual
+---
+
+## Description
+
+Purpose: Create and save a dataframe to use with the streamMetabolizer single station metabolism model.
+
+This script loads (already downloaded) dissolved oxygen, water temp (NOT from the DO sonde), discharge and light data for 6 NEON sites, adds in water temperature from the DO sonde (shared by Bobby Hensley, will be standard in the next release), and formats the dataframe for the streamMetabolizer single station metabolism model.
+
+This script is heavily based on one that Bobby Hensley shared for his process with HOPB (Hop Brook), Water Year 2024, for his work with Kelly Aho.
+
+Return: This script produces a .csv file
+
+License: GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007 (from the Hensley script)
+
+## Packages
+
+```{r packages}
+
+# Load required packages
+
+library(neonUtilities)
+library(streamMetabolizer)
+library(tidyverse)  # dplyr, tidyr, ggplot2 and more
+library(plotly)
+library(here)
+library(rlang)
+
+# set NEON token (FLBS email one)
+NEON_TOKEN <- 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2RhdGEubmVvbnNjaWVuY2Uub3JnL2FwaS92MC8iLCJzdWIiOiJjaHJpc3RhLnRvcnJlbnNAZmxicy51bXQuZWR1Iiwic2NvcGUiOiJyYXRlOnB1YmxpYyIsImlzcyI6Imh0dHBzOi8vZGF0YS5uZW9uc2NpZW5jZS5vcmcvIiwiZXhwIjoxODMyMzUwMzM5LCJpYXQiOjE2NzQ2NzAzMzksImVtYWlsIjoiY2hyaXN0YS50b3JyZW5zQGZsYnMudW10LmVkdSJ9.9LnYeA5NuTuCSeZkhQwizdh07i9dK4zmUYraXQwhrfkvaF75KNFJnqp04qJNZyhYQZFO3rHhUx7FJIsDY5sVcw'
+
+
+```
+
+## Functions
+
+```{r functions}
+
+
+# Remove values based on a value threshold, on specified dates
+# can use one or multiple dates - now updated for ranges. 
+# dates = c("2023-02-22", 2024-09-07", etc) for individual dates
+# dates = list(start = "2021-12-01", end = "2021-12-10")  for a range of dates (inclusive)
+makeNAusing_thresholds_and_dates <- function(data, datetime_col, target_col, dates, threshold, operator = "<") {
+  datetime_sym <- ensym(datetime_col)
+  target_sym   <- ensym(target_col)
+  
+  # Determine the date check
+  if (is.list(dates) && all(c("start","end") %in% names(dates))) {
+    start_date <- as.Date(dates$start)
+    end_date   <- as.Date(dates$end)
+    date_check <- expr(as.Date(!!datetime_sym) >= !!start_date & as.Date(!!datetime_sym) <= !!end_date)
+  } else {
+    target_dates <- as.Date(dates)
+    date_check <- expr(as.Date(!!datetime_sym) %in% !!target_dates)
+  }
+  
+  # Build the threshold comparison expression dynamically
+  comparison_expr <- parse_expr(
+    paste0("`", as_string(target_sym), "` ", operator, " ", threshold)
+  )
+  
+  data %>%
+    mutate(
+      !!target_sym := if_else(!!date_check & (!!comparison_expr), NA_real_, !!target_sym)
+    )
+}
+
+
+
+
+# # can use one or multiple dates
+# makeNAusing_thresholds_and_dates <- function(data, datetime_col, target_col, dates, threshold, operator = "<") {
+#   datetime_sym <- ensym(datetime_col)
+#   target_sym <- ensym(target_col)
+#   target_dates <- as.Date(dates)
+#   
+#   # Build the comparison expression dynamically, e.g. dissolvedOxygen < 9
+#   comparison_expr <- parse_expr(
+#     paste0("`", as_string(target_sym), "` ", operator, " ", threshold)
+#   )
+#   
+#   data %>%
+#     mutate(
+#       !!target_sym := if_else(
+#         (as.Date(!!datetime_sym) %in% target_dates) & (!!comparison_expr),
+#         NA_real_,
+#         !!target_sym
+#       )
+#     )
+# }
+
+
+# 15-minute averages
+# target_colname can be a single name or a range
+calc_15m_avg <- function(df, datetime_colname, target_colname, time_unit = "15 minutes") {
+  datetime_sym <- enquo(datetime_colname)
+  datetime_name <- as_name(datetime_sym)
+  
+  df %>%
+    mutate(!!datetime_name := floor_date(!!datetime_sym, unit = time_unit)) %>%
+    group_by(!!sym(datetime_name)) %>%
+    summarise(
+      across({{ target_colname }}, ~ mean(.x, na.rm = TRUE), .names = "{.col}")
+    ) %>%
+    ungroup()
+}
+
+
+# Check for gaps in 15-minute data
+IDtimegaps <- function(df, datetimecol, difference = 15, units = "mins") {
+  df %>%
+    arrange({{ datetimecol }}) %>%
+    mutate(
+      time_diff = as.numeric(difftime({{ datetimecol }}, lag({{ datetimecol }}), units = units)),
+      gap_start = if_else(time_diff > difference, lag({{ datetimecol }}), as.POSIXct(NA, tz = "UTC")),
+      gap_end   = if_else(time_diff > difference, {{ datetimecol }}, as.POSIXct(NA, tz = "UTC"))
+    ) %>%
+    filter(time_diff > difference) %>%
+    select(gap_start, gap_end, time_diff)
+}
+
+
+# Function: TRUE if timestamp falls in any window: for replacing DO S2 data when it gets wonky
+in_any_window <- function(replace_times, starts, ends) {
+  rowSums(outer(replace_times, starts, `>=`) & outer(replace_times, ends, `<=`)) > 0
+}
+
+
+
+# Summarize NA counts by day
+
+summarize_NAs_by_day <- function(df, datetime_col, NAcols) {
+  datetime_col <- rlang::ensym(datetime_col)
+  
+  df %>%
+    mutate(date = as_date(!!datetime_col)) %>%
+    group_by(date) %>%
+    summarise(
+      n_rows = n(),
+      across(all_of(NAcols), ~ sum(is.na(.x)), .names = "n_NA_{.col}"),
+      n_NA_total = sum(rowSums(select(cur_data(), all_of(NAcols)) %>% is.na()) > 0),
+      .groups = "drop"
+    )
+}
+
+
+# Drop full days with any NA in the given columns
+drop_days_with_NAs <- function(df, datetime_col, NAcols) {
+  datetime_col <- rlang::ensym(datetime_col)
+  
+  df %>%
+    mutate(date = as_date(!!datetime_col)) %>%
+    group_by(date) %>%
+    filter(!any(rowSums(select(cur_data(), all_of(NAcols)) %>% is.na()) > 0)) %>%
+    ungroup() %>%
+    select(-date)
+}
+
+
+# only good for a single column: above modifies to allow passing multiple columns, using across({{}})
+
+# calc_15m_avg <- function(df, datetime_colname, target_colname, time_unit = "15 minutes", siteID_colname = NULL) {
+#   datetime_sym <- enquo(datetime_colname) # adds quotes for use outside of the pipes
+#   target_sym <- enquo(target_colname)
+#   siteID_sym <- if (!is.null(siteID_colname)) enquo(siteID_colname) else NULL
+#   
+#   datetime_name <- as_name(datetime_sym) # 
+#   target_name <- as_name(target_sym)
+#   
+#   df %>%
+#     mutate(!!datetime_name := floor_date(!!datetime_sym, unit = time_unit)) %>%
+#     group_by(!!sym(datetime_name)) %>%
+#     summarise(
+#       siteID = if (!is.null(siteID_sym)) first(!!siteID_sym) else NA_character_,
+#       !!target_name := mean(!!target_sym, na.rm = TRUE)
+#     ) %>%
+#     ungroup()
+# }
+
+### my original version
+#     takes target data and creates 15-minute averages; retains a datetime column
+# calc_15m_avg <- function(df, datetime_colname, target_colname) {
+#   df <- df %>%
+#   mutate(datetime_bin = lubridate::floor_date(datetime_colname, unit = "15 minutes")) %>%
+#   group_by(datetime_bin) %>%
+#   summarise(siteID = first(siteID), 
+#             target_colname = mean(target_colname, na.rm = TRUE), 
+#             ) %>%
+#   ungroup()
+# }
+
+
+
+
+# to get 15m Q data - from chatgpt
+# syca.q.2224.15m <- syca.q.2224 %>%
+#   mutate(bin_start = floor_date(timestamp, "15 minutes")) %>%
+#   group_by(bin_start) %>%
+#   summarise(
+#     datetime_utc = min(timestamp),   # earliest in bin
+#     site_id      = first(site_id),
+#     temp_c       = mean(temp_c, na.rm = TRUE),
+#     cond_uScm    = mean(cond_uScm, na.rm = TRUE),
+#     do_mgL       = mean(do_mgL, na.rm = TRUE),
+#     # ...repeat for each variable...
+#     .groups = "drop"
+#   )
+
+
+```
+
+## Set site and date range
+
+#### BIGC
+
+```{r site and date BIGC}
+
+##### Used to pull required NEON data #######################################################################################################
+#' Set site and date range
+siteName="BIGC"
+siteLong= -119.255375 #site longitude (for calculating local solar time and modeling light)
+siteLat= 37.057672    #site latitude (for modeling light)
+startDate="2021-10"   # WY22 start
+endDate="2024-09"     # WY24 end
+S2 = "112"
+S1 = "111"
+
+# Hydro geom coords from Aho et al 2024
+sitec<- 0.30
+sitef<- 0.27
+
+filepath <- here("N_uptake_NEON/GPP_model/DO_data_CLT/bigc_do_2224.csv") # to save csv at the end of the process
+
+##### load site-specific sonde water temp data (actual sonde temp from saved csv files) #######################################################################################################
+tsw_sonde22<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/BIGCtemp22.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde23<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/BIGCtemp23.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+
+tsw_sonde24<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/BIGCtemp24.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde <- bind_rows(tsw_sonde22, tsw_sonde23, tsw_sonde24)
+
+
+```
+
+#### PRIN
+
+```{r site and date PRIN}
+
+##### Used to pull required NEON data #######################################################################################################
+#' Set site and date range
+siteName="PRIN"
+siteLong= -97.782312 #site longitude (for calculating local solar time and modeling light)
+siteLat= 33.378517   #site latitude (for modeling light)
+startDate="2021-10"   # WY22 start
+endDate="2024-09"     # WY24 end
+S2 = "102"
+S1 = "101"
+
+
+# Hydro geom coords from Aho et al 2024
+sitec<-0.33
+sitef<-0.31
+
+filepath <- here("N_uptake_NEON/GPP_model/DO_data_CLT/prin_do_2224.csv") # to save csv at the end of the process
+
+
+##### load site-specific sonde water temp data (actual sonde temp from saved csv files) #######################################################################################################
+tsw_sonde22<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/PRINtemp22.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde23<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/PRINtemp23.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+
+tsw_sonde24<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/PRINtemp24.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde <- bind_rows(tsw_sonde22, tsw_sonde23, tsw_sonde24)
+
+
+```
+
+#### SYCA
+
+```{r site and date SYCA}
+
+##### Used to pull required NEON data #######################################################################################################
+#' Set site and date range
+siteName="SYCA"
+siteLong= -111.508091 #site longitude (for calculating local solar time and modeling light)
+siteLat= 33.750993    #site latitude (for modeling light)
+startDate="2021-10"   # WY22 start
+endDate="2024-09"     # WY24 end
+S2 = "102"
+S1 = "101"
+
+
+# Hydro geom coords from Aho et al 2024
+sitec<-0.22
+sitef<-0.36
+
+filepath <- here("N_uptake_NEON/GPP_model/DO_data_CLT/syca_do_2224.csv") # to save csv at the end of the process
+
+
+##### load site-specific sonde water temp data (actual sonde temp from saved csv files) #######################################################################################################
+tsw_sonde22<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/SYCAtemp22.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde23<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/SYCAtemp23.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+
+tsw_sonde24<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/SYCAtemp24.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+tsw_sonde <- bind_rows(tsw_sonde22, tsw_sonde23, tsw_sonde24)
+
+
+```
+
+## DO data: pull and clean
+
+```{r clean DO}
+
+####################### Pulls L1 water quality data
+waq<-neonUtilities::loadByProduct(dpID="DP1.20288.001", site=siteName, startdate=startDate, 
+                                  enddate=endDate, package="expanded", include.provisional=T, 
+                                  check.size = F,  token = Sys.getenv("NEON_TOKEN"))
+list2env(waq, .GlobalEnv)
+
+####################### Separates downstream (s2) data
+waqS2 <- waq_instantaneous %>%
+  filter(horizontalPosition == S2) %>% # "112" for BIGC, "102" for PRIN, SYCA
+  select(startDateTime, dissolvedOxygen, dissolvedOxygenFinalQF) %>%  # keeps necessary columns
+  mutate(dissolvedOxygen = ifelse(dissolvedOxygenFinalQF != 0, NA, dissolvedOxygen),  # sets flagged data to NA
+         startDateTime = with_tz(startDateTime, tzone = "UTC"), # changes tz to UTC from GMT (same offset)
+         startDateTime = floor_date(startDateTime, unit = "min")) # ensures timestamps are the same for S2 and S1
+
+####################### Add S1 data for comparison
+waqS1 <- waq_instantaneous %>%
+  filter(horizontalPosition == S1) %>% 
+  select(startDateTime, dissolvedOxygen, dissolvedOxygenFinalQF) %>%  # keeps necessary columns
+  mutate(dissolvedOxygen = ifelse(dissolvedOxygenFinalQF != 0, NA, dissolvedOxygen), # sets flagged data to NA
+         startDateTime = with_tz(startDateTime, tzone = "UTC"), # changes tz to UTC from GMT (same offset)
+         startDateTime = floor_date(startDateTime, unit = "min")) # ensures timestamps are the same for S2 and S1
+
+
+# combine and plot
+waq_both <- bind_rows(S1 = waqS1, S2 = waqS2, .id = "site")
+
+
+# comparison <- inner_join(waqS1, waqS2, by = "startDateTime", suffix = c("_S1", "_S2")) %>%
+#   arrange(startDateTime) %>%
+#   mutate(
+#     delta_S1 = dissolvedOxygen_S1 - lag(dissolvedOxygen_S1),
+#     delta_S2 = dissolvedOxygen_S2 - lag(dissolvedOxygen_S2),
+#     # Difference of the deltas (how differently they change)
+#     delta_diff = delta_S1 - delta_S2,
+#     # Flag when the change differs by more than a threshold (e.g., 0.2 mg/L)
+#     change_mismatch = abs(delta_diff) > 0.2,
+#     # Flag where one sensor has data but the other is NA
+#     NA_mismatch = (is.na(dissolvedOxygen_S1) & !is.na(dissolvedOxygen_S2)) |
+#                   (!is.na(dissolvedOxygen_S1) & is.na(dissolvedOxygen_S2))
+#   )
+
+## TOO BIG - break down    Ju
+Yr <- 2021
+Mo <- 10:12
+
+comboplot <- waq_both %>%
+  filter(year(startDateTime) == Yr) %>%
+  filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = dissolvedOxygen, color = site)) +
+    geom_point() +
+    theme_minimal() +
+    labs(title = "Dissolved Oxygen: S1 vs S2", y = "Dissolved Oxygen", x = "DateTime")
+
+# quartz()
+comboplot
+# 
+ggplotly(comboplot)
+
+
+Yr <- 2024
+Mo <- 5:6
+S2plot <- waqS2 %>%
+  filter(year(startDateTime) == Yr) %>%
+  filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = dissolvedOxygen)) +
+    geom_point() +
+    theme_minimal() +
+    labs(title = "Dissolved Oxygen: S2", y = "Dissolved Oxygen", x = "DateTime")
+
+S2plot
+
+ggplotly(S2plot)
+
+####################### BIGC S2 *AND* S1  all NAs from 4/21/23 to 10/16/23 #############################
+
+
+
+####################### Adjusts shifts ##################################
+
+
+# # NOT NEEDED FOR BIGC, PRIN
+#   startAdjust<-as.POSIXct("2023-11-30 18:00",tz="UTC")
+#   endAdjust<-as.POSIXct("2024-03-13 18:00",tz="UTC")  
+#   for (i in 1:nrow(waqS2)){if(waqS2[i,1]>startAdjust&waqS2[i,1]<endAdjust)(waqS2[i,2]=waqS2[i,2]*(97.7/99.7))} #' Offset from 2024-03-13 cal
+#   startAdjust<-as.POSIXct("2024-07-03 16:00",tz="UTC") #' Drifts for first few days then stabilized
+#   endAdjust<-as.POSIXct("2024-07-06 00:00",tz="UTC")  
+#   for(i in 1:nrow(waqS2)){
+#     if(waqS2$startDateTime[i]>startAdjust&
+#        waqS2$startDateTime[i]<endAdjust){
+#       waqS2$dissolvedOxygen[i] <- 
+#         waqS2$dissolvedOxygen[i]-
+#         ((waqS2$dissolvedOxygen[i]*(1-(97.2/101.8)))*(as.numeric(difftime(waqS2$startDateTime[i],
+#                                     startAdjust,units="secs"))/
+#                   as.numeric(difftime(endAdjust,
+#                                       startAdjust,units="secs"))))
+#     }}
+#   startAdjust<-as.POSIXct("2024-07-06 00:00",tz="UTC")
+#   endAdjust<-as.POSIXct("2024-08-20 16:00",tz="UTC")  
+#   for (i in 1:nrow(waqS2)){if(waqS2[i,1]>=startAdjust&waqS2[i,1]<endAdjust)(waqS2[i,2]=waqS2[i,2]*(97.2/101.8))} #' Offset from 2024-08-20 cal
+#   
+#   
+
+
+
+####################### removes obvious outliers ####################### 
+
+# default operator is "<"
+
+waqS2 <- makeNAusing_thresholds_and_dates(
+           data = waqS2, 
+           datetime_col = startDateTime, 
+           target_col = dissolvedOxygen, 
+           dates = c("2024-02-05"), 
+           threshold = 9)
+  
+waqS2 <- makeNAusing_thresholds_and_dates(
+           data = waqS2, 
+           datetime_col = startDateTime, 
+           target_col = dissolvedOxygen, 
+           dates = c("2024-06-06"), 
+           threshold = 7.6)
+
+waqS2 <-  makeNAusing_thresholds_and_dates(
+  data = waqS2,
+  datetime_col = startDateTime,
+  target_col = dissolvedOxygen,
+  dates = c("2023-10-25"),
+  threshold = 9.8,
+  operator = ">"
+)
+
+#######################  Calculates 15 minute averages
+
+waqS2_15 <- calc_15m_avg(df=waqS2, datetime_colname=startDateTime, target_colname=dissolvedOxygen)
+
+############### Fills data gaps using spline curve.  Max gap to fill set to 6 hrs (NEON/ Bobby Hensley standard) 
+waqS2_15$dissolvedOxygen<-zoo::na.spline(waqS2_15$dissolvedOxygen,maxgap=24) 
+
+DOgaps <- IDtimegaps(df = waqS2_15, datetimecol = startDateTime, difference = 15, units = "mins")
+
+
+Yr <- 2024
+Mo <- 5:9
+S215plot <- waqS2_15 %>%
+  filter(year(startDateTime) == Yr) %>%
+  filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = dissolvedOxygen)) +
+    geom_point() +
+    theme_minimal() +
+    labs(title = "Dissolved Oxygen: S2 15m", y = "Dissolved Oxygen", x = "DateTime")
+
+S215plot
+
+ggplotly(S215plot)
+
+```
+
+## DO sonde water temp: clean
+
+no longer used: 5-min avg code
+
+tsw_5 \<- c(tsw_sonde22, tsw_sonde23, tsw_sonde24) %\>% lapply(function(x) { x %\>% mutate(startDateTime = floor_date(startDateTime, "5 minutes")) %\>% group_by(startDateTime) %\>% summarise(temperature = mean(temperature, na.rm = TRUE), .groups = "drop") %\>% mutate(source_file = file) \# keep track of origin }) %\>% bind_rows()
+
+```{r sonde water temp}
+
+
+
+############## remove days that were NA for the DO sensor data
+# this is faster than a left_join for large datasets, using for my info
+
+tsw_sonde <- tsw_sonde %>%
+  mutate(
+    temperature = if_else(
+      waqS2$dissolvedOxygenFinalQF[match(startDateTime, waqS2$startDateTime)] != 0,
+      NA_real_,
+      temperature
+    )
+  )
+
+
+sondeNAs <- which(is.na(tsw_sonde$temperature))  # no NA values, then 524 w. 24 cutoff  #614
+
+# check sonde data for NAs; visualize
+
+Yr <- 2023
+Mo <- 9:12
+
+tsw_plot <- tsw_sonde %>%
+  # filter(year(startDateTime) == Yr) %>%
+  # filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = temperature)) +
+    geom_point() +
+    theme_minimal() +
+    # ylim(0, 50) +
+    labs(title = "sonde water temperature", y = "surface water temp (C)", x = "DateTime")
+
+tsw_plot
+
+ggplotly(tsw_plot)
+
+
+tsw_plotS2 <- tswS2 %>%
+  filter(year(startDateTime) == Yr) %>%
+  filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = surfWaterTempMean)) +
+    geom_point() +
+    theme_minimal() +
+    # ylim(0, 50) +
+    labs(title = "NEON water temperature", y = "surface water temp (C)", x = "DateTime")
+
+tsw_plotS2
+ggplotly(tsw_plotS2)
+
+
+
+#######################  Clean sonde data  ####################### 
+
+sondeNAs <- which(is.na(tsw_sonde$temperature))  # no NA values, then 524 w. 24 cutoff  #614
+
+highT_cutoff <- 50
+# highT_cutoff <- 33
+tsw_sonde <- tsw_sonde %>%
+  mutate(temperature = if_else(temperature >= highT_cutoff, NA_real_, temperature))
+
+sondeNAs <- which(is.na(tsw_sonde$temperature))   # now 524
+
+
+#######################  remove obvious outliers  ####################### 
+
+# default operator is "<"
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = c("2023-02-22"), 
+#            threshold = 7)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = list(start = "2023-09-14", end = "2023-09-20"), 
+#            threshold = 10)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = c("2023-10-24"), 
+#            operator = ">", 
+#            threshold = 22)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = list(start = "2024-02-20", end = "2024-02-23"), 
+#            operator = ">", 
+#            threshold = 16)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = c("2024-04-25"), 
+#            threshold = 18)
+# 
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = list(start = "2024-05-13", end = "2024-09-04"), 
+#            threshold = 18)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = c("2024-05-30"), 
+#            threshold = 20)
+# 
+# tsw_sonde <- makeNAusing_thresholds_and_dates(
+#            data = tsw_sonde, 
+#            datetime_col = startDateTime, 
+#            target_col = temperature, 
+#            dates = list(start = "2024-09-22", end = "2024-09-25"), 
+#            threshold = 18)
+
+#######################  15 minute data  ############################ 
+
+tsw_sonde_15 <- calc_15m_avg(df=tsw_sonde, datetime_colname=startDateTime, target_colname=temperature) 
+
+max(tsw_sonde_15$temperature, na.rm = T)
+
+max(tsw_sonde_15_filled$temperature, na.rm = T)
+
+sonde15NAs <- which(is.na(tsw_sonde_15$temperature)) # none!  
+
+#######################  ID gaps in sonde timeseries  ############################ 
+
+# are there gaps in the timeseries? YES
+
+## new function: IDtimegaps <- function(df, datetimecol, difference = 15, units = "mins")
+gaps <- IDtimegaps(df=tsw_sonde_15, datetimecol = startDateTime, difference = 15, units = "mins")
+
+gaps
+
+# original code was simpler than the function: 
+# gaps <- tsw_sonde_15 %>%
+#   arrange(startDateTime) %>%
+#   mutate(
+#     time_diff = as.numeric(difftime(startDateTime, lag(startDateTime), units = "mins")),
+#     gap_start = if_else(time_diff > 15, lag(startDateTime), as.POSIXct(NA)),
+#     gap_end = if_else(time_diff > 15, startDateTime, as.POSIXct(NA))
+#   ) %>%
+#   filter(time_diff > 15) %>%
+#   select(gap_start, gap_end, time_diff)
+# 
+# gaps
+
+#######################  fill gaps in temp sonde timeseries data  ###############################
+
+# Dataset w. all the times
+full_times <- tibble(
+  startDateTime = seq(
+    floor_date(min(tsw_sonde_15$startDateTime, na.rm = TRUE), unit = "15 minutes"),
+    ceiling_date(max(tsw_sonde_15$startDateTime, na.rm = TRUE), unit = "15 minutes"),
+    by = "15 mins"
+  )
+)
+
+# Left join original sonde data onto this full timeline
+tsw_sonde_15_filled <- full_times %>%
+  left_join(tsw_sonde_15, by = "startDateTime") %>%
+  arrange(startDateTime)
+
+# Now, missing timestamps will appear with NA for temperature and other columns
+
+# re-check NAs - now we should find some... 
+sonde15filledNAs <- which(is.na(tsw_sonde_15_filled$temperature)) # YEP: 24389/ 58886
+
+# Fills data gaps using spline curve.  Max gap to fill set to 6 hrs (NEON / Bobby Hensley standard)
+tsw_sonde_15_filled$temperature<-zoo::na.spline(tsw_sonde_15_filled$temperature,maxgap=24)
+
+tswS2NAs <- which(is.na(tsw_sonde_15_filled$temperature)) # still lots! Larger gaps that mirror the DO dataset.
+
+Yr <- 2024
+Mo <- 1:4
+
+# Check filled sonde data
+tsw_plotfilled<- tsw_sonde_15_filled %>%
+  # filter(year(startDateTime) == Yr) %>%
+  # filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = temperature)) +
+    geom_point() +
+    theme_minimal() +
+    # ylim(0, 50) +
+    labs(title = "sonde water temperature", y = "surface water temp (C)", x = "DateTime")
+
+# quartz()
+tsw_plotfilled
+
+ggplotly(tsw_plotfilled)
+
+#######################  Re-clean sonde data  #######################  
+
+# sondeNAs <- which(is.na(tsw_sonde$temperature))  # no NA values, then 524 w. 24 cutoff  
+# 
+# # highT_cutoff <- 50
+# highT_cutoff <- 35
+# tsw_sonde_15_filled <- tsw_sonde_15_filled %>%
+#   mutate(temperature = if_else(temperature >= highT_cutoff, NA_real_, temperature))
+# 
+# tsw_sonde_15_filled$temperature<-zoo::na.approx(tsw_sonde_15_filled$temperature,maxgap=24)
+# 
+# sonde15NAs <- which(is.na(tsw_sonde_15_filled$temperature))   # now 5608
+# 
+# 
+
+#######################  rename file so the workflow goes smoothly  #######################  
+
+tsw_15 <- tsw_sonde_15_filled %>% # rename so the workflow goes smoothly
+  rename(sonde_wtemp = temperature) 
+
+
+Yr <- 2024
+Mo <- 1:4
+
+# Check filled sonde data
+tsw15_plotfilled<- tsw_15 %>%
+  # filter(year(startDateTime) == Yr) %>%
+  # filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x = startDateTime, y = sonde_wtemp)) +
+    geom_point() +
+    theme_minimal() +
+    # ylim(0, 50) +
+    labs(title = "sonde water temperature", y = "surface water temp (C)", x = "DateTime")
+
+# quartz()
+tsw15_plotfilled
+
+ggplotly(tsw15_plotfilled)
+
+```
+
+## NEON water temp: pull and clean
+
+CCC = \# in code panel
+
+##### removed from workflow
+
+CCC only start w. NEON water temp because DO sonde data doesn't provide full coverage (dates are missing) CCC Pulls L1 PRT water temperature data tsw\<-neonUtilities::loadByProduct(dpID="DP1.20053.001", site=siteName, startdate=startDate, enddate=endDate, package="basic", include.provisional=T,\
+check.size = F, token = Sys.getenv("NEON_TOKEN")) list2env(tsw, .GlobalEnv) CCC Separates downstream (s2) data tswS2\<-TSW_5min\[(TSW_5min$horizontalPosition==S2),]
+CCC Keeps necessary columns
+tswS2<-tswS2[,c("startDateTime","surfWaterTempMean","finalQF")]
+CCC Removes quality flagged measurements
+tswS2$surfWaterTempMean\[tswS2\$finalQF != 0\] \<- NA
+
+CCC Combine the sonde and NEON files, only keeping NEON if there isn't sonde data
+
+tswS2 \<- tswS2 %\>% left_join( tsw_sonde %\>% select(startDateTime, temperature, from), by = "startDateTime" ) %\>% mutate( surfWaterTempMean = if_else(!is.na(temperature), temperature, surfWaterTempMean,), source_file = file ) #%\>%\
+CCC select(-temperature) \# optional cleanup
+
+CCC removes rows w. water temp \>=26: CHECK DATASET to see if this is reasonable... tswS2\<-tswS2\[(tswS2\$surfWaterTempMean\<26),\]
+
+CCC Calculates 15 minute averages tswS2_15 \<- calc_15m_avg(df=tswS2, datetime_colname=startDateTime,target_colname=surfWaterTempMean)
+
+tswS215NAs \<- which(is.na(tswS2_15\$surfWaterTempMean)) \# 21877
+
+CCC Fills data gaps using spline curve. Max gap to fill set to 6 hrs tswS2_15$surfWaterTempMean<-zoo::na.spline(tswS2_15$surfWaterTempMean,maxgap=24)
+
+## Q data: pull and clean
+
+```{r clean Q}
+
+# Pulls L4 continuous discharge data
+csd<-neonUtilities::loadByProduct(dpID="DP4.00130.001", site=siteName, startdate=startDate, 
+                                    enddate=endDate, package="basic", include.provisional = T, 
+                                    check.size = F, token = Sys.getenv("NEON_TOKEN"))
+list2env(csd, .GlobalEnv)
+
+csd<-csd_continuousDischarge %>%
+  select(endDate,continuousDischarge,dischargeFinalQF) %>% # Keeps necessary columns
+  mutate(continuousDischarge = ifelse(dischargeFinalQF != 0, NA, continuousDischarge))  # sets flagged data to NA
+
+# Converts L/s to m3/s
+csd <- csd %>%
+  rename(continuousDischarge_lps = continuousDischarge, 
+         startDateTime = endDate) %>%
+  mutate(continuousDischarge_cms = continuousDischarge_lps/1000) %>%
+  select(startDateTime, continuousDischarge_cms, continuousDischarge_lps, dischargeFinalQF)
+
+# Calculates 15 minute averages  - doesn't count datetime column in the target_colname count
+             
+csd_15 <- calc_15m_avg(df=csd, datetime_colname = startDateTime, 
+                       target_colname=c(continuousDischarge_cms, continuousDischarge_lps)) # time_unit default = "15 minutes"
+
+# check NAs
+# re-check NAs - now we should find some... 
+csd15NAs <- which(is.na(csd_15$continuousDischarge_cms)) # 190  (none filled)
+
+
+# Fills data gaps in 4 columns using spline curve.  Max gap to fill set to 6 hrs 
+
+csd_15 <- csd_15 %>%
+  mutate(across(c(continuousDischarge_cms, continuousDischarge_lps),  
+                ~ zoo::na.spline(.x, maxgap = 24)))
+
+
+csdgaps <- IDtimegaps(df = csd_15, datetimecol = startDateTime, difference = 15, units = "mins")
+
+csd_plot <- csd_15 %>%
+  ggplot(aes(x=startDateTime, y=continuousDischarge_cms)) + 
+  geom_point() + 
+  labs(title = "continuous discharge (cms)", y = "Q (cms)", x = "DateTime") +
+  theme_bw()
+
+csd_plot
+
+csd_15 %>%
+  summarise(n_zero = sum(continuousDischarge_cms == 0, na.rm = TRUE),
+            total   = n(),
+            prop_zero = mean(continuousDischarge_cms == 0, na.rm = TRUE))
+
+```
+
+## BP data: pull and clean
+
+```{r clean BP}
+
+# Pulls L1 Met station barometric pressure data 
+bp<-neonUtilities::loadByProduct(dpID="DP1.00004.001", site=siteName, startdate=startDate, 
+                                   enddate=endDate, package="basic", include.provisional=T, 
+                                   check.size = F, token = Sys.getenv("NEON_TOKEN"))
+list2env(bp, .GlobalEnv)
+
+# Bobby's code used corPres, but that's been CORrected to STP. We don't want that, so staPresMean is the best data product
+bp<-BP_1min[,c("startDateTime", "staPresMean", "staPresFinalQF", "corPres","corPresFinalQF")]
+  
+
+bp <- bp %>%
+  dplyr::rename(corPres_kPa = corPres, 
+                staPres_kPa = staPresMean) %>% # includes units in variable name
+  dplyr::mutate(corPres_kPa = ifelse(corPresFinalQF != 0, NA, corPres_kPa),
+                staPres_kPa = ifelse(staPresFinalQF != 0, NA, staPres_kPa), # Removes quality flagged measurements
+                staPres_mb = staPres_kPa*10,      # Converts from kPa to millibars
+                corPres_mb = corPres_kPa*10) %>% # Converts from kPa to millibars
+  select(startDateTime, staPres_mb, staPresFinalQF, corPres_mb, corPresFinalQF)
+
+# Calculates 15 minute averages  - doesn't count datetime column in the target_colname count
+             
+bp_15 <- calc_15m_avg(df=bp, datetime_colname = startDateTime, target_colname=c(staPres_mb, corPres_mb)) # time_unit default = "15 minutes"
+
+# check NAs
+# re-check NAs - now we should find some... 
+bp15NAs <- which(is.na(bp_15$corPres_mb)) 
+
+# Fills data gaps in 2 columns using spline curve.  Max gap to fill set to 6 hrs 
+bp_15 <- bp_15 %>%
+  mutate(across(c(staPres_mb, corPres_mb), ~ zoo::na.spline(.x, maxgap = 24)))
+
+
+bpgaps <- IDtimegaps(df = bp_15, datetimecol = startDateTime, difference = 15, units = "mins") # no gaps
+
+Yr = 2024
+Mo = 5:9
+
+bp_plot <- 
+  bp_15 %>%
+  # bp %>%
+  filter(year(startDateTime) == Yr) %>%
+  filter(month(startDateTime) == Mo) %>%
+  ggplot(aes(x=startDateTime, y=staPres_mb)) + 
+  geom_point() + 
+  labs(title = "barometric pressure (mb)", y = "barometric pressure (mb)", x = "DateTime") +
+  theme_bw()
+
+bp_plot
+ggplotly(bp_plot)
+
+```
+
+## Prep for streamMetabolizer
+
+```{r reload data as needed}
+
+mergedData <- read_csv(here(file=filepath)) %>% #filepath set above for each site
+  select(-starts_with("..."))
+
+mergedGaps <- IDtimegaps(df = bp_15, datetimecol = startDateTime, difference = 15, units = "mins") #none
+
+# Replace corPres w. staPres data
+mergedData$barPres_mb <- bp_15$staPres_mb
+
+
+```
+
+#### Merge data, save csv to path specified in site-specific blocks
+
+```{r create and save csv}
+
+# create and save file with UTC datetime, DO, (DO-sonde) water.temp, Q, z, K600
+
+####################  Preps data for streamMetabolizer ########################################
+
+# Merge data using time stamps  
+
+tables <- list(waqS2_15, tsw_15, csd_15, bp_15)  # add par if needed
+# tables <- list(waqS2_15, tsw_15, tswS2_15, csd_15, bp_15) # adding in S2 temp for comparison
+
+mergedData <- tables %>%
+  reduce(full_join, by = "startDateTime") %>%
+  mutate(siteID = siteName) 
+
+
+# Calculates mean depth from discharge using power function derived from reaeration dataset
+mergedData$depth<-streamMetabolizer::calc_depth(mergedData$continuousDischarge_cms,c=sitec,f=sitef)  
+  
+# Convert UTC to local solar time
+mergedData$solar.time<-streamMetabolizer::calc_solar_time(mergedData$startDateTime,longitude=siteLong)
+  
+
+####################  NAs, so can't calculate DOsat/ perc sat  
+
+# # Calculates DO saturation using sonde temp and Pres  
+# mergedData$DO.sat<-streamMetabolizer::calc_DO_sat(temp.water=mergedData$sonde_wtemp,
+#                                                 pressure.air=mergedData$corPres_mb,model="garcia-benson")
+# 
+# mergedData$pctSat<-mergedData$dissolvedOxygen/mergedData$satDO
+
+
+
+
+# Option to replace measured PAR with modeled PAR
+# mergedData$PAR<-streamMetabolizer::calc_light(mergedData$startDateTime,siteLat,siteLong,max.PAR=2000)
+  
+# Formats data into correct columns and headers
+mergedData<-mergedData %>%
+  dplyr::select(siteID, startDateTime, solar.time, dissolvedOxygen, sonde_wtemp,  continuousDischarge_cms, continuousDischarge_lps, staPres_mb, depth) %>%
+  dplyr::rename(DO.obs = dissolvedOxygen, temp.water = sonde_wtemp, discharge_cms = continuousDischarge_cms, discharge_lps = continuousDischarge_lps, barPres_mb = staPres_mb)
+
+### For PRIN
+# mergedData<-mergedData %>%
+#   dplyr::select(siteID, startDateTime, solar.time, dissolvedOxygen, sonde_wtemp, surfWaterTempMean, continuousDischarge_cms, continuousDischarge_lps, corPres_mb, depth) %>%
+#   dplyr::rename(DO.obs = dissolvedOxygen, temp.water = sonde_wtemp, temp.water.neon = surfWaterTempMean, discharge_cms = continuousDischarge_cms, discharge_lps = continuousDischarge_lps, barPres_mb = corPres_mb)
+
+#### As needed: remove artifact '...1' column: 
+mergedData <- mergedData %>%
+  select(!'...1')
+
+####################  double-checks consistent timestamps
+
+mergedGaps <- IDtimegaps(mergedData, startDateTime) # no gaps
+
+
+
+```
+
+#### Save dataset
+```{save dataset}
+
+
+write_csv(mergedData,file=filepath)   # filepath set above
+
+# write_csv(bigc.do,file=filepath)  
+
+
+
+```
+
+### CARI WY 24
+
+```{r site and date SYCA}
+
+##### Used to pull required NEON data #######################################################################################################
+#' Set site and date range
+siteName="CARI"
+siteLong= -147.503973 #site longitude (for calculating local solar time and modeling light)
+siteLat= 65.153224    #site latitude (for modeling light)
+startDate="2021-10"   # WY22 start
+endDate="2024-09"     # WY24 end
+S2 = "112"
+S1 = "111"
+
+# Hydro geom coords from Aho et al 2024
+sitec<-0.50
+sitef<-0.49
+
+filepath <- here("N_uptake_NEON/GPP_model/DO_data_CLT/cari_do_24.csv") # to save csv at the end of the process
+
+
+##### load site-specific sonde water temp data (actual sonde temp from saved csv files) #######################################################################################################
+# tsw_sonde22<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CARItemp22.csv")) %>%
+#   mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+# 
+# tsw_sonde23<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CARItemp23.csv")) %>%
+#   mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+
+tsw_sonde24<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CARItemp24.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+# tsw_sonde <- bind_rows(tsw_sonde22, tsw_sonde23, tsw_sonde24)
+tsw_sonde <- tsw_sonde24
+
+```
+
+### CUPE WY 24
+
+```{r site and date SYCA}
+
+##### Used to pull required NEON data #######################################################################################################
+#' Set site and date range
+siteName="CUPE"
+siteLong= -66.98676 #site longitude (for calculating local solar time and modeling light)
+siteLat= 18.11352    #site latitude (for modeling light)
+startDate="2021-10"   # WY22 start
+endDate="2024-09"     # WY24 end
+S2 = "112"
+S1 = "111"
+
+# Hydro geom coords from Aho et al 2024
+sitec<-0.32
+sitef<-0.55
+
+filepath <- here("N_uptake_NEON/GPP_model/DO_data_CLT/cupe_do_24.csv") # to save csv at the end of the process
+
+
+##### load site-specific sonde water temp data (actual sonde temp from saved csv files) #######################################################################################################
+# tsw_sonde22<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CUPEtemp22.csv")) %>%
+#   mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+# 
+# tsw_sonde23<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CUPEtemp23.csv")) %>%
+#   mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+# 
+
+tsw_sonde24<-read.csv(file=here("N_uptake_NEON/GPP_model/temp_data_DOsonde_Hensley/CUPEtemp24.csv")) %>%
+  mutate(startDateTime = as.POSIXct(startDateTime, tz = "UTC", format = "%Y-%m-%d %H:%M"))
+
+# tsw_sonde <- bind_rows(tsw_sonde22, tsw_sonde23, tsw_sonde24)
+tsw_sonde <- tsw_sonde24
+
+```

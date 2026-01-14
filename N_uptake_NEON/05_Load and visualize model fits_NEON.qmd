@@ -33,8 +33,11 @@ library(plotly)
 library(sf)
 library(MetBrewer)
 library(PNWColors)
+library(ggpubr)
+library(cowplot)
+library(ragg)
+library(latex2exp)
 
-set.seed(21012)
 
 ```
 
@@ -52,10 +55,15 @@ plot_Nmodelfit_ts <- function(data, start_jday, end_jday, plot_title) {
     ggplot(aes(x = mod_hours)) +
     geom_point(aes(y = N_conc)) + 
     geom_line(aes(y = N_pred), col = 'red') +
-    labs(
+    # labs(                                       ## ggplot only
+    #   x = "Time (h)",
+    #   y = expression("N" ~ (mmol ~ m^-3))
+    # ) +
+    labs(                                         ## better ggplot
       x = "Time (h)",
-      y = expression("N" ~ (mmol ~ m^-3))
-    ) +
+      y = latex2exp::TeX("N (mmol~m^{-3})")
+      
+    ) + 
     ggtitle(plot_title) +
     facet_wrap(~yr_jday) +
     theme_bw()
@@ -68,10 +76,15 @@ plot_Nmodelfit_tsCI <- function(data, start_jday, end_jday, plot_title) {
     geom_ribbon(aes(ymin=N_pred.lower, ymax=N_pred.upper), alpha = 0.7, fill = "slategray") +
     geom_point(aes(y = N_conc)) + 
     geom_line(aes(y = N_pred), col = 'red') +
-    labs(
+    # labs(                                       ## ggplot only
+    #   x = "Time (h)",
+    #   y = expression("N" ~ (mmol ~ m^-3))
+    # ) +
+    labs(                                         ## better ggplot
       x = "Time (h)",
-      y = expression("N" ~ (mmol ~ m^-3))
-    ) +
+      y = latex2exp::TeX("N (mmol~m$^{-3}$)")
+      
+    ) + 
     ggtitle(plot_title) +
     facet_wrap(~yr_jday) +
     theme_bw()
@@ -80,12 +93,23 @@ plot_Nmodelfit_tsCI <- function(data, start_jday, end_jday, plot_title) {
 ##### Model fit - Npred v Nobs w. 1:1 line
 
 plot_Npred_v_Nobs <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(x=N_conc, y=N_pred)) +
+  plot <- ggplot(data=data, aes(x=N_conc, y=N_pred, 
+                                text = paste("DateTime:", model_datetime, "<br>Year-jday", yr_jday) # for plotly 
+                                )) +
   geom_point() + 
-  labs( x=expression("measured N"~(mmol~m^-3)), # OR (mu*mol~L^-1)
-        y=expression("predicted N"~(mmol~m^-3))  # ~ = a space, * = no space
-      ) + 
-  ggtitle(plot_title) +
+  # labs( x=expression("measured N" ~(mmol~m^-3)), # OR (mu*mol~L^-1)             ## ggplot only
+  #       y=expression("predicted N" ~(mmol~m^-3))  # ~ = a space, * = no space
+  #     ) + 
+    
+  # labs( x=latex2exp::TeX("measured N//(mmol~m^${-3})"), # OR (mu*mol~L^-1)        ## better ggplot
+  #       y=latex2exp::TeX("predicted N//(mmol~m$^{-3}$)")  # ~ = a space, * = no space
+  #     ) + 
+  #   
+    labs(
+      x = "measured N (mmol m^-3)",
+      y = "predicted N (mmol m^-3)",
+      title = plot_title
+    ) +
   geom_abline(intercept = 0, slope = 1, color = "red") + 
   theme_bw()
 }
@@ -96,13 +120,23 @@ plot_Npred_v_Nobs <- function(data, plot_title) {
 ## K vs U
 
 plot_KvU <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(y=K, x=U)) +
+  plot <- ggplot(data=data, aes(y=K, x=U, 
+                                text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                                )) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper), 
                  width = 0.2, color='grey70') + # CI bars
    geom_point() + 
-   labs(y=expression("modeled K"~(d^-1)),
-       x=expression("modeled U"~(mmol~m^-2~d^-1))
-        ) + 
+   # labs(y=expression("K[nit]"~(d^-1)),                   ## ggplot only
+   #     x=expression("U[auto]"~(mmol~m^-2~d^-1))
+   #      ) +
+    
+   # labs(y=latex2exp::TeX("$K_{nit}~(d^{-1})$"),                  ## better ggplot
+   #     x=latex2exp::TeX("$U_{auto}~(mmol~m^{-2}~d^{-1})$")
+   #      ) +
+    
+   labs(y = "$K_{nit}~(d^{-1})$",                         ## for plotly - plotly interprets MathJax
+        x = "$U_{auto}~(mmol~m^{-2}~d^{-1})$"
+        ) +
    ggtitle(plot_title) + 
   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
    theme_bw()
@@ -113,12 +147,22 @@ plot_KvU <- function(data, plot_title) {
 ## K vs N_e
 
 plot_KvNe <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(y=K, x=N_e)) +
+  plot <- ggplot(data=data, aes(y=K, x=N_e,
+                                text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                                )) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper), 
                  width = 0.2, color='grey70') + # CI bars
    geom_point() + 
-   labs(y=expression("modeled K"~(d^-1)),
-        x=expression("modeled N_e"~(mmol~m^-3)) 
+   # labs(y=expression("modeled K"~(d^-1)),               ## ggplot only
+   #      x=expression("modeled N_e"~(mmol~m^-3)) 
+   #      ) + 
+    
+   # labs(y=latex2exp::TeX("$K_{nit}~(d^{-1})$"),         ## better ggplot
+   #      x=latex2exp::TeX("$N_{eq}~(mmol~m^{-3})$")
+   #      ) + 
+   
+   labs(x = "$K_{nit}~(d^{-1})$",                          ## for plotly - plotly interprets MathJax
+        y = "$N_{eq}~(mmol~m^{-3})$"
         ) + 
    ggtitle(plot_title) + 
    # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
@@ -130,13 +174,24 @@ plot_KvNe <- function(data, plot_title) {
 # Includes CI bars because this relationship tends to look a bit linear - checking whether that holds even w ci values in place
 
 plot_UvNe <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(y=U, x=N_e)) +
+  plot <- ggplot(data=data, aes(y=U, x=N_e,
+                                text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                                )) +
    geom_errorbar(aes(ymin = U.lower, ymax = U.upper), 
                 width = 0.2, color='grey70') + # CI bars
    geom_point() + 
-   labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),
-        x=expression("modeled N_e"~(mmol~m^-3)) 
-        ) + 
+   # labs(y=expression("modeled U"~(mmol~m^-2~d^-1)),           ## gglot only
+   #      x=expression("modeled N_e"~(mmol~m^-3)) 
+   #      ) + 
+  
+   # labs(y=latex2exp::TeX("$U_{auto}~(mmol~m^{-2}~d^{-1})$"),    ## better ggplot
+   #      x=latex2exp::TeX("$N_{eq}~(mmol~m^{-3})$") 
+   #      ) +
+    
+    labs(x = "$U_{auto}~(mmol~m^{-2}~d^{-1})$",           ## for plotly - plotly interprets MathJax
+         y = "$N_{eq}~(mmol~m^{-3})$"
+         ) + 
+
    ggtitle(plot_title) + 
    theme_bw()
 }
@@ -145,14 +200,26 @@ plot_UvNe <- function(data, plot_title) {
 ##### K over time
 
 plot_K_ts <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(x=d, y=K)) +
+  plot <- ggplot(data=data, aes(x=d, y=K, 
+                                text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                                )) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper),
                  width = 0.2, color='grey70') + # CI bars
    geom_point() +
   # geom_point(y = sumlight.real, color = 'gold') +
-   labs( x= "Index",
-         y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+    
+   # labs( x= "Index",                                                    ## ggplot only
+   #       y=expression("modeled K"~(d^-1)) # ~ = a space, * = no space
+   #    ) +
+    
+   # labs( x= "Index",                                                      ## better ggplot
+   #       y=latex2exp::TeX("$K_{nit}~(d^{-1})$")  # ~ = a space, * = no space
+   #    ) +
+   #  
+   labs( x = "Index",                                      ## for plotly - plotly interprets MathJax
+         y = "$K_{nit}~(d^{-1})$"   # ~ = a space, * = no space
       ) +
+  
    ggtitle(plot_title) +
    theme_bw()
 }
@@ -161,15 +228,26 @@ plot_K_ts <- function(data, plot_title) {
 ##### U over time
 
 plot_U_ts <- function(data, plot_title) {
-  ggplot(data=data, aes(x=d, y=U)) +
+  ggplot(data=data, aes(x=d, y=U,
+                        text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                        )) +
    geom_errorbar(aes(ymin = U.lower, ymax = U.upper), 
                  width = 0.2, color='grey70') + # CI bars
    geom_point() + 
   # geom_point(y = sumlight.real_wlou, color = 'gold') +
   # ADD IN HIGH AND LOW CIs
-   labs( x= "Index", 
-        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
-      ) + 
+   # labs( x= "Index",                                                    ## ggplot only
+   #      y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
+   #    ) +
+    
+   # labs( x= "Index",                                                      ## better ggplot
+   #      y=latex2exp::TeX("$U_{auto}~(mmol~m^{-2}~d^{-1})$") # ~ = a space, * = no space
+   #    ) +
+
+   labs( x= "Index",                                     ## for plotly - plotly interprets MathJax
+        y="$U_{auto}~(mmol~m^{-2}~d^{-1})$" # ~ = a space, * = no space
+      ) +
+    
    ggtitle(plot_title) +
    theme_bw()
 }
@@ -180,9 +258,18 @@ plot_U_ts <- function(data, plot_title) {
 plot_UvLight <- function(data, plot_title) {
   plot <- ggplot(data=data, aes(x=sumlightReal, y=U)) +
   geom_point() + 
-  labs( x=expression("measured daily light"~(w~m^-2)), 
-        y=expression("modeled U"~(mmol~m^-2~d^-1)) # ~ = a space, * = no space
-      ) + 
+  # labs( x=expression("measured daily light"~(w~m^-2)),             ## ggplot only
+  #       y=expression("modeled U"~(mmol~m^-2~d^-1))                  # ~ = a space, * = no space
+  #     ) + 
+  
+  # labs( x=latex2exp::TeX("measured daily light~(w~m$^{-2}$)"),      ## better ggplot
+  #       y=latex2exp::TeX("$U_{auto}~(mmol~m^{-2}~d^{-1})$")          # ~ = a space, * = no space
+  #     ) + 
+    
+  labs( x="measured daily light~(w~m$^{-2}$)",             ## better ggplot
+        y="$U_{auto}~(mmol~m^{-2}~d^{-1})$"                # ~ = a space, * = no space
+      ) +
+    
   scale_x_log10() + scale_y_log10() + 
   ggtitle(plot_title) +
   theme_bw()
@@ -196,7 +283,9 @@ plot_UvLight <- function(data, plot_title) {
 ##### Autotrophic U vs total U
 
 plot_autoUperc <- function(data, plot_title) {
-  plot <- ggplot(data=data, aes(x=d, y=U_auto_perc)) +
+  plot <- ggplot(data=data, aes(x=d, y=U_auto_perc, 
+                                 text = paste("Date:", model_date, "<br>Year-jday", yr_jday) # for plotly
+                                )) +
   geom_point() + 
   xlab("Index") + ylab("Percent autotrophic uptake") + 
   ggtitle(plot_title) + 
@@ -210,11 +299,10 @@ plot_autoUperc <- function(data, plot_title) {
 
 ```{r load gpp}
 
-gpp.df <- read_csv(file=here("N_uptake_NEON/data/GPP_Marzolf_publ/8_NEON_metab_estimates.csv")) %>%
-  mutate(date = mdy(date)) %>%
-  filter(year(date) %in% 2021:2023)
+gpp.df <- read_csv(file=here("N_uptake_NEON/GPP_model/neon_metab_data.csv")) 
 
-gpp.df <- as_tibble(gpp.df)
+gpp.df <- as_tibble(gpp.df) %>%
+  mutate(site = toupper(site))  # capitalizing to match the other dataframes
 # Split by siteID
 site_list <- split(gpp.df, gpp.df$site)
 # Add '.q' suffix to each name
@@ -231,8 +319,8 @@ list2env(site_list, envir = .GlobalEnv)
 
 ```{r LINX II data}
 
-linx.df <- read_csv(here("N_uptake_NEON/data/LINX_II_raw_data.csv")) %>%
-  select(state, stream, Date_15Nexpt, water_velocity_m_min,Q_L_s,NO3conc_ugN_L, GPP_gO2_m2_d, width_m, depth_m, Vf_tot_no3_cm_s, Vfdentot_cm_s, Vf_assim_cm_s) %>%
+linx.df <- read_csv(here("N_uptake_NEON/data/LINXII_data/LINX_II_raw_data.csv")) %>%
+  dplyr::select(state, stream, Date_15Nexpt, water_velocity_m_min,Q_L_s,NO3conc_ugN_L, GPP_gO2_m2_d, width_m, depth_m, Vf_tot_no3_cm_s, Vfdentot_cm_s, Vf_assim_cm_s) %>%
   rename(Date = Date_15Nexpt, 
          v_m_min = water_velocity_m_min, 
          Q_Ls = Q_L_s)
@@ -265,7 +353,9 @@ Outputs and visualizations for Upper Big Creek, Fresno, CA
 
 ########## Load model fit ______________________________________________________
 
-bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/bigc.fit.rds"))
+# bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/bigc.fit.rds"))
+
+bigc.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/bigc.fit2.rds"))
 
 # if working from model run
 # bigc.fit <- fit.bigc
@@ -294,15 +384,10 @@ bigc.df.h <- read_csv(path_h) %>%
 
 # daily dataseset for Q, v, z
 bigc.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/bigc.q.daily.rds"))
-
-
   
-  
+bigc.qvz <- bigc.qvz %>%
+  dplyr::filter(yr_jday %in% bigc.df.h$yr_jday)
 
-
-
-  
-  
 ```
 
 ###### Extract model parameters and real-data values
@@ -318,14 +403,15 @@ First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), sinc
 # get_variables(bigc.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
 
 ########## Check the fit for sigmas and betas (tough to fit): __________________
-print(bigc.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+# print(bigc.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+print(bigc.fit, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
 
 
 ########## Summarize daily variables (K, U, N_e) _______________________________
 
 # First, use spread_draws for the daily parameters - this gives each parameter its own column
 # d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
-bigc.spread <- spread_draws(bigc.fit, K[d], U[d], N_e[d]) 
+bigc.spread <- spread_draws(bigc.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
 
 # Then get the mean/median + 95% QI (CI) for each parameter/day
 # median + QI
@@ -342,12 +428,15 @@ bigc.meanqi <- bigc.spread %>%
 ### Add median param estimate info to the meanqi df
 bigc.meanqi$K.median <- bigc.medqi$K
 bigc.meanqi$U.median <- bigc.medqi$U
+bigc.meanqi$U_tot.median <- bigc.medqi$U_tot
+bigc.meanqi$Vf_tot.median <- bigc.medqi$Vf_tot
 bigc.meanqi$N_e.median <- bigc.medqi$N_e
+
 
 
 ##### Get draws for b1 and b0 (for plotting later)
 bigc.betas <- spread_draws(bigc.fit, b0, b1) %>%
-  sample_n(191)
+  sample_n(max(bigc.medqi$d))
 
 ########## Summarize the hourly variable (conc_pred) ____________________________
 
@@ -386,7 +475,7 @@ N_output_bigc.df <- bigc.df.h %>%
          lightReal = GHI_wm2) %>%
    mutate(hours = hour(local_datetime), 
          mod_hours = hour(model_datetime)) %>%
-  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+  dplyr::select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
 
 ####### Daily dataframe: U, K, N_e, b0, b1 ##################
 
@@ -407,7 +496,7 @@ daily_output_bigc.df <- bigc.meanqi %>%
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>% # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_bigc.df$K) # 3.225407
@@ -425,9 +514,9 @@ daily_output_bigc.df <- bigc.meanqi %>%
 
 ######  N model fit over time - predicted N vs measured N  #######
 
-N_Npred_ts_bigc <- plot_Nmodelfit_ts(data=N_output_bigc.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Upper Big Creek, CA")
+N_Npred_ts_bigc <- plot_Nmodelfit_ts(data=N_output_bigc.df, start_jday = 331, end_jday = 365, plot_title = "NEON N data + model predictions: Upper Big Creek, CA")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_ts_bigc
 
 ### w. credible interval ribbon
@@ -448,51 +537,58 @@ Npred_v_N_bigc
 
 ####### Check equifinality!! K vs U  #######  
 
-KvU_bigc <- plot_KvU(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled K vs modeled U")
+KvU_bigc <- plot_KvU(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: K_nit vs. U_auto")
   
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 KvU_bigc
+
+ggplotly(KvU_bigc, tooltip = "text")
   
 
 ####### Check equifinality!! K vs N_e  #######  
 
-KvNe_bigc <- plot_KvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled K vs modeled equilibrium N")
+KvNe_bigc <- plot_KvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA:  K_nit vs. equilibrium N")
 
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 KvNe_bigc
 
+ggplotly(KvNe_bigc, tooltip = "text")
 
 ####### Check equifinality!! U vs N_e  #######  
 
-UvNe_bigc <- plot_UvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: modeled U vs modeled equilibrium N")
+UvNe_bigc <- plot_UvNe(data=daily_output_bigc.df, plot_title = "Equifinality check, Upper Big Creek, CA: U_auto vs. equilibrium N")
  
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 UvNe_bigc
+
+ggplotly(UvNe_bigc, tooltip = "text")
 
 
 ########## Other parameter visualizations _______________________________________
 
 #######  K over time  #######  
 
-K_v_time_bigc <- plot_K_ts(data=daily_output_bigc.df, plot_title = "modeled K over time, Upper Big Creek, CA")
+K_v_time_bigc <- plot_K_ts(data=daily_output_bigc.df, plot_title = "K_nit over time, Upper Big Creek, CA")
 
-# quartz(width=6.5, height=6)
+quartz(width=6.5, height=6)
 K_v_time_bigc
 
+ggplotly(K_v_time_bigc, tooltip = "text")
 
 ##### U over time  #######  
 
-U_time_bigc <- plot_U_ts(data=daily_output_bigc.df, plot_title="Diel nitrate uptake (modeled), Upper Big Creek, CA")
+U_time_bigc <- plot_U_ts(data=daily_output_bigc.df, plot_title="U_auto, Upper Big Creek, CA")
 
-# quartz(width=6, height=6)
+quartz(width=6, height=6)
 U_time_bigc
 
+ggplotly(U_time_bigc, tooltip = "text")
 
 ###### U vs sumlight  #######  
 
-U_vs_light_bigc <- plot_UvLight(data=daily_output_bigc.df, plot_title = "Scatterplot of NO3 uptake and daily light: Upper Big Creek, CA")
+U_vs_light_bigc <- plot_UvLight(data=daily_output_bigc.df, plot_title = "Scatterplot of U-auto and daily light: Upper Big Creek, CA")
 
-# quartz(width=6.5, height=6)
+quartz(width=6.5, height=6)
 U_vs_light_bigc
 
 
@@ -504,17 +600,19 @@ What percentage of total uptake is the autotrophic uptake?
 
 ```{r - bigc: percent autotrophic NO3 uptake}
 
-# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K *z
 # TOTAL UPTAKE = U + (Equilibrium nitrate * K)  
 # Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
 
 daily_output_bigc.df <- daily_output_bigc.df %>%
   mutate(U_other = N_e*K*z,      
-         U_tot = U_other + U, 
-         U_auto_perc = 100*U/U_tot) 
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
 
+plot(daily_output_bigc.df$U_tot, daily_output_bigc.df$U_other) # 1:1
 
-U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #11.7% on average
+U_auto_avg <- mean(daily_output_bigc.df$U_auto_perc) #12.5% on average
 
 Uauto_perc_bigc <- plot_autoUperc(data=daily_output_bigc.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), Upper Big Creek, CA")
 
@@ -522,10 +620,9 @@ Uauto_perc_bigc <- plot_autoUperc(data=daily_output_bigc.df, plot_title = "Daily
 Uauto_perc_bigc 
 
 #### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
-# ggplotly(Uauto_plot_bigc)
+ggplotly(Uauto_perc_bigc,  tooltip = "text")
 
 ```
-
 
 ###### Save updated model output datasets
 
@@ -539,6 +636,12 @@ saveRDS(daily_output_bigc.df, file=path)
 # 
 path.h = here("N_uptake_NEON/data/model_output/bigc_output_hourly.rds")
 saveRDS(N_output_bigc.df, file=path.h)
+
+
+# clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
 
 ```
 
@@ -556,7 +659,7 @@ Outputs and visualizations for Caribou Creek, Fairbanks North Star, AK
 
 ########## Load model fit ______________________________________________________
 
-cari.fit <- readRDS(here("N_uptake_NEON/data/model_fits/cari.fit.rds"))
+cari.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cari.fit2.rds"))
 
 # if working from model run
 # cari.fit <- fit.cari
@@ -578,7 +681,6 @@ cari.df.h <- read_csv(path_h) %>%
 
 # daily dataseset for Q, v, z
 cari.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/cari.q.daily.rds"))
-  
 
 ```
 
@@ -595,13 +697,13 @@ First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), sinc
 # get_variables(cari.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
 
 ########## Check the fit for sigmas and betas (tough to fit): ___________________
-print(cari.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+print(cari.fit, pars=c("sigma", "sigma_U", "sigma_K", "K_mean", "b0", "b1"))
 
 ########## Summarize daily variables (K, U, N_e) ________________________________
 
 # First, use spread_draws for the daily parameters - this gives each parameter its own column
 # d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
-cari.spread <- spread_draws(cari.fit, K[d], U[d], N_e[d]) 
+cari.spread <- spread_draws(cari.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
 
 
 # Then get the mean/median + 95% QI (CI) for each parameter/day
@@ -622,6 +724,8 @@ cari.meanqi <- cari.spread %>%
 ### Add median param info to the meanqi df
 cari.meanqi$K.median <- cari.medqi$K
 cari.meanqi$U.median <- cari.medqi$U
+cari.meanqi$U_tot.median <- cari.medqi$U_tot
+cari.meanqi$Vf_tot.median <- cari.medqi$Vf_tot
 cari.meanqi$N_e.median <- cari.medqi$N_e
 
 ##### Get draws for b1 and b0 (for plotting later)
@@ -664,11 +768,11 @@ N_output_cari.df <- cari.df.h %>%
          z=as.vector(cari.modeldata$zMA), 
          site = "CARI") %>%
   rename(N_conc = surfWaterNitrateMean, 
-         lightReal = PARMean.h) %>%         # CHANGE this line for CARI and OKSR
+         lightReal = PAR) %>%         # CHANGE this line for CARI and OKSR
    mutate(hours = hour(local_datetime), 
          mod_hours = hour(model_datetime), 
          lightReal = lightReal/4.6) %>%     # CONVERT (for now) to W m-2 to match others (evt will change all to umol m-2 s-1)
-  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+  dplyr::select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
   
 
 ####### Daily dataframe: U, K, N_e ##################
@@ -691,7 +795,7 @@ daily_output_cari.df <- cari.meanqi %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%   # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1), 
          sumlightReal = sumlightReal/4.6) %>%     # CONVERT (for now) to W m-2 to match others (evt will change all to umol m-2 s-1)
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_cari.df$K) # 3.225407
@@ -710,16 +814,18 @@ daily_output_cari.df <- cari.meanqi %>%
 
 ######  N model fit over time - predicted N vs measured N  #######
 
-N_Npred_ts_cari <- plot_Nmodelfit_ts(data=N_output_cari.df, start_jday = 145, end_jday = 155, plot_title = "NEON N data + model predictions: Caribou Creek, AK")
+N_Npred_ts_cari <- plot_Nmodelfit_ts(data=N_output_cari.df, start_jday = 301, end_jday = 365, plot_title = "NEON N data + model predictions: Caribou Creek, AK")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_ts_cari
 
+
+
 ### w. credible interval ribbon
-N_Npred_tsCI_cari <- plot_Nmodelfit_tsCI(data=N_output_cari.df, start_jday = 145, end_jday = 155, plot_title = "NEON N data + model predictions: Caribou Creek, AK")
+N_Npred_tsCI_cari <- plot_Nmodelfit_tsCI(data=N_output_cari.df, start_jday = 170, end_jday = 185, plot_title = "NEON N data + model predictions: Caribou Creek, AK")
 
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_tsCI_cari
 
 
@@ -727,7 +833,7 @@ N_Npred_tsCI_cari
 
 Npred_v_N_cari <- plot_Npred_v_Nobs(data=N_output_cari.df, plot_title="Predicted N vs. measured N, Caribou Creek, AK")
 
-# quartz(width=6, height=6)
+quartz(width=6, height=6)
 Npred_v_N_cari
 
 
@@ -737,25 +843,28 @@ Npred_v_N_cari
 
 KvU_cari <- plot_KvU(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled U")
   
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 KvU_cari
-  
+
+ggplotly(KvU_cari, tooltip = "text")
 
 ####### Check equifinality!! K vs N_e  #######  
 
 KvNe_cari <- plot_KvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled K vs modeled equilibrium N")
 
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 KvNe_cari
 
+ggplotly(KvNe_cari, tooltip = "text")
 
 ####### Check equifinality!! U vs N_e  #######  
 
 UvNe_cari <- plot_UvNe(data=daily_output_cari.df, plot_title = "Equifinality check, Caribou Creek, AK: modeled U vs modeled equilibrium N")
  
-# quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 UvNe_cari
 
+ggplotly(UvNe_cari, tooltip = "text")
 
 ########## Other parameter visualizations ______________________________________
 
@@ -763,25 +872,28 @@ UvNe_cari
 
 K_v_time_cari <- plot_K_ts(data=daily_output_cari.df, plot_title = "modeled K over time, Caribou Creek, AK")
 
-# quartz(width=6.5, height=6)
+quartz(width=6.5, height=6)
 K_v_time_cari
 
+ggplotly(K_v_time_cari, tooltip = "text")
 
 ##### U over time  #######  
 
 U_time_cari <- plot_U_ts(data=daily_output_cari.df, plot_title="Diel nitrate uptake (modeled), Caribou Creek, AK")
 
-# quartz(width=6, height=6)
+quartz(width=6, height=6)
 U_time_cari
 
+ggplotly(U_time_cari, tooltip = "text")
 
 ###### U vs sumlight  #######  
 
 U_vs_light_cari <- plot_UvLight(data=daily_output_cari.df, plot_title = "Scatterplot of NO3 uptake and daily light: Caribou Creek, AK")
 
-# quartz(width=6.5, height=6)
+quartz(width=6.5, height=6)
 U_vs_light_cari
 
+ggplotly(U_vs_light_cari, tooltip = "text")
 
 ```
 
@@ -797,10 +909,13 @@ What percentage of total uptake is the autotrophic uptake?
 
 daily_output_cari.df <- daily_output_cari.df %>%
   mutate(U_other = N_e*K*z,      
-         U_tot = U_other + U, 
-         U_auto_perc = 100*U/U_tot)
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
 
-U_auto_avg <- mean(daily_output_cari.df$U_auto_perc) #4.9% on average
+plot(daily_output_cari.df$U_tot, daily_output_cari.df$U_other) # 1:1
+
+U_auto_avg <- mean(daily_output_cari.df$U_auto_perc) #4.9% on average - now 13.9
 
 Uauto_perc_cari <- plot_autoUperc(data=daily_output_cari.df, plot_title = "Daily  autotrophic uptake (as % of total uptake), Caribou Creek, AK")
 
@@ -808,7 +923,7 @@ quartz(width=7.5, height=6)
 Uauto_perc_cari 
 
 #### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
-# ggplotly(Uauto_plot_cari)
+ggplotly(Uauto_perc_cari, tooltip = "text")
 
 ```
 
@@ -825,6 +940,12 @@ saveRDS(daily_output_cari.df, file=path)
 path.h = here("N_uptake_NEON/data/model_output/cari_output_hourly.rds")
 saveRDS(N_output_cari.df, file=path.h)
 
+# clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
+
+
 ```
 
 #### CUPE
@@ -840,7 +961,7 @@ Outputs and visualizations for Rio Cupeyes, San German Municipio, PR
 
 ########## Load model fit ______________________________________________________
 
-cupe.fit <- readRDS(here("N_uptake_NEON/data/model_fits/cupe.fit.rds"))
+cupe.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/cupe.fit2.rds"))
 
 # if working from model run
 # cupe.fit <- fit.cupe
@@ -886,13 +1007,13 @@ First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), sinc
 # get_variables(cupe.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
 
 ########## Check the fit for sigmas and betas (tough to fit): ___________________
-print(cupe.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+print(cupe.fit, pars=c("sigma", "sigma_U", "sigma_K", "K_mean", "b0", "b1"))
 
 ########## Summarize daily variables (K, U, N_e) ________________________________
 
 #### First, use spread_draws for the daily parameters - this gives each parameter its own column
 # d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
-cupe.spread <- spread_draws(cupe.fit, K[d], U[d], N_e[d]) 
+cupe.spread <- spread_draws(cupe.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
 
 
 ##### Then get the mean/median + 95% QI (CI) for each parameter/day
@@ -912,6 +1033,8 @@ cupe.meanqi <- cupe.spread %>%
 ### Add median param info to the meanqi df
 cupe.meanqi$K.median <- cupe.medqi$K
 cupe.meanqi$U.median <- cupe.medqi$U
+cupe.meanqi$U_tot.median <- cupe.medqi$U_tot
+cupe.meanqi$Vf_tot.median <- cupe.medqi$Vf_tot
 cupe.meanqi$N_e.median <- cupe.medqi$N_e
 
 ##### Get draws for b1 and b0 (for plotting later)
@@ -980,7 +1103,7 @@ daily_output_cupe.df <- cupe.meanqi %>%
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_cupe.df$K) # 3.225407
@@ -999,22 +1122,22 @@ daily_output_cupe.df <- cupe.meanqi %>%
 
 ######  N model fit over time - predicted N vs measured N  #######
 
-N_Npred_ts_cupe <- plot_Nmodelfit_ts(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
+N_Npred_ts_cupe <- plot_Nmodelfit_ts(data=N_output_cupe.df, start_jday = 331, end_jday = 365, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_ts_cupe
 
 ### w. credible interval ribbon
 N_Npred_tsCI_cupe <- plot_Nmodelfit_tsCI(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_tsCI_cupe
 
 ######  predicted N vs measured N + 1:1 line  #######
 
 Npred_v_N_cupe <- plot_Npred_v_Nobs(data=N_output_cupe.df, plot_title="Predicted N vs. measured N, Rio Cupeyes, PR")
 
-# quartz(width=6, height=6)
+quartz(width=6, height=6)
 Npred_v_N_cupe
 
 
@@ -1022,37 +1145,43 @@ Npred_v_N_cupe
 
 ####### Check equifinality!! K vs U  #######  
 
-KvU_cupe <- plot_KvU(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled K vs modeled U")
+KvU_cupe <- plot_KvU(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: K_nit vs U_auto")
   
 # quartz(width=7.5, height=6)
 KvU_cupe
-  
+
+ggplotly(KvU_cupe, tooltip = "text")
 
 ####### Check equifinality!! K vs N_e  #######  
 
-KvNe_cupe <- plot_KvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled K vs modeled equilibrium N")
+KvNe_cupe <- plot_KvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: K_nit vs equilibrium N")
 
 # quartz(width=7.5, height=6)
 KvNe_cupe
 
+ggplotly(KvNe_cupe, tooltip = "text")
+
 
 ####### Check equifinality!! U vs N_e  #######  
 
-UvNe_cupe <- plot_UvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: modeled U vs modeled equilibrium N")
+UvNe_cupe <- plot_UvNe(data=daily_output_cupe.df, plot_title = "Equifinality check, Rio Cupeyes, PR: U_auto vs equilibrium N")
  
 # quartz(width=7.5, height=6)
 UvNe_cupe
+
+ggplotly(UvNe_cupe, tooltip = "text")
 
 
 ########## Other parameter visualizations ______________________________________
 
 #######  K over time  #######  
 
-K_v_time_cupe <- plot_K_ts(data=daily_output_cupe.df, plot_title = "modeled K over time, Rio Cupeyes, PR")
+K_v_time_cupe <- plot_K_ts(data=daily_output_cupe.df, plot_title = "K_nit over time, Rio Cupeyes, PR")
 
 # quartz(width=6.5, height=6)
 K_v_time_cupe
 
+ggplotly(K_v_time_cupe, tooltip = "text")
 
 ##### U over time  #######  
 
@@ -1061,6 +1190,7 @@ U_time_cupe <- plot_U_ts(data=daily_output_cupe.df, plot_title="Diel nitrate upt
 # quartz(width=6, height=6)
 U_time_cupe
 
+ggplotly(U_time_cupe, tooltip = "text")
 
 ###### U vs sumlight  #######  
 
@@ -1069,6 +1199,7 @@ U_vs_light_cupe <- plot_UvLight(data=daily_output_cupe.df, plot_title = "Scatter
 # quartz(width=6.5, height=6)
 U_vs_light_cupe
 
+ggplotly(U_vs_light_cupe, tooltip = "text")
 
 ```
 
@@ -1084,10 +1215,14 @@ What percentage of total uptake is the autotrophic uptake?
 
 daily_output_cupe.df <- daily_output_cupe.df %>%
   mutate(U_other = N_e*K*z,      
-         U_tot = U_other + U, 
-         U_auto_perc = 100*U/U_tot)
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
 
-U_auto_avg <- mean(daily_output_cupe.df$U_auto_perc) #4.7% on average
+plot(daily_output_cupe.df$U_tot, daily_output_cupe.df$U_other) # 1:1
+
+
+U_auto_avg <- mean(daily_output_cupe.df$U_auto_perc) #4.05% on average
 
 Uauto_perc_cupe <- plot_autoUperc(data=daily_output_cupe.df, plot_title = "Daily autotrophic uptake (as % of total uptake), Rio Cupeyes, PR")
 
@@ -1095,7 +1230,7 @@ Uauto_perc_cupe <- plot_autoUperc(data=daily_output_cupe.df, plot_title = "Daily
 Uauto_perc_cupe 
 
 #### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
-# ggplotly(Uauto_plot_cupe)
+ggplotly(Uauto_perc_cupe, tooltip = "text")
 
 ```
 
@@ -1112,6 +1247,12 @@ saveRDS(daily_output_cupe.df, file=path)
 path.h = here("N_uptake_NEON/data/model_output/cupe_output_hourly.rds")
 saveRDS(N_output_cupe.df, file=path.h)
 
+
+# clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
+
 ```
 
 #### PRIN
@@ -1127,7 +1268,7 @@ Outputs and visualizations for Pringle Creek, Wise County, TX
 
 ########## Load model fit ______________________________________________________
 
-prin.fit <- readRDS(here("N_uptake_NEON/data/model_fits/prin.fit.rds"))
+prin.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/prin.fit2.rds"))
 
 # if working from model run
 # prin.fit <- fit.prin
@@ -1156,8 +1297,6 @@ prin.df.h <- read_csv(path_h) %>%
 # daily dataseset for Q, v, z
 prin.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/prin.q.daily.rds"))
   
-  
-  
 ```
 
 ###### Extract model parameters and real-data values
@@ -1173,13 +1312,13 @@ First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), sinc
 # get_variables(prin.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
 
 ########## Check the fit for sigmas and betas (tough to fit): ___________________
-print(prin.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+print(prin.fit, pars=c("sigma", "sigma_U", "sigma_K", "K_mean", "b0", "b1"))
 
 ########## Summarize daily variables (K, U, N_e) ________________________________
 
 #### First, use spread_draws for the daily parameters - this gives each parameter its own column
 # d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
-prin.spread <- spread_draws(prin.fit, K[d], U[d], N_e[d]) 
+prin.spread <- spread_draws(prin.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
 
 
 ##### Then get the mean/median + 95% QI (CI) for each parameter/day
@@ -1199,6 +1338,8 @@ prin.meanqi <- prin.spread %>%
 ### Add median param info to the meanqi df
 prin.meanqi$K.median <- prin.medqi$K
 prin.meanqi$U.median <- prin.medqi$U
+prin.meanqi$U_tot.median <- prin.medqi$U_tot
+prin.meanqi$Vf_tot.median <- prin.medqi$Vf_tot
 prin.meanqi$N_e.median <- prin.medqi$N_e
 
 ##### Get draws for b1 and b0 (for plotting later)
@@ -1268,7 +1409,7 @@ daily_output_prin.df <- prin.meanqi %>%
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_prin.df$K) #
@@ -1290,15 +1431,17 @@ daily_output_prin.df <- prin.meanqi %>%
 
 ######  N model fit over time - predicted N vs measured N  #######
 
-N_Npred_ts_prin <- plot_Nmodelfit_ts(data=N_output_prin.df, start_jday = 90, end_jday = 120, plot_title = "NEON N data + model predictions: Pringle Creek, TX")
+N_Npred_ts_prin <- plot_Nmodelfit_ts(data=N_output_prin.df, start_jday = 331, end_jday = 365, plot_title = "NEON N data + model predictions: Pringle Creek, TX")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_ts_prin
+
+
 
 ### w. credible interval ribbon
 N_Npred_tsCI_prin <- plot_Nmodelfit_tsCI(data=N_output_prin.df, start_jday = 90, end_jday = 120, plot_title = "NEON N data + model predictions: Pringle Creek, TX")
 
-# quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_tsCI_prin
 
 ######  predicted N vs measured N + 1:1 line  #######
@@ -1307,6 +1450,8 @@ Npred_v_N_prin <- plot_Npred_v_Nobs(data=N_output_prin.df, plot_title="Predicted
 
 # quartz(width=6, height=6)
 Npred_v_N_prin
+
+# ggplotly(Npred_v_N_prin, tooltip = "text") - need to change for this to work: just wanted to check out the two curly "antennae" at the upper RH corner
 
 
 ########## Equifinality checks _________________________________________________
@@ -1317,6 +1462,8 @@ KvU_prin <- plot_KvU(data=daily_output_prin.df, plot_title = "Equifinality check
   
 # quartz(width=7.5, height=6)
 KvU_prin
+
+ggplotly(KvU_prin, tooltip = "text") 
   
 
 ####### Check equifinality!! K vs N_e  #######  
@@ -1326,6 +1473,7 @@ KvNe_prin <- plot_KvNe(data=daily_output_prin.df, plot_title = "Equifinality che
 # quartz(width=7.5, height=6)
 KvNe_prin
 
+ggplotly(KvNe_prin, tooltip = "text")
 
 ####### Check equifinality!! U vs N_e  #######  
 
@@ -1334,6 +1482,7 @@ UvNe_prin <- plot_UvNe(data=daily_output_prin.df, plot_title = "Equifinality che
 # quartz(width=7.5, height=6)
 UvNe_prin
 
+ggplotly(UvNe_prin, tooltip = "text")
 
 ########## Other parameter visualizations ______________________________________
 
@@ -1344,6 +1493,7 @@ K_v_time_prin <- plot_K_ts(data=daily_output_prin.df, plot_title = "modeled K ov
 # quartz(width=6.5, height=6)
 K_v_time_prin
 
+ggplotly(K_v_time_prin, tooltip = "text")
 
 ##### U over time  #######  
 
@@ -1352,6 +1502,7 @@ U_time_prin <- plot_U_ts(data=daily_output_prin.df, plot_title="Diel nitrate upt
 # quartz(width=6, height=6)
 U_time_prin
 
+ggplotly(U_time_prin, tooltip = "text")
 
 ###### U vs sumlight  #######  
 
@@ -1359,6 +1510,8 @@ U_vs_light_prin <- plot_UvLight(data=daily_output_prin.df, plot_title = "Scatter
 
 # quartz(width=6.5, height=6)
 U_vs_light_prin
+
+ggplotly(U_vs_light_prin, tooltip = "text")
 
 
 ```
@@ -1375,10 +1528,14 @@ What percentage of total uptake is the autotrophic uptake?
 
 daily_output_prin.df <- daily_output_prin.df %>%
   mutate(U_other = N_e*K*z,      
-         U_tot = U_other + U, 
-         U_auto_perc = 100*U/U_tot)
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
 
-U_auto_avg <- mean(daily_output_prin.df$U_auto_perc) #12.74% on average
+plot(daily_output_prin.df$U_tot, daily_output_prin.df$U_other) # 1:1
+
+
+U_auto_avg <- mean(daily_output_prin.df$U_auto_perc) #27.83% on average
 
 Uauto_perc_prin <- plot_autoUperc(data=daily_output_prin.df, plot_title = "Daily autotrophic uptake (as % of total uptake), Pringle Creek, TX")
 
@@ -1386,7 +1543,7 @@ Uauto_perc_prin <- plot_autoUperc(data=daily_output_prin.df, plot_title = "Daily
 Uauto_perc_prin 
 
 #### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
-# ggplotly(Uauto_plot_prin)
+ggplotly(Uauto_perc_prin, tooltip = "text")
 
 ```
 
@@ -1403,6 +1560,382 @@ saveRDS(daily_output_prin.df, file=path)
 path.h = here("N_uptake_NEON/data/model_output/prin_output_hourly.rds")
 saveRDS(N_output_prin.df, file=path.h)
 
+# clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
+
+```
+
+#### SYCA
+
+Outputs and visualizations for Sycamore Creek, Maricopa County, AZ
+
+###### Load model fits and data
+
+```{r load SYCA model fit and data}
+#| output: false
+#| message: false
+#| warning: false
+
+########## Load model fit ______________________________________________________
+
+syca.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/syca.fit2.rds"))
+
+# if working from model run
+# syca.fit <- fit.syca
+
+
+########## Load model data _____________________________________________________
+datapath <- here("N_uptake_NEON/data/model_datalist/syca.data.rds")
+syca.modeldata <- readRDS(datapath)
+
+
+########## Load full daily and hourly datasets __________________________________
+# these include datatime info, and the model data does not)
+
+# # 15-min dataset
+# path <- here("N_uptake_NEON/data/neon_data_clean/syca_clean.csv")
+# syca.df <- read_csv(path) %>%
+#   mutate(local_datetime = with_tz(local_datetime, tzone="US/Central"), 
+#          model_datetime = local_datetime - hours(4))  
+
+
+# hourly dataset
+path_h <- here("N_uptake_NEON/data/neon_data_clean/syca_hourly_clean.csv")
+syca.df.h <- read_csv(path_h) %>%
+  mutate(local_datetime = with_tz(local_datetime, tzone="US/Arizona"), 
+         model_datetime = local_datetime - hours(4), 
+         model_date = as.Date(model_datetime),
+         model_jday = yday(model_datetime))  
+
+# daily dataseset for Q, v, z
+syca.qvz <- readRDS(file=here("N_uptake_NEON/data/neon_data_clean/syca.q.daily.rds"))
+  
+  
+  
+```
+
+###### Extract model parameters and real-data values
+
+First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), since these are notoriously tough to fit. Then put the spread and mean/ median/ quartile info for K, U, and N_e into a SYCA tibble (to be saved in one large csv at the end of the document). Finally, assemble tibbles for the visualizations, which include both modeled parameters and real data.
+
+```{r - syca: extract model params and real-data values}
+#| echo: false
+#| message: false
+#| warning: false
+
+# get list of variables for the model fit
+# get_variables(syca.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
+
+########## Check the fit for sigmas and betas (tough to fit): ___________________
+# print(cari.fit, pars=c("sigma", "sigma_U", "sigma_K", "K_mean", "b0", "b1"))
+print(syca.fit, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
+
+
+########## Summarize daily variables (K, U, N_e) ________________________________
+
+#### First, use spread_draws for the daily parameters - this gives each parameter its own column
+# d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
+syca.spread <- spread_draws(syca.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
+
+
+##### Then get the mean/median + 95% QI (CI) for each parameter/day
+
+# NB: for the daily data, it is unnecessary to group by day using  dplyr::group_by(d): tidybayes automatically groups by the selected spread_draws group [in this case, 'd']
+
+### median + CI
+syca.medqi <- syca.spread %>%
+  median_qi() %>%
+  add_column(site = "SYCA")
+
+### mean + QI
+syca.meanqi <- syca.spread %>%
+  mean_qi() %>%
+  add_column(site = "SYCA")
+
+### Add median param info to the meanqi df
+syca.meanqi$K.median <- syca.medqi$K
+syca.meanqi$U.median <- syca.medqi$U
+syca.meanqi$U_tot.median <- syca.medqi$U_tot
+syca.meanqi$Vf_tot.median <- syca.medqi$Vf_tot
+syca.meanqi$N_e.median <- syca.medqi$N_e
+
+##### Get draws for b1 and b0 (for plotting later)
+syca.betas <- spread_draws(syca.fit, b0, b1) %>%
+  sample_n(max(syca.medqi$d))
+
+
+
+
+########## Summarize hourly variable (conc_pred) _______________________________
+
+# Again, using spread_draws for the hourly parameter, conc_pred (predicted N concentration)
+syca.spread.h <- spread_draws(syca.fit, conc_pred[h,d])
+# View(syca.spread.h)
+
+# Get the mean and 95% credible interval values (= 0.95 QI)
+syca.meanqi.h <- syca.spread.h %>%
+  dplyr::group_by(d, h) %>%  # This command IS needed here: tidybayes *did* have h + d column outputs, but the values were both different and less precise than when grouping by (d, h). 
+  mean_qi() %>%
+  add_column(site = "SYCA")
+
+# Median + 0.95 QI
+syca.medqi.h <- syca.spread.h %>%
+  dplyr::group_by(d, h) %>% #again, explicit grouping is needed here
+  median_qi() %>%
+  add_column(site = "SYCA")
+
+### Add median param info to the hourly meanqi df
+syca.meanqi.h$conc_pred.median <- syca.medqi.h$conc_pred
+
+
+########## Compile dataframes __________________________________________________
+
+####### Hourly dataframe: N and N_pred #############
+# N_output_syca.df$z <- as.vector(syca.modeldata$zMA)
+# start w. the hourly dataframe and add mean, QI, modeldata info
+N_output_syca.df <- syca.df.h %>%  
+  add_column(N_pred = syca.meanqi.h$conc_pred, 
+         N_pred.lower = syca.meanqi.h$.lower, 
+         N_pred.upper = syca.meanqi.h$.upper, 
+         z=as.vector(syca.modeldata$zMA), 
+         site = "SYCA") %>%
+  rename(N_conc = surfWaterNitrateMean, 
+         lightReal = GHI_wm2) %>%
+   mutate(hours = hour(local_datetime), 
+         mod_hours = hour(model_datetime), 
+         model_jday = yday(model_datetime)) %>%  # added because somehow it was reading as a 3-digit character (artifact from creating the yr_jday col?)
+  select(site, local_datetime, model_datetime, N_conc, N_pred, N_pred.lower, N_pred.upper, lightReal, z, Year, yr_jday, Jday, model_jday, hours, mod_hours) 
+  
+
+####### Daily dataframe: U, K, N_e ##################
+
+# Create a domainID vector length(nday)
+nday <- syca.modeldata$D  # 90
+domainID <- syca.df.h$domainID[1:nday]
+
+# start w. the meanqi dataframe and add modeldata and datetime info as needed
+daily_output_syca.df <- syca.meanqi %>%
+  add_column(yr_jday = unique(syca.df.h$yr_jday), 
+             sumlightReal = syca.modeldata$sumlightReal, 
+             sumlightIdeal = syca.modeldata$sumlightIdeal, 
+             Q = syca.qvz$Q_cms,
+             v = syca.qvz$v,
+             z = syca.qvz$z,
+             #z = colMeans(syca.modeldata$zMA), # daily depth = avg of hourly depth
+             b0 = syca.betas$b0,
+             b1 = syca.betas$b1,
+             domainID = domainID) %>%
+  separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
+  mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+         
+# Check means for all 3 params
+# mean(daily_output_syca.df$K) #
+# mean(daily_output_syca.df$U) # 
+# mean(daily_output_syca.df$N_e) # 
+
+# sycat("Pringle Creek mean K is" mean(daily_output_syca.df$K))", mean U is" mean(daily_output_syca.df$U) ", and mean equilibrium N is" mean(daily_output_syca.df$N_e)
+
+
+
+```
+
+###### Create visualizations - Pringle Creek, Wise County, TX
+
+```{r - SYCA: create visualizations}
+#| echo: true
+
+########## N Model fit to data __________________________________________________
+
+######  N model fit over time - predicted N vs measured N  #######
+#max model_jday is 153
+N_Npred_ts_syca <- plot_Nmodelfit_ts(data=N_output_syca.df, start_jday = 300, end_jday = 365, plot_title = "NEON N data + model predictions: Sycamore Creek, AZ")
+
+quartz(width=6,height=6)
+N_Npred_ts_syca
+
+## Weird, there are a couple of 1 and 2 observation days for SYCA: either something is wrong w the day selection OR with creating the yr_jday column (made from local_datetime and not model_datetime).
+
+# jdaycount <- N_output_syca.df %>% count(model_jday)
+# moddaycount <- N_output_syca.df %>% count(day(model_datetime))
+datecount <-  N_output_syca.df %>% count(model_datetime) # uh-oh: 103 obs. - should be 82... 
+yrjdaycount <- N_output_syca.df %>% count(yr_jday) %>% filter(n != 24)
+
+#####
+syca.df.h <- syca.df.h %>%
+  mutate(model_datetime = as.POSIXct(model_datetime, tz="US/Arizona"))
+
+wonkySYCAdays3 <- syca.df.h %>%
+  group_by(model_date) %>%
+  summarise(n_hours = n_distinct(model_datetime))
+#####
+
+wonkySYCAdays <- N_output_syca.df %>% count(as.Date(model_datetime)) %>% filter(n != 24)
+
+print(wonkySYCAdays, n=42)
+
+wonkySYCAdays2 <- syca.df.h %>% count(as.Date(model_datetime)) %>% filter(n != 24)
+print(wonkySYCAdays2, n=42)
+
+
+syca.df.h %>%
+  filter(model_date == as.Date("2022-02-03")) %>%
+  mutate(
+    local_full  = format(local_datetime,  "%Y-%m-%d %H:%M:%OS6 %Z"),
+    model_full  = format(model_datetime,  "%Y-%m-%d %H:%M:%OS6 %Z")
+  ) %>%
+  select(local_datetime, model_datetime, local_full, model_full) %>%
+  print(n = Inf)
+
+
+# ...BUT even weirder, the dataframe looks fine... 
+
+### w. credible interval ribbon
+N_Npred_tsCI_syca <- plot_Nmodelfit_tsCI(data=N_output_syca.df, start_jday = 100, end_jday = 120, plot_title = "NEON N data + model predictions: Sycamore Creek, AZ")
+
+# quartz(width=6,height=6)
+N_Npred_tsCI_syca
+
+######  predicted N vs measured N + 1:1 line  #######
+
+Npred_v_N_syca <- plot_Npred_v_Nobs(data=N_output_syca.df, plot_title="Predicted N vs. measured N, Sycamore Creek, AZ")
+
+# quartz(width=6, height=6)
+Npred_v_N_syca
+
+
+########## Equifinality checks _________________________________________________
+
+####### Check equifinality!! K vs U  #######  
+
+KvU_syca <- plot_KvU(data=daily_output_syca.df, plot_title = "Equifinality check, Sycamore Creek, AZ: modeled K vs modeled U")
+  
+quartz(width=7.5, height=6)
+KvU_syca
+
+ggplotly(KvU_syca, tooltip = "text") 
+
+####### Check equifinality!! K vs N_e  #######  
+
+KvNe_syca <- plot_KvNe(data=daily_output_syca.df, plot_title = "Equifinality check, Sycamore Creek, AZ: modeled K vs modeled equilibrium N")
+
+# quartz(width=7.5, height=6)
+KvNe_syca
+
+
+####### Check equifinality!! U vs N_e  #######  
+
+UvNe_syca <- plot_UvNe(data=daily_output_syca.df, plot_title = "Equifinality check, Sycamore Creek, AZ: modeled U vs modeled equilibrium N")
+ 
+# quartz(width=7.5, height=6)
+UvNe_syca
+
+
+########## Other parameter visualizations ______________________________________
+
+#######  K over time  #######  
+
+K_v_time_syca <- plot_K_ts(data=daily_output_syca.df, plot_title = "modeled K over time, Sycamore Creek, AZ")
+
+quartz(width=6.5, height=6)
+K_v_time_syca
+
+ggplotly(K_v_time_syca, tooltip = "text")
+
+##### U over time  #######  
+
+U_time_syca <- plot_U_ts(data=daily_output_syca.df, plot_title="Diel nitrate uptake (modeled), Sycamore Creek, AZ")
+
+quartz(width=6, height=6)
+U_time_syca
+
+ggplotly(U_time_syca, tooltip = "text")
+
+
+# there is one isolated VERY high U, "2024-03-24"; what's the Q for that date?
+syca.qvz %>%
+  filter(model_date == as.Date("2024-03-24")) %>%
+  pull(Q_cms)
+
+
+sycaQ <- syca.qvz %>%
+  ggplot(aes(x=model_date, y=Qmean_ls, 
+         text = paste("Date:", model_date, "<br>Year-jday", yr_jday, "Q in L/s", Qmean_ls)
+         )) +  # text for plotly
+  geom_point() + 
+     labs( x= "Date",                                     ## for plotly - plotly interprets MathJax
+        y="Q ($L~s^{-1}$)" # ~ = a space, * = no space
+      ) +
+  ggtitle("Sycamore Creek Q in liters per second") +
+  theme_bw()
+
+quartz()
+sycaQ
+
+ggplotly(sycaQ, tooltip = "text")
+
+
+###### U vs sumlight  #######  
+
+U_vs_light_syca <- plot_UvLight(data=daily_output_syca.df, plot_title = "Scatterplot of NO3 uptake and daily light: Sycamore Creek, AZ")
+
+# quartz(width=6.5, height=6)
+U_vs_light_syca
+
+
+```
+
+###### Compare U_total and U_auto
+
+What percentage of total uptake is the autotrophic uptake?
+
+```{r - syca: percent autotrophic NO3 uptake}
+
+# NON-AUTOTROPHIC UPTAKE = Equilibrium nitrate * K * z
+# TOTAL UPTAKE = U + (Equilibrium nitrate * K * z)  
+# Since U_auto is very small, there won't be much difference between 'non-autotrophic uptake' and 'total uptake'
+
+daily_output_syca.df <- daily_output_syca.df %>%
+  mutate(U_other = N_e*K*z,      
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
+
+plot(daily_output_syca.df$U_tot, daily_output_syca.df$U_other) # 1:1
+
+
+U_auto_avg <- mean(daily_output_syca.df$U_auto_perc) #12.74% on average
+
+Uauto_perc_syca <- plot_autoUperc(data=daily_output_syca.df, plot_title = "Daily autotrophic uptake (as % of total uptake), Sycamore Creek, AZ")
+
+# quartz(width=7.5, height=6)
+Uauto_perc_syca 
+
+#### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
+# ggplotly(Uauto_plot_syca)
+
+```
+
+###### Save updated model output datasets
+
+```{r syca: save updated datasets}
+#| output: false
+#| message: false
+#| warning: false
+
+path = here("N_uptake_NEON/data/model_output/syca_output_daily.rds")
+saveRDS(daily_output_syca.df, file=path)
+
+path.h = here("N_uptake_NEON/data/model_output/syca_output_hourly.rds")
+saveRDS(N_output_syca.df, file=path.h)
+
+####### clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
+
 ```
 
 #### WLOU
@@ -1418,7 +1951,7 @@ Ouptuts and visualizations for West St Louis Creek, Grand, CO
 
 ########## Load model fit ______________________________________________________
 
-wlou.fit <- readRDS(here("N_uptake_NEON/data/model_fits/wlou.fit.rds"))
+wlou.fit <- readRDS(here("N_uptake_NEON/data/model_fits/pooledK_logK/wlou.fit.rds"))
 
 # if working from model run
 # wlou.fit <- fit.wlou
@@ -1465,14 +1998,14 @@ First, check the fit for sigmas and betas ("sigma", "sigma_U", "b0", "b1"), sinc
 # get_variables(wlou.fit) - too many to see all, but informs re: structure [hour,day] for hourly variables
 
 ########## Check the fit for sigmas and betas (tough to fit): _________________
-print(wlou.fit, pars=c("sigma", "sigma_U", "b0", "b1"))
+print(wlou.fit, pars=c("sigma", "sigma_U", "sigma_logK", "logK_mean", "b0", "b1"))
 
 
 ########## Summarize daily variables (K, U, N_e) ______________________________
 
 # First, use spread_draws for the daily parameters - this gives each parameter its own column
 # d = days (198), chain = 4, iteration = 1K, draw = 4K (1 per iteration per chain)
-wlou.spread <- spread_draws(wlou.fit, K[d], U[d], N_e[d]) 
+wlou.spread <- spread_draws(wlou.fit, K[d], U[d], U_tot[d], Vf_tot[d], N_e[d]) 
 
 # Then get the mean/median + 95% QI (CI) for each parameter/day
 # median + CI
@@ -1504,6 +2037,8 @@ wlou.meanqi <- wlou.spread %>%
 ### Add median param info to the meanqi df
 wlou.meanqi$K.median <- wlou.medqi$K
 wlou.meanqi$U.median <- wlou.medqi$U
+wlou.meanqi$U_tot.median <- wlou.medqi$U_tot
+wlou.meanqi$Vf_tot.median <- wlou.medqi$Vf_tot
 wlou.meanqi$N_e.median <- wlou.medqi$N_e
 
 ##### Get draws for b1 and b0 (for plotting later)
@@ -1571,7 +2106,7 @@ daily_output_wlou.df <- wlou.meanqi %>%
              domainID = domainID) %>%
   separate(yr_jday, into = c("Year", "model_jday"), sep = "_", convert = TRUE, remove = FALSE) %>%  # makes the new columns numeric if possible, and retains the old column
   mutate(model_date = ymd(paste0(Year, "-01-01")) + days(model_jday - 1)) %>%
-  select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0, b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
+  dplyr::select(site, yr_jday, K, K.lower, K.upper, K.median, U, U.lower, U.upper, U.median, U_tot, U_tot.lower, U_tot.upper, U_tot.median, Vf_tot, Vf_tot.lower, Vf_tot.upper, Vf_tot.median, N_e, N_e.lower, N_e.upper, N_e.median, sumlightReal, sumlightIdeal, Q, v, z, b0,b1, model_date, model_jday, Year, domainID, d) #d is the index from the meanqi object - used for plotting 'ts' by index
          
 # Check means for all 3 params
 # mean(daily_output_wlou.df$K) # 3.225407
@@ -1603,9 +2138,9 @@ daily_output_wlou.df <- wlou.meanqi %>%
 #   facet_wrap(~yr_jday) +
 #   theme_bw()
 
-N_Npred_ts_wlou <- plot_Nmodelfit_ts(data=N_output_wlou.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: West St. Louis Creek, CO ")
+N_Npred_ts_wlou <- plot_Nmodelfit_ts(data=N_output_wlou.df, start_jday = 311, end_jday = 365, plot_title = "NEON N data + model predictions: West St. Louis Creek, CO ")
 
-#quartz(width=6,height=6)
+quartz(width=6,height=6)
 N_Npred_ts_wlou
 
 ### w. credible interval ribbon
@@ -1630,6 +2165,7 @@ Npred_v_N_wlou <- plot_Npred_v_Nobs(data=N_output_wlou.df, plot_title="Predicted
 
 #quartz(width=6, height=6)
 Npred_v_N_wlou
+ggplotly(Npred_v_N_wlou)
 
 ########## Equifinality checks ________________________________________________
 
@@ -1648,10 +2184,10 @@ Npred_v_N_wlou
 KvU_wlou <- plot_KvU(data=daily_output_wlou.df, plot_title = "Equifinality check, West St. Louis Creek, CO: modeled K vs modeled U")
 
   
-#quartz(width=7.5, height=6)
+quartz(width=7.5, height=6)
 KvU_wlou
   
-
+ggplotly(KvU_wlou)
 ####### Check equifinality!! K vs N_e  #######  
 
 # KvNe_wlou <- ggplot(data=daily_output_wlou.df, aes(y=K, x=N_e)) +
@@ -1668,7 +2204,7 @@ KvNe_wlou <- plot_KvNe(data=daily_output_wlou.df, plot_title = "Equifinality che
 
 #quartz(width=7.5, height=6)
 KvNe_wlou
-
+ggplotly(KvNe_wlou)
 
 ####### Check equifinality!! U vs N_e  #######  
 
@@ -1684,7 +2220,7 @@ UvNe_wlou <- plot_UvNe(data=daily_output_wlou.df, plot_title = "Equifinality che
  
 #quartz(width=7.5, height=6)
 UvNe_wlou
-
+ggplotly(UvNe_wlou)
 
 ########## Other parameter visualizations ______________________________________
 
@@ -1707,6 +2243,7 @@ K_v_time_wlou <- plot_K_ts(data=daily_output_wlou.df, plot_title = "modeled K ov
 
 #quartz(width=6.5, height=6)
 K_v_time_wlou
+ggplotly(K_v_time_wlou)
 
 ##### to clip: no function yet
 # K_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=K_mod_avg_wlou)) +
@@ -1742,6 +2279,8 @@ U_time_wlou <- plot_U_ts(data=daily_output_wlou.df, plot_title="Diel nitrate upt
 #quartz(width=6, height=6)
 U_time_wlou
 
+ggplotly(U_time_wlou)
+
 
 # U_time_clip_wlou <- ggplot(data = daily_output_wlou.df, aes(x=mod_day_wlou, y=U_mod_avg_wlou)) +
 #    geom_point() +
@@ -1775,7 +2314,7 @@ U_vs_light_wlou <- plot_UvLight(data=daily_output_wlou.df, plot_title = "Scatter
 
 # quartz(width=6.5, height=6)
 U_vs_light_wlou
-
+ggplotly(U_vs_light_wlou)
 
 ```
 
@@ -1789,8 +2328,12 @@ U_vs_light_wlou
 
 daily_output_wlou.df <- daily_output_wlou.df %>%
   mutate(U_other = N_e*K*z,      
-         U_tot = U_other + U, 
-         U_auto_perc = 100*U/U_tot)
+         U_tot1 = U_tot + U,
+         U_tot2 = U_other + U,
+         U_auto_perc = 100*U/U_tot1) 
+
+plot(daily_output_wlou.df$U_tot, daily_output_wlou.df$U_other) # 1:1
+
 
 
 U_auto_avg <- mean(daily_output_wlou.df$U_auto_perc) #10.3% on average
@@ -1806,6 +2349,7 @@ Uauto_perc_wlou <- plot_autoUperc(data=daily_output_wlou.df, plot_title = "Daily
 
 # quartz(width=7.5, height=6)
 Uauto_perc_wlou 
+ggplotly(Uauto_perc_wlou )
 
 #### Interactive w. ggplotly, but only gives the x,y info... maybe if I added datetime-associated labels?
 # ggplotly(Uauto_plot_wlou)
@@ -1826,11 +2370,17 @@ saveRDS(daily_output_wlou.df, file=path)
 path.h = here("N_uptake_NEON/data/model_output/wlou_output_hourly.rds")
 saveRDS(N_output_wlou.df, file=path.h)
 
+# clean environment (retain functions)
+# all_objects <- ls(envir = .GlobalEnv)
+all_functions <- Filter(function(x) is.function(get(x, envir = .GlobalEnv)), ls(envir = .GlobalEnv))
+rm(list = setdiff(ls(envir = .GlobalEnv), all_functions), envir = .GlobalEnv)
+
 ```
 
 ### Remove days w. crazy-high outlier Ks from BIGC and CUPE
-One day per site has super-high K relative to the other Ks
-(later, should likely re-run model w/o these days)
+
+One day per site has super-high K relative to the other Ks (later, should likely re-run model w/o these days)
+
 ```{r remove outlier}
 
 # For BIGC
@@ -1862,8 +2412,6 @@ saveRDS(cupe_daily.df, file=path)
 
 ```
 
-
-
 ### Assemble and save mean, median, 95% QI tibble for all sites
 
 Combine the site tibbles into one large tibble, then save it
@@ -1880,6 +2428,7 @@ bigc_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/bigc_output_daily
 cari_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/cari_output_daily.rds"))
 cupe_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/cupe_output_daily.rds"))
 prin_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/prin_output_daily.rds"))
+syca_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/syca_output_daily.rds"))
 wlou_daily.df <- readRDS(here("N_uptake_NEON/data/model_output/wlou_output_daily.rds"))
 
 # Checking for any duplicate names (per the initial error: solved by using list())
@@ -1892,10 +2441,12 @@ bigc_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/bigc_output_hour
 cari_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/cari_output_hourly.rds")) 
 cupe_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/cupe_output_hourly.rds"))
 prin_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/prin_output_hourly.rds"))
+syca_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/syca_output_hourly.rds")) %>%
+  mutate(model_jday = as.numeric(model_jday))
 wlou_hourly.df <- readRDS(here("N_uptake_NEON/data/model_output/wlou_output_hourly.rds"))
 
 ########## Bind then save daily parameters (K, U, N_e)  _________________________
-daily_list <- list(bigc_daily.df, cari_daily.df, cupe_daily.df, prin_daily.df, wlou_daily.df)
+daily_list <- list(bigc_daily.df, cari_daily.df, cupe_daily.df, prin_daily.df, syca_daily.df, wlou_daily.df)
 daily_summary_all.df <- bind_rows(daily_list)
 # View(daily_summary_all.df)
 
@@ -1905,7 +2456,7 @@ saveRDS(daily_summary_all.df, path)
 
 ########## Bind then save hourly parameters (N_pred)  ___________________________
 
-hourly_list <- list(bigc_hourly.df, cari_hourly.df, cupe_hourly.df, prin_hourly.df, wlou_hourly.df)
+hourly_list <- list(bigc_hourly.df, cari_hourly.df, cupe_hourly.df, prin_hourly.df, syca_hourly.df, wlou_hourly.df)
 hourly_summary_all.df <- bind_rows(hourly_list)
 path2 <- here("N_uptake_NEON/data/model_output/hourly_summary_all.rds")
 saveRDS(hourly_summary_all.df, path2)
@@ -1927,13 +2478,18 @@ hourly_summary_all.df <- readRDS(file=path2)
 
 ```
 
-##### Set palette
+##### Set palette and filepath
+
 ```{r palette}
 # Check for colorblind friendly palettes from MetBrewer
 colorblind_palettes
-# Archambault works - but I couldn't get it to visualize. Moving on to PNW palettes...
 
-pal<- pnw_palette("Sunset2", n=5)
+# Archambault is in the colorblind palettes - but I couldn't get it to visualize. Moving on to PNW palettes... ALL PNW palettes are colorblind friendly
+
+pal<- pnw_palette("Sunset2", n=6)
+# pal<- pnw_palette("Bay", n=6)
+
+plotpath <- here("N_uptake_NEON/images/pubfigs")
 
 
 ```
@@ -1957,26 +2513,44 @@ UvLight_all <- ggplot(daily_summary_all.df, aes(x = sumlightReal, y = U, color =
   #   alpha = 0.2,
   #   color = "blue") +  # model fits per site using output b1 and b0
   facet_wrap(~site, scales="free") +  # use scales="free_y" or "free_x" to free only 1 axis
-  theme_bw() +  # clean look
   labs(
     x = expression("Measured Light"~(W~m^-2)),
     y = expression("Autotrophic"~NO[3]~"Uptake"~(mmol~m^-2~d^-1))
   ) +
   # ylim(0,1.7) + 
-  theme(legend.position = "none")
+  theme_bw() +  # clean look
+  theme(legend.position = "none",
+        # plot.margin = margin(t = 6, r = 12, b = 6, l = 6, unit = "point"), 
+        panel.grid.major = element_blank(),  panel.grid.minor = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1,   # keeps labels aligned at the tick
+                                   vjust = 1)    # keeps them from floating above
+  )
 
   
-quartz(height=5, width=8)
+quartz(height=4, width=5.5)
 UvLight_all
+
+ggsave2(filename="Uauto_vs_light.pdf", plot=UvLight_all, path=plotpath, width=5.5, height=4)
+
+# pubr version only for raster graphics
+# ggexport(UvLight_all, filename = file.path(plotpath, "UvLight.pdf"), width = 8.5, height = 5.25, units = "cm")
+
+# cowplot
+
+
+
+
 
 ```
 
 ##### U vs. N_e
+
 ```{r UvsNe}
 
 UvNe_all <- ggplot(daily_summary_all.df, aes(x = N_e, y = U, color = site)) +
   geom_point(alpha=0.5) +  # scatterplot of points
   # scale_color_met_d(name = "site", palette = "Archambault") + #palette Archimbault from MetBrewer
+  scale_color_manual(values = pal) +
   theme_bw() +  # theme_minimal also gives a clean look
   labs(
     # title = "Across sites, autotrophic uptake increases with equilibrium nitrate",
@@ -2027,7 +2601,7 @@ uptakeBarplot <- ggplot(long_uptake, aes(x = site, y = percent, fill = uptake_ty
       # "perc_het" = "#8B4513"    # saddle brown
       # "perc_het" = "#A0522D"    # sienna
       # "perc_het" = "#BC8F8F"    # rosy brown
-      "perc_otherU" = "rosybrown4"    # darker rosy brown
+      "perc_otherU" = "grey40"    # darker rosy brown
     ),
     labels = c("Autotrophic", "Other")
   ) +
@@ -2037,12 +2611,16 @@ uptakeBarplot <- ggplot(long_uptake, aes(x = site, y = percent, fill = uptake_ty
 quartz(height=5, width=8)
 uptakeBarplot
 
+ggsave2(filename="uptakeBarplot.pdf", plot=uptakeBarplot, path=plotpath, width=8, height=5)
+ggsave2(filename="uptakeBarplotXL.pdf", plot=uptakeBarplot, path=plotpath, width=16, height=10)
+
+
 ```
 
 ##### K over time
 
 ```{r K_ts}
-# pal<- pnw_palette("Sunset2", n=5) ## load above
+# pal<- pnw_palette("Sunset2", n=6) ## load above
 
 Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
    geom_errorbar(aes(ymin = K.lower, ymax = K.upper),
@@ -2051,8 +2629,8 @@ Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
   # geom_point(y = sumlight.real, color = 'gold') +
   scale_color_manual(values = pal) +
   facet_wrap(~site)+
-   labs( x= "Index",
-         y=expression("K"~(d^-1)) # ~ = a space, * = no space
+   labs(x= "Index of days",
+        y=expression(K~(d^-1)) # ~ = a space, * = no space
       ) +
   ylim(0,15) +
   xlim(0,200)+
@@ -2063,6 +2641,8 @@ Kplot <- ggplot(data=daily_summary_all.df, aes(x=d, y=K, color=site)) +
 
 quartz(height=5, width=8)
 Kplot
+
+ggplotly(Kplot)
 
 daily_summary_all.df %>%
   group_by(site) %>%
@@ -2075,6 +2655,7 @@ daily_summary_all.df %>%
 ```
 
 ##### U vs K w. uncertainty
+
 ```{r UvsK}
 
 # pal<- pnw_palette("Sunset2", n=5)   ## load above
@@ -2087,20 +2668,27 @@ UvKplot <- ggplot(data=daily_summary_all.df, aes(x=K, y=U, color=site)) +
   geom_point() + 
   scale_color_manual(values = pal) +
   scale_x_log10() + scale_y_log10() + 
-  # facet_wrap(~site) +
-  labs(y=expression("K"~(d^-1)),
-       x=expression("Autotrophic uptake (U)"~(mmol~m^-2~d^-1))
+  facet_wrap(~site) +
+  labs(x=bquote(italic(K[nit])~(d^-1)),
+       y=bquote("Autotrophic"~NO[3]~"Uptake"~(mmol~m^-2~d^-1))
         ) + 
   
   # geom_abline(intercept = 0, slope = 1, color = "red") + # doesn't show up - off the charts!
-  theme_bw()
+  theme_bw() + 
+  theme(legend.position = "none", 
+        # panel.grid.major = element_blank(),  panel.grid.minor = element_blank()
+        )
 
-quartz(height=5, width=8)
+quartz(height=4, width=6)
 UvKplot
+
+ggplotly(UvKplot)
   
+ggsave2(filename="UvsK_loglog.pdf", plot=UvKplot, path=plotpath, width=5, height=3.5)
+
+ggsave2(filename="UvsK_loglog.jpg", plot=UvKplot, path=plotpath, width=6, height=4)
 
 ```
-
 
 ##### Uptake length for nitrate at sites
 
@@ -2116,17 +2704,20 @@ daily_summary_all.df <- daily_summary_all.df %>%
 # 
 
 Swplot <- daily_summary_all.df %>%
-  ggplot(aes(x=Sw_x, y=site, fill=site)) + 
+  mutate(Sw_km = Sw_x/1000) %>%
+  ggplot(aes(x=Sw_km, y=site, fill=site)) + 
   geom_boxplot() + 
   scale_fill_manual(values = pal) +
   scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
   scale_x_log10() + # log the x axis so all sites visualize better
   # coord_cartesian(xlim = c(0, 20000)) +  # <-- zoom in instead of xlim(): doesn't remove CARI
-  labs(x = "Uptake Length (m)", y = "") + 
+  labs(x = "Uptake Length (km)", y = "") + 
   theme_bw()
   
 quartz(width=8, height=5)
 Swplot
+
+ggsave2(filename="Sw_boxplot.pdf", plot=Swplot, path=plotpath, width=6, height=4)
 
 # The jitter didn't look as good...
 SwJitter <- daily_summary_all.df %>%
@@ -2159,13 +2750,14 @@ vel_plot <- daily_summary_all.df %>%
 quartz(width=7.5, height=5)
 vel_plot
 
+########  K Boxplot  #####################################
 
 K_boxplot <- daily_summary_all.df %>%
   ggplot(aes(y=site, x=K, fill=site)) + 
   geom_boxplot() + 
   scale_fill_manual(values = pal) +
   scale_y_discrete(limits = rev) +  # Reverse the y axis only, so it reads A->Z, top to bottom
-  labs(y = "", x=expression("K"~(d^-1))) + 
+  labs(y = "", x=expression(italic(K[nit])~(d^-1))) + 
   theme_bw()
 
 quartz(width=7.5, height=5)
@@ -2174,57 +2766,227 @@ K_boxplot
 
 ```
 
+##### Model fit fig - all sites
+
+```{r modelfit-all}
+
+##### Create dataset w. 1 day/site (random selection to start)
+
+hourly_summary_all.df <- hourly_summary_all.df %>%
+  mutate(model_datetime = force_tz(model_datetime, "UTC"), 
+         model_date = as.Date(model_datetime))
+
+# NB: tz issue: before, the model_datetime tz was set to Pacific, like the 1st site (BIGC), which totally messed up the selection - there was an 8h offset for the model_datetime and model_date values, weird. MB model_date was in UTC?
+
+set.seed(210012)
+random_days <- hourly_summary_all.df %>%
+  dplyr::group_by(site) %>%
+  dplyr::filter(model_date > as.Date("2021-09-30")) %>%
+  summarise(model_date = sample(unique(model_date), 1), .groups = "drop")
+
+fitplot_days.df <- hourly_summary_all.df %>%
+  inner_join(random_days, by = c("site", "model_date"))
+
+
+
+######## exploration needed - many days are fragmented, something is still very off w the df
+start_jday <- 160
+end_jday <- 190  # range doesnt include CARI; also, can't really check sites. meh
+name = "CARI"
+
+explore_plot <- hourly_summary_all.df %>%
+  filter(model_jday >= start_jday & model_jday <= end_jday, 
+         site == name) %>%
+  ggplot(aes(x = mod_hours)) +
+    # geom_ribbon(aes(ymin=N_pred.lower, ymax=N_pred.upper), alpha = 0.7, fill = "slategray") +
+    geom_point(aes(y = N_conc)) + 
+    geom_line(aes(y = N_pred), col = 'red') +
+    labs(
+      x = "Time (h)",
+      y = expression("N" ~ (mmol ~ m^-3))
+    ) +
+    ggtitle("exploration plots") +
+    facet_wrap(~ yr_jday, scales = "free_y") +
+    theme_bw()
+
+quartz()
+explore_plot
+
+ggplotly(explore_plot)
+  
+######  N model fit over time - predicted N vs measured N  #######
+   
+plot_title <- "NEON N data + model predictions: 1 day per site"
+
+fitplot <- fitplot_days.df %>%
+    ggplot(aes(x = mod_hours)) +
+    geom_ribbon(aes(ymin=N_pred.lower, ymax=N_pred.upper), alpha = 0.7, fill = "slategray") +
+    geom_point(aes(y = N_conc)) + 
+    geom_line(aes(y = N_pred), col = 'red') +
+    labs(
+      x = "Time (h)",
+      y = expression("N" ~ (mmol ~ m^-3))
+    ) +
+    ggtitle(plot_title) +
+    facet_wrap(~site, scales = "free_y") +
+    theme_bw()
+
+quartz()
+fitplot
+
+
+N_Npred_all <- plot_Nmodelfit_ts(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: 1 day per site")
+
+quartz(width=6,height=6)
+N_Npred_ts_cupe
+
+### w. credible interval ribbon
+N_Npred_tsCI_cupe <- plot_Nmodelfit_tsCI(data=N_output_cupe.df, start_jday = 35, end_jday = 60, plot_title = "NEON N data + model predictions: Rio Cupeyes, PR")
+
+quartz(width=6,height=6)
+N_Npred_tsCI_all
+
+
+```
 
 ##### C:N stoichiometry and GPP vs N uptake
 
 ```{r cn stoich}
-gpp.df <- bind_rows(CARI.gpp, WLOU.gpp)
+# gpp.df <- bind_rows(CARI.gpp, WLOU.gpp)
 
 U.df <- daily_summary_all.df %>%
-  filter(site %in% c("CARI", "WLOU"))
+  dplyr::filter(site != "CARI")
 
 U_GPP <- inner_join(U.df, gpp.df, by = c("site", "model_date" = "date")) %>%
-  mutate(GPP.mmol = GPP*1000/32) %>%
-  filter(GPP.mmol > 0)
+  mutate(GPP.mmol = GPP.daily*1000/32, 
+         GPP.mmol05 = GPP.mmol * 0.5) %>%  # I *think* Bob's GPP is already molar?
+  filter(GPP.mmol >= 0)
 
 # Plot w. same palette as all graphs
 # pal<- pnw_palette("Sunset2", n=5)   ## load above
+# 
+# cn_lines <- data.frame(
+#   slope = c(1/10, 1/20, 1/40, 1/60, 1/80, 1/100, 1/120, 1/140, 1/160),
+#   label = c("C:N = 10:1", "C:N = 20:1", "C:N = 40:1", "C:N = 60:1",
+#             "C:N = 80:1", "C:N = 100:1", "C:N = 120:1", "C:N = 140:1", "C:N = 160:1")
+# )
 
-UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol, y=U, color=site)) + 
+
+# define ratios
+ratios <- c(5, 10, 20, 40, 60, 80, 100, 200)  # for the larger image
+ratios <- c(5, 10, 20, 40, 60, 100, 200)      # for the smaller image
+
+cn_lines <- data.frame(
+  ratio = ratios,
+  slope = 1/ratios,
+  label = paste0("C:N = ", ratios, ":1")
+)
+
+# axis limits
+ymax <- 3
+xmax <- max(U_GPP$GPP.mmol05, na.rm = TRUE)
+xpos_default <- 0.9 * xmax  # 0.8 for smaller plot, 0.9 for slide size
+
+# compute x/y positions per line
+cn_lines <- cn_lines %>%
+  rowwise() %>%
+  mutate(
+    y_at_xpos = slope * xpos_default,
+    xpos = ifelse(y_at_xpos <= ymax * 0.95,
+                  xpos_default,
+                  (ymax * 0.95) / slope),   # solve for x where line ~ymax
+    ypos = slope * xpos,
+    angle = atan(slope) * 180 / pi
+  ) %>%
+  ungroup()
+
+
+UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol05, y=U, color=site)) + 
   geom_point(size=3) +
-  scale_color_manual(values = pal[c(2, 5)]) +
-  geom_abline(intercept= 0, slope = 1/10, linetype = "twodash", color='grey') + 
-  geom_abline(intercept= 0, slope = 1/20, linetype = "twodash", color='grey') + 
-  geom_abline(intercept= 0, slope = 1/40, linetype = "twodash", color='grey') +  #1:20
-  geom_abline(intercept= 0, slope = 1/60, linetype = "twodash", color='grey') +  #1:30
-  # geom_abline(intercept= 0, slope = 1/70, linetype = "dotted", color='grey') +
-  geom_abline(intercept= 0, slope = 1/80, linetype = "twodash", color='grey') + #1:40
-  # geom_abline(intercept= 0, slope = 1/90, linetype = "dotted", color='grey') +
-  geom_abline(intercept= 0, slope = 1/100, linetype = "twodash", color='grey') +# 1:50
-  # geom_abline(intercept= 0, slope = 1/110, linetype = "dotted", color='grey') +
-  geom_abline(intercept= 0, slope = 1/120, linetype = "twodash", color='grey') + #1:60
-   geom_abline(intercept= 0, slope = 1/140, linetype = "twodash", color='grey') + #1:70
-  labs(x=expression("GPP"~(mmol~O[2]~m^-2~d^-1)),
-       y=expression("U"~(mmol~NO[3]-N~m^-2~d^-1))) +
-  # facet_wrap(~site) +
-  theme_bw()
+  scale_color_manual(values = pal[-2]) +
+  geom_abline(data = cn_lines, aes(intercept = 0, slope = slope),
+              linetype = "twodash", color = "grey") +
+  geom_text(
+    data = cn_lines,
+    aes(x = xpos, y = ypos, label = label), # aes(x = xpos, y = ypos, label = label, angle = angle),
+    inherit.aes = FALSE,
+    hjust = -0.1, vjust = -0.5,
+    size = 3, color = "grey40"
+  ) +
+  labs(
+    x = expression(GPP ~ "\u00D7" ~0.5 ~ (mmol~O[2]~or~C~m^-2~d^-1)),
+    y = expression(U ~ (mmol~NO[3]-N~m^-2~d^-1)) ) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0, 3), clip = "on") 
+
+# +
+#   theme(plot.margin = margin(10, 40, 10, 10))
+
+##### V2
+# UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol, y=U, color=site)) + 
+#   geom_point(size=3) +
+#   scale_color_manual(values = pal[-2]) +
+#   geom_abline(data = cn_lines, aes(intercept = 0, slope = slope),
+#               linetype = "twodash", color = "grey") +
+#   geom_text(data = cn_lines, aes(x = xpos, y = ypos, label = label),
+#             inherit.aes = FALSE, hjust = -0.1, vjust = -0.5, size = 3, color = "grey40") +
+#   ylim(0,3) + 
+#   labs(x = expression("GPP"~(mmol~O[2]~or~C~m^-2~d^-1)),
+#        y = expression("U"~(mmol~NO[3]-N~m^-2~d^-1))) +
+#   theme_bw()
+
+
+### ORIG
+# UvGPP <- ggplot(data=U_GPP, aes(x=GPP.mmol, y=U, color=site)) + 
+#   geom_point(size=3) +
+#   scale_color_manual(values = pal[-2]) +
+#   geom_abline(intercept= 0, slope = 1/10, linetype = "twodash", color='grey') + 
+#   geom_abline(intercept= 0, slope = 1/20, linetype = "twodash", color='grey') +
+#   geom_abline(intercept= 0, slope = 1/40, linetype = "twodash", color='grey') +  
+#   geom_abline(intercept= 0, slope = 1/60, linetype = "twodash", color='grey') +  
+#   geom_abline(intercept= 0, slope = 1/80, linetype = "twodash", color='grey') + 
+#   geom_abline(intercept= 0, slope = 1/100, linetype = "twodash", color='grey') +
+#   geom_abline(intercept= 0, slope = 1/120, linetype = "twodash", color='grey') + 
+#   geom_abline(intercept= 0, slope = 1/140, linetype = "twodash", color='grey') + 
+#   geom_abline(intercept= 0, slope = 1/160, linetype = "twodash", color='grey') + 
+#   labs(x=expression("GPP"~(mmol~O[2]~or~C~m^-2~d^-1)),
+#        y=expression("U"~(mmol~NO[3]-N~m^-2~d^-1))) +
+#   # facet_wrap(~site) +
+#   theme_bw()
 
 UvGPPmarg <- ggMarginal(UvGPP, type='density', margins = "y", groupFill = TRUE)
 
-quartz(height =5, width=8)
+quartz(height=10, width=16)
 UvGPP
+
+ggsave2(filename="UvsGPPlg.pdf", plot=UvGPP, path=plotpath, width=8, height=5)
+ggsave2(filename="UvsGPPxlg.pdf", plot=UvGPP, path=plotpath, width=16, height=10)
+ggsave2(filename="UvsGPP.pdf", plot=UvGPP, path=plotpath, width=6, height=3.75)
+
 
 ```
 
-
-
-##### My Vf (K*z) v daily avg N conc w. LINX II (log scale axes)
+##### My Vf (K\*z) v daily avg N conc w. LINX II (log scale axes)
 
 ```{r vf vs no3 conc}
 
+
 # Calc daily Vf for NEON sites
 daily_summary_all.df <- daily_summary_all.df %>%
-  mutate(Vf_auto = K*z)  # units = m/d
+  # mutate(Vf_tot = K*z,   # units = m/d
+  mutate(Vf_tot = U_tot/N_e,  # U_tot = K*z*N_e + U(auto)
+         mean_marker = NA)  # adding column so shape difference shows on legend
+
+
+# get the means for each site
+sitemeans <- daily_summary_all.df %>%
+  dplyr::group_by(site) %>%
+  dplyr::summarise(Ne_mean = mean(N_e), 
+                   Vf_tot_mean = mean(Vf_tot)) %>%
+  ungroup() 
+
+sitemeans$mean_marker <- factor("site mean", levels = c("site mean")) # adding column so shape difference shows on legend
+
 
 # Change LINX II df units to match mine: N conc in mmol m^-3; 
 linx.df <- linx.df %>%
@@ -2233,37 +2995,260 @@ linx.df <- linx.df %>%
          Vf_assim = Vf_assim_cm_s*864) # convert to m/day (0.001*86400 = 864)
 
 # the usual palette: 
-# pal<- pnw_palette("Sunset2", n=5)   ## load above
-# names(pal) <- unique(daily_summary_all.df$site)  # ensure this matches exactly
+pal<- pnw_palette("Sunset2", n=6)   ## load above
+names(pal) <- unique(daily_summary_all.df$site)  # ensure this matches exactly
 
 ### Extend the palette to include LINX II
-pal_extended <- c(pal, "LINX II" = "darkgrey")
+pal_extended <- c(pal, "LINX II" = "grey15")
+names(pal_extended) <- c(names(pal), "LINX II")  # ensure the names tranfer to pal_extended
 
-### set up legend to have "LINX II" last 
+## set up legend to have "LINX II" last 
 
 # Set desired legend order
 legend_order <- c(unique(daily_summary_all.df$site), "LINX II")
 # Main data: use original site names, but add ordered factor for legend
 daily_summary_all.df$site_legend <- factor(daily_summary_all.df$site, levels = legend_order)
+
+sitemeans$site_legend <- factor(sitemeans$site, levels = legend_order)
+
 # LINX data: assign "LINX II" to the new legend column
 linx.df$site_legend <- factor("LINX II", levels = legend_order)
 
+# daily_summary_all5 <- daily_summary_all.df %>%
+#   filter(site != "SYCA")
+
 # create the plot
 Vf_plot <- ggplot() + 
-  geom_point(data=daily_summary_all.df, aes(x=N_e, y=Vf_auto, color=site_legend)) + 
-  geom_point(data=linx.df, aes(x=N_conc, y=Vf_tot, color=site_legend)) + 
-  scale_color_manual(values = pal_extended) +  
-  scale_x_log10() + scale_y_log10() + 
-  labs(
-    x = expression("N" ~ (mmol ~ m^-3)),
-    y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
-    color = 'Site'
-  ) +
-  theme_bw()
- 
-quartz(height =5, width=8)
-Vf_plot
-  
+  ###### V1: regular points with color legend (color mapped to site_legend)
+  geom_point(data = daily_summary_all.df,
+             aes(x = N_e, y = Vf_tot, color = site_legend), alpha = 0.3) +
 
+  # ###### V2: hollow circle:
+  # geom_point(data = daily_summary_all.df, aes(x = N_e, y = Vf_tot, color = site_legend),
+  #            shape = 1,      # hollow circle
+  #            alpha = 0.2) +
+
+  # ###### V3: no-border circle DID NOT WORK
+  # geom_point(data = daily_summary_all.df, aes(x = N_e, y = Vf_tot, fill = site_legend),
+  #            shape = 21,     # filled circle
+  #            border = NA,
+  #            inherit.aes = FALSE,
+  #            alpha = 0.1,
+  #            ) + #keeps the points from becoming all-black
+
+  # # # LINX points, also color mapped to site_legend
+  geom_point(data = linx.df,
+             aes(x = N_conc, y = Vf_tot, color = site_legend)) + 
+  # mean points: fill mapped to site_legend, outline fixed black, no legend for fill/color
+  geom_point(data = sitemeans,
+             aes(x = Ne_mean, y = Vf_tot_mean, fill = site_legend, shape = mean_marker),
+             color = "black", size = 3, stroke = 1, alpha = 1,
+             show.legend = c(fill = FALSE, color = FALSE, shape = TRUE)) + 
+  # scales: color for sites, fill for means (not shown in legend)
+  scale_color_manual(values = pal_extended, 
+                    guide = guide_legend(override.aes = list(shape=16, alpha = 1, size = 3))) +  
+  scale_fill_manual(values = pal_extended) +
+  scale_shape_manual(name = "", values = c("site mean" = 23),
+                     guide = guide_legend(override.aes = list(
+                       fill = "grey60", color = "grey15", size = 3, stroke = 1,
+                       alpha = 1))) +
+   # log scale
+  scale_x_log10(
+  breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),   # customize to your data range
+  labels = c("0.01", "0.1", "1", "10", "100", "1000", "10000")) + 
+
+  scale_y_log10( breaks = c(0.01, 0.1, 1, 10),   # customize to your data range
+  labels = c("0.01", "0.1", "1", "10")) + 
+  
+  # labels
+  labs(
+    x = bquote(NO[3]^"-" ~ (mmol ~ m^-3)),
+    y = bquote(Uptake~velocity*","~italic(V[f])~~(m~d^-1)),
+    color = 'Site',
+    fill = 'Site'
+  ) +
+  
+  guides(alpha = "none") + 
+  theme_bw()
+
+quartz(height = 3.5, width = 5)
+Vf_plot
+
+ggsave2(filename="LINX_Vf_loglog.pdf", plot=Vf_plot, path=plotpath, width=5, height=3.5)
+
+
+```
+
+```{r Vf plot attempt 2}
+
+# # From chatgpt to fix plotting issues:
+# 
+# Vf_plot <- ggplot() + 
+#   # Regular points, semi-transparent
+#   geom_point(data = daily_summary_all.df,
+#              aes(x = N_e, y = Vf_tot, color = site_legend, alpha = 0.2)) + 
+#   # Mean points as big diamonds with black outline
+#   geom_point(data = sitemeans,
+#              aes(x = Ne_mean, y = Vf_tot_mean, fill = site_legend, shape = mean_marker),
+#              color = "black", size = 5, stroke = 1, alpha = 1) + 
+#   # LINX II points
+#   geom_point(data = linx.df,
+#              aes(x = N_conc, y = Vf_tot, color = site_legend)) + 
+#   # Color for points and fill for diamonds
+#   scale_color_manual(values = pal_extended) +  
+#   scale_fill_manual(values = pal_extended) +
+#   # Shape scale for mean points legend (diamond shape 23)
+#   scale_shape_manual(name = "", 
+#                      values = c("site mean" = 23),
+#                      guide = guide_legend(override.aes = list(size = 3, color = "black",
+#                                                               stroke = 1, alpha = 1))) +
+#   # Log scales
+#   # scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x),
+#   # labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+#   
+#   scale_x_log10(
+#   breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10", "100", "1000", "10000")) + 
+# 
+#   scale_y_log10( breaks = c(0.01, 0.1, 1, 10),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10")) + 
+#   # Labels
+#   labs(
+#     x = expression("N" ~ (mmol ~ m^-3)),
+#     y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
+#     color = 'Site',
+#     fill = 'Site'
+#   ) +
+#   theme_bw()
+# 
+# 
+# quartz(height = 5, width = 8)
+# Vf_plot
+# 
+# 
+# 
+# 
+# ################
+# 
+# 
+# Vf_plot <- ggplot() + 
+#   geom_point(data = daily_summary_all.df,
+#              aes(x = N_e, y = Vf_tot, color = site_legend, alpha = 0.2)) + 
+#   geom_point(data = sitemeans,
+#              aes(x = Ne_mean, y = Vf_tot_mean, color = site_legend, shape = mean_marker),
+#              size = 5, stroke = 1,
+#              show.legend = c(color = FALSE, shape = TRUE)) + 
+#   geom_point(data = linx.df,
+#              aes(x = N_conc, y = Vf_tot, color = site_legend)) + 
+#   scale_color_manual(values = pal_extended) +  
+#   scale_shape_manual(name = "", values = c("site mean" = 23)) +
+#   # log scale
+#   scale_x_log10(
+#   breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10", "100", "1000", "10000")) + 
+# 
+#   scale_y_log10( breaks = c(0.01, 0.1, 1, 10),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10")) + 
+#   # Labels
+#   labs(
+#     x = expression("N" ~ (mmol ~ m^-3)),
+#     y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
+#     color = 'Site'
+#   ) +
+#   theme_bw()
+# 
+# 
+# 
+# ################ attempt 4(ish)
+# 
+# Vf_plot <- ggplot() + 
+#   geom_point(data = daily_summary_all.df,
+#              aes(x = N_e, y = Vf_tot, color = site_legend, alpha = 0.5),
+#              show.legend = TRUE) + 
+#   geom_point(data = sitemeans,
+#              aes(x = Ne_mean, y = Vf_tot_mean, fill = site_legend, shape = mean_marker),
+#              color = "black", size = 3, stroke = 1, alpha = 1,
+#              show.legend = c(fill = FALSE, color = FALSE, shape = TRUE)) + 
+#   geom_point(data = linx.df,
+#              aes(x = N_conc, y = Vf_tot, color = site_legend)) + 
+#   scale_color_manual(values = pal_extended) +  
+#   scale_fill_manual(values = pal_extended) +
+#   scale_shape_manual(name = "", 
+#                      values = c("site mean" = 23),
+#                      guide = guide_legend(override.aes = list(size = 3, color = "black",
+#                                                               stroke = 1, alpha = 1))) +
+#   # log scale
+#   scale_x_log10(
+#   breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10", "100", "1000", "10000")) + 
+# 
+#   scale_y_log10( breaks = c(0.01, 0.1, 1, 10),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10")) + 
+#   # labels
+#   labs(
+#     x = expression("N" ~ (mmol ~ m^-3)),
+#     y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
+#     color = 'Site',
+#     fill = 'Site'
+#   ) +
+#   guides(alpha = "none") +   # removes alpha from legend
+#   theme_bw()
+# 
+# 
+# 
+# ############# attempt 5(ish) WORKED - copying above
+# Vf_plot <- ggplot() + 
+#   # regular points with color legend (color mapped to site_legend)
+#   geom_point(data = daily_summary_all.df,
+#              aes(x = N_e, y = Vf_tot, color = site_legend, alpha = 0.2)) + 
+#   # LINX points, also color mapped to site_legend
+#   geom_point(data = linx.df,
+#              aes(x = N_conc, y = Vf_tot, color = site_legend)) + 
+#   # mean points: fill mapped to site_legend, outline fixed black, no legend for fill/color
+#   geom_point(data = sitemeans,
+#              aes(x = Ne_mean, y = Vf_tot_mean, fill = site_legend, shape = mean_marker),
+#              color = "black", size = 3, stroke = 1, alpha = 1,
+#              show.legend = c(fill = FALSE, color = FALSE, shape = TRUE)) + 
+#   # scales: color for sites, fill for means (not shown in legend)
+#   scale_color_manual(values = pal_extended) +  
+#   scale_fill_manual(values = pal_extended) +
+#   scale_shape_manual(name = "", values = c("site mean" = 23),
+#                      guide = guide_legend(override.aes = list(
+#                        fill = "grey60", color = "black", size = 3, stroke = 1,
+#                        alpha = 1))) +
+#    # log scale
+#   scale_x_log10(
+#   breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10", "100", "1000", "10000")) + 
+# 
+#   scale_y_log10( breaks = c(0.01, 0.1, 1, 10),   # customize to your data range
+#   labels = c("0.01", "0.1", "1", "10")) + 
+#   
+#   # labels
+#   labs(
+#     x = expression("N" ~ (mmol ~ m^-3)),
+#     y = expression("Uptake velocity,"~V[f]~~(m~d^-1)),
+#     color = 'Site',
+#     fill = 'Site'
+#   ) +
+#   guides(alpha = "none") + 
+#   theme_bw()
+# 
+# quartz(height = 5, width = 8)
+# Vf_plot
+# 
+# 
+# 
+
+
+```
+
+```{r troubleshooting Vf plot}
+
+# dput(levels(daily_summary_all.df$site_legend))
+# dput(names(pal_extended))
+# 
+# setdiff(levels(daily_summary_all.df$site_legend), names(pal_extended))
+# 
 
 ```

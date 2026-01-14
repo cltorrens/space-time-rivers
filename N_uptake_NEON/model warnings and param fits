@@ -1,0 +1,855 @@
+
+Model fits and warnings
+
+###########################################################################################################################
+###     pooled-L-U_working.stan model:
+###########################################################################################################################
+
+
+########################################################    BIGC  ########################################################    
+
+Model finished in 21 min 54 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd   2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.06    0.00 0.00   0.06  0.06  0.06  0.06  0.06   746 1.00
+sigma_U     0.08    0.01 0.03   0.02  0.05  0.07  0.10  0.14    15 1.30
+sigma_logK  0.44    0.01 0.07   0.30  0.39  0.44  0.49  0.59    74 1.04
+logK_mean   0.83    0.01 0.09   0.65  0.78  0.83  0.89  1.00    75 1.04
+b0         -7.39    0.36 1.29 -10.45 -8.06 -7.20 -6.45 -5.33    13 1.32
+b1          0.42    0.03 0.11   0.23  0.34  0.40  0.48  0.69    13 1.32
+
+Warning messages:
+1: There were 221 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+3: Examine the pairs() plot to diagnose sampling problems
+ 
+4: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+#############  ChatGPT model:
+
+Model finished in 7 min 45 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  2320 1.00
+sigma_U     0.04    0.00 0.03  0.00  0.02  0.04  0.06  0.12   765 1.00
+sigma_logK  0.44    0.00 0.08  0.30  0.38  0.43  0.49  0.59   266 1.02
+logK_mean   0.82    0.00 0.09  0.64  0.76  0.82  0.88  0.98   399 1.01
+b0         -6.99    0.02 0.97 -8.85 -7.61 -6.99 -6.32 -5.16  1682 1.00
+b1          0.38    0.00 0.09  0.22  0.32  0.38  0.44  0.55  1674 1.00
+
+Warning message:
+Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+
+
+
+########################################################    CARI  ########################################################    
+
+Model finished in 5 min 15 sec
+
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.12    0.00 0.00  0.12  0.12  0.12  0.12  0.13  1835 1.00
+sigma_U     0.38    0.00 0.03  0.32  0.36  0.38  0.40  0.44   403 1.02
+sigma_logK  0.07    0.02 0.05  0.01  0.02  0.06  0.10  0.17     4 2.01
+logK_mean  -1.00    0.01 0.05 -1.10 -1.04 -1.00 -0.97 -0.90    50 1.08
+b0         -2.33    0.02 0.50 -3.31 -2.67 -2.31 -1.98 -1.40   927 1.00
+b1          0.15    0.00 0.04  0.07  0.12  0.15  0.18  0.24   856 1.00
+
+1: There were 89 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+3: Examine the pairs() plot to diagnose sampling problems
+ 
+4: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+#############  ChatGPT model:
+
+Model finished in 6 min 28 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.12    0.00 0.00  0.12  0.12  0.12  0.12  0.13  2890    1
+sigma_U     0.38    0.00 0.03  0.32  0.36  0.38  0.40  0.45   926    1
+sigma_logK  0.06    0.00 0.04  0.00  0.02  0.05  0.08  0.17   780    1
+logK_mean  -1.00    0.00 0.05 -1.10 -1.04 -1.00 -0.97 -0.91  1202    1
+b0         -2.32    0.01 0.50 -3.32 -2.65 -2.32 -1.97 -1.36  1201    1
+b1          0.15    0.00 0.04  0.07  0.12  0.15  0.18  0.24  1184    1
+
+Samples were drawn using NUTS(diag_e) at Tue Oct 28 23:52:03 2025.
+For each parameter, n_eff is a crude measure of effective sample size,
+and Rhat is the potential scale reduction factor on split chains (at 
+convergence, Rhat=1).
+
+NO WARNINGS
+
+########################################################    CUPE  ########################################################    
+
+Model finished in 18 min 56 sec
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.08    0.00 0.00  0.08  0.08  0.08  0.08  0.08  3961    1
+sigma_U     0.29    0.00 0.01  0.26  0.28  0.29  0.29  0.31  4110    1
+sigma_logK  0.21    0.00 0.01  0.19  0.20  0.21  0.22  0.23  1345    1
+logK_mean   1.40    0.00 0.01  1.37  1.39  1.40  1.40  1.42  3143    1
+b0         -3.13    0.01 0.61 -4.31 -3.55 -3.12 -2.71 -1.93  3134    1
+b1          0.13    0.00 0.06  0.02  0.10  0.13  0.17  0.24  3148    1
+
+
+No warnings
+
+
+
+#############  ChatGPT model:
+
+Model finished in 76 min 26 sec (!!!)
+
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.08    0.00 0.00  0.08  0.08  0.08  0.08  0.08  5206 1.00
+sigma_U     0.29    0.00 0.01  0.27  0.28  0.29  0.29  0.31  1015 1.00
+sigma_logK  0.21    0.00 0.01  0.18  0.20  0.21  0.22  0.23  1782 1.00
+logK_mean   1.40    0.00 0.01  1.37  1.39  1.40  1.40  1.42  2808 1.00
+b0         -3.10    0.03 0.61 -4.28 -3.50 -3.10 -2.69 -1.94   466 1.02
+b1          0.13    0.00 0.06  0.03  0.09  0.13  0.17  0.24   458 1.02
+
+No warnings
+
+
+########################################################    PRIN  ########################################################    
+
+Model finished in 3 min 40 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+             mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+sigma        0.28    0.00 0.00   0.28   0.28   0.28   0.29  0.29  3423 1.00
+sigma_U      0.48    0.00 0.04   0.41   0.45   0.48   0.50  0.56   721 1.00
+sigma_logK   0.44    0.01 0.12   0.24   0.36   0.43   0.51  0.70    80 1.03
+logK_mean   -0.77    0.01 0.11  -1.02  -0.84  -0.76  -0.69 -0.59   100 1.03
+b0         -11.37    0.05 1.62 -14.67 -12.44 -11.35 -10.26 -8.13  1070 1.00
+b1           0.93    0.00 0.15   0.64   0.83   0.93   1.03  1.23  1076 1.00
+
+
+Warning messages:
+1: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+2: Examine the pairs() plot to diagnose sampling problems
+ 
+3: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+#############  ChatGPT model:
+
+Model finished in 7 min 32 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+             mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+sigma        0.28    0.00 0.00   0.28   0.28   0.28   0.29  0.29  2722 1.00
+sigma_U      0.47    0.00 0.04   0.40   0.44   0.47   0.50  0.55   609 1.00
+sigma_logK   0.39    0.01 0.13   0.12   0.31   0.39   0.48  0.66   152 1.02
+logK_mean   -0.74    0.01 0.11  -0.98  -0.81  -0.73  -0.66 -0.56   182 1.01
+b0         -11.32    0.08 1.66 -14.54 -12.45 -11.33 -10.17 -8.09   434 1.00
+b1           0.93    0.01 0.15   0.64   0.82   0.93   1.03  1.21   425 1.00
+
+Warning messages:
+1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+########################################################    SYCA  ########################################################    
+
+Model finished in 2 min 22 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.42    0.00 0.01  0.41  0.42  0.42  0.43  0.43  3119 1.00
+sigma_U     0.62    0.00 0.05  0.53  0.58  0.62  0.66  0.73  2148 1.00
+sigma_logK  0.18    0.00 0.03  0.12  0.16  0.18  0.20  0.25   465 1.01
+logK_mean   2.08    0.00 0.03  2.02  2.06  2.08  2.11  2.15   949 1.00
+b0         26.15    0.05 2.44 21.30 24.51 26.17 27.75 30.90  2471 1.00
+b1         -3.00    0.01 0.28 -3.54 -3.18 -3.01 -2.81 -2.45  2440 1.00
+
+Warning message:
+Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+
+
+
+#############  ChatGPT model:
+
+Model finished in 8 min 42 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.42    0.00 0.01  0.41  0.42  0.42  0.43  0.43  4186 1.00
+sigma_U     0.62    0.00 0.05  0.53  0.59  0.62  0.66  0.73   571 1.01
+sigma_logK  0.18    0.00 0.03  0.12  0.16  0.18  0.20  0.25   884 1.00
+logK_mean   2.08    0.00 0.03  2.02  2.06  2.08  2.11  2.15   942 1.00
+b0         25.89    0.14 2.43 21.16 24.22 25.95 27.45 30.55   298 1.00
+b1         -2.97    0.02 0.28 -3.51 -3.15 -2.98 -2.78 -2.44   311 1.00
+
+
+Warning messages:
+1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+########################################################    WLOU  ########################################################    
+
+Model finished in 6 min 27 sec
+
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.05    0.00 0.00  0.05  0.05  0.05  0.05  0.05   276 1.01
+sigma_U     0.64    0.00 0.04  0.57  0.61  0.64  0.66  0.71   848 1.00
+sigma_logK  0.48    0.01 0.10  0.35  0.42  0.46  0.51  0.66    63 1.05
+logK_mean   1.14    0.02 0.12  0.95  1.10  1.16  1.20  1.27    58 1.06
+b0         -6.85    0.03 0.91 -8.65 -7.48 -6.85 -6.23 -5.09  1269 1.00
+b1          0.44    0.00 0.10  0.26  0.38  0.44  0.51  0.63  1250 1.00
+
+Warning messages:
+1: There were 15 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+3: Examine the pairs() plot to diagnose sampling problems
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+
+#############  ChatGPT model:
+
+Model finished in 8 min 9 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+            mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma       0.05    0.00 0.00  0.05  0.05  0.05  0.05  0.05    31 1.10
+sigma_U     0.64    0.00 0.04  0.57  0.61  0.64  0.67  0.74    85 1.04
+sigma_logK  0.53    0.05 0.21  0.36  0.44  0.49  0.55  1.44    16 1.23
+logK_mean   1.06    0.07 0.28 -0.16  1.06  1.12  1.18  1.27    15 1.24
+b0         -6.80    0.06 0.87 -8.51 -7.39 -6.80 -6.22 -5.07   240 1.03
+b1          0.44    0.01 0.09  0.26  0.38  0.44  0.50  0.62   207 1.04
+
+
+
+Warning messages:
+1: In for (i in 1:n) { : closing unused connection 6 (<-localhost:11032)
+2: In for (i in 1:n) { : closing unused connection 5 (<-localhost:11032)
+3: In for (i in 1:n) { : closing unused connection 4 (<-localhost:11032)
+4: In for (i in 1:n) { : closing unused connection 3 (<-localhost:11032)
+5: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+6: Examine the pairs() plot to diagnose sampling problems
+ 
+7: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+8: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+9: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+
+
+
+###########################################################################################################################
+###     pooled-L_all.stan model:  (old version before pooling K)
+###########################################################################################################################
+
+
+########################################################   BIGC  ########################################################   
+
+Model finished in 20 min 10 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  2049 1.00
+sigma_U  0.07    0.01 0.03  0.02  0.05  0.07  0.09  0.15    15 1.28
+b0      -7.30    0.13 0.94 -9.29 -7.92 -7.25 -6.65 -5.55    53 1.07
+b1       0.41    0.01 0.08  0.26  0.36  0.41  0.47  0.59    53 1.07
+
+
+1: There were 102 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+3: Examine the pairs() plot to diagnose sampling problems
+ 
+4: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+########################################################   CARI  ########################################################   
+
+Model finished in 3 min 36 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.13    0.00 0.00  0.12  0.13  0.13  0.13  0.13  4363    1
+sigma_U  0.40    0.00 0.03  0.34  0.37  0.40  0.42  0.47   579    1
+b0      -1.95    0.02 0.53 -3.00 -2.27 -1.94 -1.59 -0.94  1122    1
+b1       0.12    0.00 0.05  0.03  0.09  0.12  0.15  0.21  1111    1
+
+NO WARNINGS
+
+
+########################################################   CUPE  ########################################################   
+
+Model finished in 9 min 16 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.08    0.00 0.00  0.08  0.08  0.08  0.08  0.08  2730    1
+sigma_U  0.30    0.00 0.01  0.27  0.29  0.30  0.30  0.32  2573    1
+b0      -3.08    0.01 0.62 -4.29 -3.50 -3.09 -2.67 -1.83  1816    1
+b1       0.13    0.00 0.06  0.02  0.09  0.13  0.17  0.24  1821    1
+
+Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+########################################################   PRIN  ########################################################  
+
+Model finished in 3 min 16 sec
+4 chains, each with iter=1000; warmup=500; thin=1; 
+post-warmup draws per chain=500, total post-warmup draws=2000.
+
+          mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+sigma     0.29    0.00 0.00   0.28   0.29   0.29   0.29  0.30  2841    1
+sigma_U   0.49    0.00 0.04   0.42   0.46   0.49   0.51  0.57   976    1
+b0      -11.87    0.05 1.69 -15.17 -13.01 -11.83 -10.69 -8.58   980    1
+b1        0.98    0.00 0.15   0.68   0.87   0.97   1.08  1.27   988    1
+
+NO WARNINGS
+
+########################################################   SYCA  ########################################################  
+
+Model finished in 3 min 10 sec
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.43    0.00 0.01  0.42  0.43  0.43  0.44  0.45  5439    1
+sigma_U  0.75    0.00 0.07  0.63  0.70  0.74  0.79  0.89  2799    1
+b0      32.54    0.04 2.91 26.78 30.60 32.60 34.50 38.27  4423    1
+b1      -3.77    0.01 0.33 -4.43 -4.00 -3.78 -3.55 -3.12  4358    1
+
+NO WARNINGS
+
+########################################################   WLOU  ########################################################  
+
+Model finished in 9 min 32 sec
+4 chains, each with iter=4000; warmup=2000; thin=1; 
+post-warmup draws per chain=2000, total post-warmup draws=8000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.05    0.00 0.00  0.05  0.05  0.05  0.05  0.05  9714    1
+sigma_U  0.64    0.00 0.04  0.57  0.62  0.64  0.67  0.72  4044    1
+b0      -6.74    0.01 0.89 -8.48 -7.34 -6.74 -6.14 -4.98  4338    1
+b1       0.43    0.00 0.09  0.25  0.37  0.43  0.49  0.61  4341    1
+
+NO WARNINGS
+
+
+
+###########################################################################################################################
+###     pooled-L-U_all.stan model:  ()
+###########################################################################################################################
+
+
+########################################################    BIGC 
+Warning messages: #################
+
+# 6K iterations: Model finished in 61 min 29 sec
+# 4 chains, each with iter=6000; warmup=3000; thin=1; 
+# post-warmup draws per chain=3000, total post-warmup draws=12000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06   128 1.03
+# sigma_U  0.11    0.01 0.04  0.05  0.08  0.10  0.14  0.21    60 1.06
+# sigma_K  0.75    0.03 0.22  0.18  0.65  0.79  0.90  1.09    61 1.04
+# K_mean   2.55    0.01 0.18  2.21  2.43  2.55  2.67  2.90   234 1.02
+# b0      -7.54    0.07 1.03 -9.58 -8.22 -7.54 -6.87 -5.70   207 1.02
+# b1       0.43    0.01 0.09  0.27  0.37  0.43  0.49  0.61   198 1.02
+# 
+# 1: There were 2056 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+#  
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+# # 4K iterations: Model finished in 58 min 23 sec
+#   
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  2118 1.00
+# sigma_U  0.09    0.01 0.05  0.02  0.06  0.09  0.12  0.19    10 1.23
+# sigma_K  0.78    0.02 0.18  0.36  0.68  0.80  0.90  1.09   105 1.05
+# K_mean   2.54    0.01 0.18  2.18  2.41  2.53  2.67  2.89   448 1.01
+# b0      -7.61    0.04 0.96 -9.59 -8.22 -7.59 -6.95 -5.79   502 1.01
+# b1       0.44    0.00 0.09  0.28  0.38  0.44  0.49  0.62   502 1.01
+# 
+#   
+# Warning messages:
+# 1: There were 527 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+#  
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+# 2K iterations
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06   638 1.00
+# sigma_U  0.10    0.01 0.04  0.04  0.07  0.10  0.13  0.19    12 1.17
+# b0      -7.62    0.05 0.90 -9.42 -8.22 -7.64 -7.02 -5.86   315 1.01
+# b1       0.44    0.00 0.08  0.28  0.39  0.44  0.49  0.60   316 1.01
+
+# 1: There were 420 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+#  
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+# 3K iterations ==> 40 min
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  1599 1.01
+# sigma_U  0.10    0.00 0.04  0.04  0.07  0.10  0.13  0.19    67 1.07
+# b0      -7.63    0.04 0.96 -9.52 -8.27 -7.61 -6.99 -5.81   480 1.00
+# b1       0.44    0.00 0.09  0.28  0.38  0.44  0.50  0.61   478 1.00
+# 
+# Warning messages:
+# 1: There were 177 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+#  
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+########################################################    CARI
+
+# Warnings
+
+#  4K Model finished in 14 min 16 sec & 13 min 43 sec
+# 4 chains, each with iter=4000; warmup=2000; thin=1; 
+# post-warmup draws per chain=2000, total post-warmup draws=8000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.12    0.00 0.00  0.12  0.12  0.12  0.12  0.13  5492 1.00
+# sigma_U  0.38    0.00 0.03  0.32  0.36  0.38  0.40  0.45  2299 1.00
+# sigma_K  0.02    0.00 0.02  0.00  0.01  0.02  0.03  0.07    18 1.18
+# K_mean   0.37    0.00 0.02  0.33  0.36  0.37  0.38  0.41   242 1.04
+# b0      -2.32    0.01 0.50 -3.31 -2.66 -2.32 -1.98 -1.36  4237 1.00
+# b1       0.15    0.00 0.04  0.06  0.12  0.15  0.18  0.24  4189 1.00
+# 
+# 
+# Warning messages:
+# 1: There were 92 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+# # 4 chains, each with iter=3000; warmup=1500; thin=1; 
+# post-warmup draws per chain=1500, total post-warmup draws=6000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.12    0.00 0.00  0.12  0.12  0.12  0.12  0.13  1801 1.00
+# sigma_U  0.38    0.00 0.03  0.32  0.36  0.38  0.40  0.44  2086 1.00
+# sigma_K  0.02    0.00 0.01  0.00  0.01  0.01  0.02  0.06    13 1.35
+# K_mean   0.37    0.00 0.02  0.33  0.35  0.37  0.38  0.40   145 1.01
+# b0      -2.33    0.01 0.50 -3.32 -2.67 -2.33 -1.96 -1.36  2087 1.00
+# b1       0.15    0.00 0.04  0.06  0.12  0.15  0.18  0.24  2048 1.00
+
+# Warning messages:
+# 1: There were 178 divergent transitions after warmup. See
+# https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# to find out why this is a problem and how to eliminate them. 
+# 2: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 3: Examine the pairs() plot to diagnose sampling problems
+#  
+# 4: The largest R-hat is NA, indicating chains have not mixed.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#r-hat 
+# 5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+# 
+
+
+########################################################    CUPE
+
+# # No warnings: 2K iter Model finished in 18 min 51 sec
+# 4 chains, each with iter=2000; warmup=1000; thin=1; 
+# post-warmup draws per chain=1000, total post-warmup draws=4000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.08    0.00 0.00  0.08  0.08  0.08  0.08  0.08  4807    1
+# sigma_U  0.28    0.00 0.01  0.26  0.28  0.28  0.29  0.31  5196    1
+# sigma_K  0.82    0.00 0.05  0.74  0.79  0.82  0.85  0.92  1332    1
+# K_mean   4.12    0.00 0.05  4.02  4.08  4.12  4.16  4.22  2756    1
+# b0      -3.18    0.01 0.60 -4.32 -3.59 -3.18 -2.78 -2.04  3131    1
+# b1       0.14    0.00 0.05  0.04  0.10  0.14  0.17  0.24  3135    1
+
+
+
+########################################################    PRIN
+
+# Warnings: 
+
+# 6K iterations: Model finished in 13 min 41 sec, no warnings
+# 
+# 4 chains, each with iter=6000; warmup=3000; thin=1; 
+# post-warmup draws per chain=3000, total post-warmup draws=12000.
+# 
+#           mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+# sigma     0.28    0.00 0.00   0.28   0.28   0.28   0.29  0.29 17182    1
+# sigma_U   0.47    0.00 0.04   0.41   0.45   0.47   0.50  0.55  6355    1
+# sigma_K   0.20    0.00 0.03   0.14   0.18   0.21   0.23  0.27   703    1
+# K_mean    0.51    0.00 0.04   0.44   0.49   0.51   0.54  0.59  2246    1
+# b0      -11.17    0.02 1.62 -14.37 -12.27 -11.16 -10.10 -8.05  6986    1
+# b1        0.91    0.00 0.14   0.63   0.82   0.91   1.01  1.20  7011    1
+
+# 4K iterations: Model finished in 10 min 14 sec
+# # 
+# 4 chains, each with iter=4000; warmup=2000; thin=1; 
+# post-warmup draws per chain=2000, total post-warmup draws=8000.
+#           mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+# sigma     0.28    0.00 0.00   0.28   0.28   0.28   0.29  0.29  9982 1.00
+# sigma_U   0.47    0.00 0.04   0.41   0.45   0.47   0.50  0.55  3753 1.00
+# sigma_K   0.20    0.00 0.03   0.13   0.19   0.21   0.23  0.27   249 1.02
+# K_mean    0.51    0.00 0.04   0.44   0.49   0.51   0.54  0.59  1048 1.01
+# b0      -11.20    0.03 1.62 -14.46 -12.29 -11.19 -10.13 -8.03  3766 1.00
+# b1        0.92    0.00 0.14   0.63   0.82   0.91   1.01  1.21  3801 1.00
+# 
+# Samples were drawn using NUTS(diag_e) at Thu Oct 23 00:21:22 2025.
+# For each parameter, n_eff is a crude measure of effective sample size,
+# and Rhat is the potential scale reduction factor on split chains (at 
+# convergence, Rhat=1).
+
+# Warning messages:
+# 1: In for (v in val) { : closing unused connection 6 (<-localhost:11592)
+# 2: In for (v in val) { : closing unused connection 5 (<-localhost:11592)
+# 3: In for (v in val) { : closing unused connection 4 (<-localhost:11592)
+# 4: In for (v in val) { : closing unused connection 3 (<-localhost:11592)
+# 5: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
+# https://mc-stan.org/misc/warnings.html#bfmi-low 
+# 6: Examine the pairs() plot to diagnose sampling problems
+#  
+# 7: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 8: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+# 2K iterations: Model finished in 6 min 44 sec
+# 4 chains, each with iter=2000; warmup=1000; thin=1; 
+# post-warmup draws per chain=1000, total post-warmup draws=4000.
+# 
+#           mean se_mean   sd   2.5%    25%    50%    75% 97.5% n_eff Rhat
+# sigma     0.28    0.00 0.00   0.28   0.28   0.28   0.29  0.29  5842 1.00
+# sigma_U   0.48    0.00 0.04   0.41   0.45   0.47   0.50  0.56  2045 1.00
+# sigma_K   0.21    0.00 0.03   0.13   0.19   0.21   0.23  0.27   282 1.01
+# K_mean    0.51    0.00 0.04   0.44   0.49   0.51   0.54  0.59   794 1.01
+# b0      -11.23    0.04 1.65 -14.52 -12.34 -11.21 -10.11 -8.03  2169 1.00
+# b1        0.92    0.00 0.15   0.63   0.82   0.92   1.02  1.22  2170 1.00
+# 
+# Warning messages: 
+# 1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+
+########################################################    SYCA
+
+# No warnings: Model finished in 4 min 38 sec
+# 4 chains, each with iter=2000; warmup=1000; thin=1; 
+# post-warmup draws per chain=1000, total post-warmup draws=4000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.42    0.00 0.01  0.41  0.42  0.42  0.43  0.44  6126    1
+# sigma_U  0.62    0.00 0.05  0.53  0.59  0.62  0.66  0.73  4763    1
+# sigma_K  1.18    0.01 0.20  0.80  1.03  1.17  1.30  1.60   651    1
+# K_mean   8.11    0.01 0.24  7.65  7.95  8.11  8.27  8.61  1767    1
+# b0      26.08    0.04 2.47 21.00 24.39 26.11 27.75 30.83  3749    1
+# b1      -3.00    0.00 0.28 -3.54 -3.19 -3.00 -2.81 -2.41  3719    1
+
+# Had to re-do for data: 
+# No warnings: Model finished in 2 min 43 sec
+# 4 chains, each with iter=2000; warmup=1000; thin=1; 
+# post-warmup draws per chain=1000, total post-warmup draws=4000.
+# 
+#          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# sigma    0.42    0.00 0.01  0.41  0.42  0.42  0.43  0.44  6126    1
+# sigma_U  0.62    0.00 0.05  0.53  0.59  0.62  0.66  0.73  4763    1
+# sigma_K  1.18    0.01 0.20  0.80  1.03  1.17  1.30  1.60   651    1
+# K_mean   8.11    0.01 0.24  7.65  7.95  8.11  8.27  8.61  1767    1
+# b0      26.08    0.04 2.47 21.00 24.39 26.11 27.75 30.83  3749    1
+# b1      -3.00    0.00 0.28 -3.54 -3.19 -3.00 -2.81 -2.41  3719    1
+
+
+
+
+########################################################    WLOU 
+
+
+# # Warnings: 
+# 
+# # AFTER REMOVING 3 PROBLEM DAYS: SAVED AS FIT2 AND MODEL DATA 2
+# 
+# # 4K iterations: Model finished in 12 min 8 sec
+# # 4 chains, each with iter=4000; warmup=2000; thin=1; 
+# # post-warmup draws per chain=2000, total post-warmup draws=8000.
+# # 
+# #          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# # sigma    0.05    0.00 0.00  0.05  0.05  0.05  0.05  0.05  3311 1.00
+# # sigma_U  0.64    0.00 0.04  0.57  0.62  0.64  0.67  0.72  3567 1.00
+# # sigma_K  1.36    0.02 0.16  1.04  1.25  1.36  1.47  1.67   108 1.05
+# # K_mean   3.49    0.01 0.19  3.12  3.36  3.49  3.61  3.86   553 1.01
+# # b0      -7.49    0.02 1.05 -9.57 -8.19 -7.49 -6.79 -5.41  3680 1.00
+# # b1       0.45    0.00 0.10  0.26  0.38  0.45  0.51  0.64  3656 1.00
+# 
+# # 1: The largest R-hat is NA, indicating chains have not mixed.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#r-hat 
+# # 2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#bulk-ess 
+# # 3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#tail-ess 
+# 
+# 
+# 
+# # 4K iterations: Model finished in 19 min 58 sec
+# # 4 chains, each with iter=4000; warmup=2000; thin=1; 
+# # post-warmup draws per chain=2000, total post-warmup draws=8000.
+# # 
+# #          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# # sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  4282    1
+# # sigma_U  0.66    0.00 0.04  0.59  0.64  0.66  0.69  0.74  3930    1
+# # sigma_K  1.96    0.00 0.13  1.72  1.87  1.95  2.04  2.22  3789    1
+# # K_mean   3.42    0.01 0.21  3.00  3.28  3.42  3.57  3.84  1228    1
+# # b0      -7.62    0.02 1.13 -9.87 -8.36 -7.64 -6.86 -5.40  3758    1
+# # b1       0.46    0.00 0.10  0.26  0.39  0.46  0.53  0.66  3722    1
+# # 
+# # Warning messages:
+# # 1: There were 53 divergent transitions after warmup. See
+# # https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+# # to find out why this is a problem and how to eliminate them. 
+# # 2: Examine the pairs() plot to diagnose sampling problems
+# # 3: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#bulk-ess 
+# # 4: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#tail-ess 
+# # 
+# 
+# 
+# # 2K iterations, Model finished in 11 min 18 sec
+# # 4 chains, each with iter=2000; warmup=1000; thin=1; 
+# # post-warmup draws per chain=1000, total post-warmup draws=4000.
+# # 
+# #          mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+# # sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  2075 1.00
+# # sigma_U  0.66    0.00 0.04  0.59  0.64  0.66  0.69  0.74  1800 1.00
+# # sigma_K  1.97    0.00 0.12  1.73  1.88  1.96  2.04  2.22  1555 1.00
+# # K_mean   3.42    0.01 0.21  3.00  3.28  3.42  3.56  3.83   436 1.01
+# # b0      -7.64    0.02 1.12 -9.84 -8.37 -7.65 -6.89 -5.38  2403 1.00
+# # b1       0.46    0.00 0.10  0.26  0.39  0.46  0.53  0.66  2378 1.00
+# # 
+# # 
+# # Warning messages:
+# # 1: The largest R-hat is NA, indicating chains have not mixed.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#r-hat 
+# # 2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#bulk-ess 
+# # 3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# # Running the chains for more iterations may help. See
+# # https://mc-stan.org/misc/warnings.html#tail-ess 
+
+
+
+#######################  ALSO: there's new data, esp. for BIGC and WLOU. Checking new data on old model:  #######################
+
+BIGC: The new model is struggling. I *ALSO* have new data for bigc, so let's see if that's part of the problem. Running the old stan model, starting w. 2K iterations: Better, but still struggling. 
+
+2K w. old stan model + new data: finished in 19 min
+4 chains, each with iter=2000; warmup=1000; thin=1; 
+post-warmup draws per chain=1000, total post-warmup draws=4000.
+
+         mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+sigma    0.06    0.00 0.00  0.06  0.06  0.06  0.06  0.06  1275 1.00
+sigma_U  0.16    0.01 0.05  0.08  0.12  0.16  0.19  0.25    80 1.03
+b0      -8.07    0.05 1.00 -9.98 -8.75 -8.07 -7.39 -6.11   424 1.02
+b1       0.48    0.00 0.09  0.31  0.42  0.48  0.54  0.65   421 1.02
+Warning messages:
+1: There were 223 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: There were 2 chains where the estimated Bayesian Fraction of Missing Information was low. See
+https://mc-stan.org/misc/warnings.html#bfmi-low 
+3: Examine the pairs() plot to diagnose sampling problems
+ 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+# 

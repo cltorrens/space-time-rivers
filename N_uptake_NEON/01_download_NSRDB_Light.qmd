@@ -42,13 +42,13 @@ setwd(here("N_uptake_NEON/data/NSRDB_lightdata_raw/5m"))
 
 ########################## download NSRDB satellite-generated light  ############
 
-## The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command; oops, nope, only goes to 2022
+## The data downloads by 1 site and 1 year - this for loop downloads 2021-23 with one command
 
-#years <- 2021:2023
-site <- "WALK"
+#years <- 2021:2024
+site <- "WLOU"
 
 
-for (i in 2021:2023) {
+for (i in 2024:2024) {
 # API request parameters, except for longitude and latitude
 # Declare all variables as strings. Spaces must be replaced with '+'.
 ################################################################################
@@ -128,12 +128,12 @@ mailing_list = 'false'
 # lon <- -119.023553	
 
 # WALK
-lat <- 35.95722
-lon <- -84.27921
+# lat <- 35.95722
+# lon <- -84.27921
 
 # WLOU
-# lat <- 39.890673
-# lon <- -105.911297
+lat <- 39.890673
+lon <- -105.911297
 
 # Declare url string
 
@@ -172,13 +172,13 @@ GET(url = URL, write_disk(output_file))
 ```{r - function to bind data into 1 file per site}
 
 bind_nsrdb  <- function(path, site) {
-  files  <- list.files(path=filepath, pattern=site) %>%
+  files  <- list.files(path=path, pattern=site) %>%
     lapply(read.csv, skip = 2) %>%
-    bind_rows() %>%
-    select(1:7) %>%
-    rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>% 
-    mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
-    select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
+    dplyr::bind_rows() %>%
+    dplyr::select(1:7) %>%
+    dplyr::rename("year" = 1, "month"= 2, "day"= 3, "hour"= 4, "minute" = 5, "clearsky_GHI_wm2"= 6, "GHI_wm2"= 7) %>% 
+    dplyr::mutate(local_datetime = make_datetime(year, month, day, hour, minute)) %>%
+    dplyr::select(local_datetime, GHI_wm2, clearsky_GHI_wm2)
 }
 
 ```
@@ -230,8 +230,8 @@ write_csv(blde.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/BLDE
 ```
 
 ##### CARI - NA
-Used NEON PAR data for CARI light
 
+Used NEON PAR data for CARI light
 
 ##### CUPE
 
@@ -253,7 +253,6 @@ write_csv(cupe.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/CUPE
 
 ```
 
-
 ##### KING
 
 ```{r - KING file bind}
@@ -273,7 +272,6 @@ summary(king.satlight)
 write_csv(king.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/KING_satlight_all.csv"))
 
 ```
-
 
 ##### MART
 
@@ -295,10 +293,9 @@ write_csv(mart.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/MART
 
 ```
 
-
 ##### OKSR - NA
-Used NEON PAR data for OKSR light
 
+Used NEON PAR data for OKSR light
 
 ##### POSE
 
@@ -320,7 +317,6 @@ write_csv(pose.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/POSE
 
 ```
 
-
 ##### PRIN
 
 ```{r - PRIN file bind}
@@ -340,7 +336,6 @@ summary(prin.satlight)
 write_csv(prin.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/PRIN_satlight_all.csv"))
 
 ```
-
 
 ##### SYCA
 
@@ -362,7 +357,6 @@ write_csv(syca.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/SYCA
 
 ```
 
-
 ##### WALK
 
 ```{r - WALK file bind}
@@ -382,8 +376,6 @@ summary(walk.satlight)
 write_csv(walk.satlight,file=here("N_uptake_NEON/data/NSRDB_lightdata_clean/WALK_satlight_all.csv"))
 
 ```
-
-
 
 ##### WLOU
 
